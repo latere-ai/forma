@@ -151,7 +151,7 @@ where the code is, what diverged, and what is open.
 | [023](023-cache-kinds.md) | implemented | three state shapes in one forward pass, and what a block reserves | §10's six rows that need a stack running all three kinds, which is 024's graph |
 | [024](024-qwen3-5-architecture.md) | implemented | the `qwen3_5` config, weight map and hybrid graph | §11's sub-scope A, small and unblocked, and sub-scope C, blocked on accel#27 |
 | [030](030-logprobs.md) | complete | reporting the distribution a token was drawn from | — |
-| [031](031-forma-rename.md) | implemented | Forma repository, module, command, and public naming | remote publication and installation verification |
+| [031](031-forma-rename.md) | complete | Forma repository, module, command, and public naming | — |
 
 **What is next.** Six specs, each scoped to be finished in one pass. Two are the
 residue of a spec above that was scoped too large: 008 shed three, of which

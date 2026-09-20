@@ -1535,3 +1535,12 @@ The table is empty and the columns are the shape to fill:
 
 | date | accel revision | device | tier | checkpoint | measurement | value | tolerance |
 | --- | --- | --- | --- | --- | --- | ---: | --- |
+
+## Forma naming migration (2026-09-20)
+
+[031](031-forma-rename.md) is complete. The repository is `latere-ai/forma`, the
+module is `latere.ai/x/forma`, and the executable lives under `cmd/forma`.
+Imports, configuration, diagnostics, docs, CI, and sibling references use the
+new names. The existing suite and coverage gate pass, all ten cross-platform
+builds pass, and installation from the published module succeeds. This records
+a naming migration, not a new model-performance measurement.

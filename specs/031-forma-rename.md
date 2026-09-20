@@ -1,6 +1,6 @@
 ---
 title: "Forma: one name for the repository, module and command"
-status: implemented
+status: complete
 layer: all
 depends_on:
   - 000-decisions.md
@@ -50,6 +50,13 @@ The module, package, command directory, imports, CI configuration, and public
 names use Forma. `docs/migration.md` documents consumer changes and cache reuse.
 The existing Go suite passes and all 14 coverage-gated packages exceed 90%.
 A separate consumer imports the new module, and the built `forma` command runs.
+The dependency gate and builds pass on all ten configured platforms; formatting,
+spec lint, and the cgo-free gate pass. GitHub is renamed to `latere-ai/forma`,
+the vanity metadata resolves it, and installing
+`latere.ai/x/forma/cmd/forma@main` from the published repository succeeds.
+Reference updates are published in the organization profile, specs, pkg, ci,
+ci-gate, llmops, and accel repositories. Historical snapshots and original
+copyright notices retain their original wording.
 
-**Not built.** Publication remains: rename the remote repository, push the
-implementation and sibling references, and verify installation from GitHub.
+**Not built.** Nothing in this naming migration. A release tag and new hardware
+or real-checkpoint measurements are outside its scope.
