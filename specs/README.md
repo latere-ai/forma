@@ -167,6 +167,7 @@ two, 015 shed one.
 | [027](027-batched-benchmarks.md) | drafted | the throughput curve 017-D5 designed and nothing measures | 017 |
 | [028](028-performance-gate.md) | drafted | a build that loses throughput fails like one that loses a test | 017 |
 | [029](029-grammar-front-ends.md) | drafted | EBNF and regex over the machine the schema path already built | 015 |
+| [031](031-forma-rename.md) | drafted | Forma repository, module, command, and public naming | naming migration |
 
 **Three of them judged themselves too large** and named their own passes:
 [022](022-batched-serving.md) §14 and [024](024-qwen3-5-architecture.md) §11 each
