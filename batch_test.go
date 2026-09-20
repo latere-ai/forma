@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Latere AI
 // SPDX-License-Identifier: Apache-2.0
 
-package tgo
+package forma
 
 import (
 	"errors"
@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/latere-ai/tgo/internal/prefix"
+	"latere.ai/x/forma/internal/prefix"
 )
 
 // batchModel is the fixture with a shared block pool large enough for a few

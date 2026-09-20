@@ -116,7 +116,7 @@ func (a *arena) grow(need int, label string) error {
 			"this device's MaxPoolBytes of %d", label, need, want, a.max)
 	}
 	p, err := a.dev.NewPool(accel.PoolDescriptor{
-		Kind: a.kind, Bytes: size, Policy: accel.PoolGeneral, Label: "tgo.weights",
+		Kind: a.kind, Bytes: size, Policy: accel.PoolGeneral, Label: "forma.weights",
 	})
 	if err != nil {
 		return fmt.Errorf("weights: %s: %w", label, err)

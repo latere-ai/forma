@@ -37,7 +37,7 @@ func TestParseBenchRefusals(t *testing.T) {
 		args []string
 		want string
 	}{
-		{"a batch tgo cannot run", []string{"--batch", "8", "d"}, "008-scheduler.md is drafted and unbuilt"},
+		{"a batch forma cannot run", []string{"--batch", "8", "d"}, "008-scheduler.md is drafted and unbuilt"},
 		{"zero tokens", []string{"--tokens", "0", "d"}, "--tokens is 0"},
 		{"a negative warm-up", []string{"--warmup", "-1", "d"}, "--warmup is -1"},
 		{"a prompt longer than the cache", []string{"--prompt-tokens", "4000", "--tokens", "200", "d"},
@@ -256,7 +256,7 @@ func describeSynthetic(t *testing.T) modelReport {
 	return rep
 }
 
-// TestCmdBenchOnAnEngineWithNoBreakdown is what `tgo bench` does against the
+// TestCmdBenchOnAnEngineWithNoBreakdown is what `forma bench` does against the
 // engine that exists today, end to end.
 //
 // specs/007-engine.md §1 exports no way to set or read its bench.Recorder, so

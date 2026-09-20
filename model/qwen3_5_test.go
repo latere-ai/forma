@@ -12,7 +12,7 @@ import (
 	"golang.design/x/accel"
 	"golang.design/x/accel/tensor"
 
-	"github.com/latere-ai/tgo/nn"
+	"latere.ai/x/forma/nn"
 )
 
 // newTestBuilder is a builder on the CPU backend, for a test that only needs a
@@ -325,7 +325,7 @@ func TestTheTwoTowersAreNamedAndIgnored(t *testing.T) {
 }
 
 // TestQwen35ForwardIsRefusedByName is [000 D1](../specs/000-decisions.md)'s
-// output. tgo knows this architecture, has read its config and its weight map,
+// output. forma knows this architecture, has read its config and its weight map,
 // and states the one operator it needs -- rather than not knowing it, or
 // quietly building something else.
 func TestQwen35ForwardIsRefusedByName(t *testing.T) {

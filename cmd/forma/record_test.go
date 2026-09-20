@@ -11,9 +11,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/latere-ai/tgo/bench"
-	"github.com/latere-ai/tgo/sample"
-	"github.com/latere-ai/tgo/weights"
+	"latere.ai/x/forma/bench"
+	"latere.ai/x/forma/sample"
+	"latere.ai/x/forma/weights"
 )
 
 // syntheticReport builds a bench.Report from steps whose four terms are known,
@@ -137,7 +137,7 @@ func TestMarkdownReportsTheBreakdownAndNotOneNumber(t *testing.T) {
 	}
 }
 
-// TestBatchAxisIsAnAxis is 017-D5. tgo does not batch, and the record says so
+// TestBatchAxisIsAnAxis is 017-D5. forma does not batch, and the record says so
 // in the axis rather than by omitting it: a scalar batch size would be
 // indistinguishable from a framework that measured one point of a curve it has.
 func TestBatchAxisIsAnAxis(t *testing.T) {
@@ -172,7 +172,7 @@ func TestBatchAxisIsAnAxis(t *testing.T) {
 	if !strings.Contains(sb.String(), "## Batch axis") || !strings.Contains(sb.String(), "008") {
 		t.Errorf("the Markdown drops the batch axis:\n%s", sb.String())
 	}
-	// And the comparison tgo has not run is named rather than left out
+	// And the comparison forma has not run is named rather than left out
 	// (017 §4 rule 1).
 	if !strings.Contains(sb.String(), "vLLM") {
 		t.Error("the report does not say that no vLLM comparison is in it")
@@ -298,7 +298,7 @@ func TestHumanFormats(t *testing.T) {
 // TestBreakdownIsReportedAsMissingRatherThanAsZeros is the arm every real run
 // takes today, and the one no other test here reaches.
 //
-// A session opened without a tgo.WithRecorder has a time to first token and no
+// A session opened without a forma.WithRecorder has a time to first token and no
 // four-way breakdown. A Report from a recorder nothing wrote to marshals as a
 // full set of fields holding zero times and zero shares, which reads as a
 // measurement of an impossibly fast model. The record says the terms are
@@ -404,7 +404,7 @@ func TestAnUnmeasuredAxisNamesAGapThatIsStillOpen(t *testing.T) {
 	} {
 		if strings.Contains(note, "no way to set") || strings.Contains(note, "no way to read") {
 			t.Errorf("the note for %s says the engine exports no way to set or read a "+
-				"recorder, and tgo.WithRecorder does exactly that: %q", what, note)
+				"recorder, and forma.WithRecorder does exactly that: %q", what, note)
 		}
 	}
 	// WithRecorder is the name the corrected note points a reader at, so a
@@ -462,7 +462,7 @@ func TestEveryUnmeasuredAxisIsNamed(t *testing.T) {
 // some of them would report a measured run as carrying nothing: an engine that
 // instruments its prefill and not its decode has measured the breakdown, and so
 // has one whose only non-zero term is the readback -- which is the term
-// specs/007-engine.md 007-D4 says tgo exists to measure. Each of the eight
+// specs/007-engine.md 007-D4 says forma exists to measure. Each of the eight
 // cells is asserted on its own, so a reader dropped from [hasBreakdown] is a
 // failure rather than a record that quietly says "not measured".
 func TestBreakdownCountsEveryPhaseAndEveryTerm(t *testing.T) {

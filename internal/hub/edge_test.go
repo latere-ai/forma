@@ -100,7 +100,7 @@ func TestA416WithNothingToResumeIsJustAFailure(t *testing.T) {
 }
 
 func TestCacheDirAndDirReportAMachineWithNoHome(t *testing.T) {
-	t.Setenv("TGO_CACHE", "")
+	t.Setenv("FORMA_CACHE", "")
 	t.Setenv("XDG_CACHE_HOME", "")
 	t.Setenv("HOME", "")
 	t.Setenv("USERPROFILE", "")

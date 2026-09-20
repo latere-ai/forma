@@ -11,7 +11,7 @@ import (
 
 	"latere.ai/x/pkg/llmdialect/ir"
 
-	"github.com/latere-ai/tgo"
+	"latere.ai/x/forma"
 )
 
 // §5.1 and 009-D13. Frontend has no error path and ir defines no error type, so
@@ -85,9 +85,9 @@ func TestAFailureMidStreamReachesTheClientInItsDialect(t *testing.T) {
 func TestAFailureClosesAnOpenBlock(t *testing.T) {
 	t.Parallel()
 	eng := &fakeEngine{
-		script: []tgo.Event{
-			{Kind: tgo.BlockStart, Block: "text"},
-			{Kind: tgo.TextDelta, Block: "text", Text: "half"},
+		script: []forma.Event{
+			{Kind: forma.BlockStart, Block: "text"},
+			{Kind: forma.TextDelta, Block: "text", Text: "half"},
 		},
 		streamErr: errFake,
 	}
@@ -112,7 +112,7 @@ func TestAFailureBeforeTheStreamIsAStatus(t *testing.T) {
 	t.Run("a prompt that does not fit the context", func(t *testing.T) {
 		t.Parallel()
 		s := newTestServer(t, &fakeEngine{
-			chatErr: fmt.Errorf("rendered 9000 tokens: %w", tgo.ErrContextExhausted)})
+			chatErr: fmt.Errorf("rendered 9000 tokens: %w", forma.ErrContextExhausted)})
 		w := post(t, s, "/v1/chat/completions", routes[0].body(""))
 		// A refusal and never a truncation: dropping the start of a context
 		// answers a question the caller did not ask, and nothing downstream can
@@ -174,7 +174,7 @@ func TestNothingIsWrittenToAClientThatHasGone(t *testing.T) {
 // The error body always parses, even when the message does not.
 func TestAnErrorBodyIsAlwaysValidJSON(t *testing.T) {
 	t.Parallel()
-	e := refusal("weird", "tgo: a message with a %q and a newline\n", `"quote"`)
+	e := refusal("weird", "forma: a message with a %q and a newline\n", `"quote"`)
 	for _, d := range []ir.Dialect{ir.DialectAnthropicMessages, ir.DialectOpenAIChat,
 		ir.DialectOpenAIResponses, dialectLegacy} {
 		body := e.body(d)

@@ -1,14 +1,14 @@
 // SPDX-FileCopyrightText: 2026 Latere AI
 // SPDX-License-Identifier: Apache-2.0
 
-package tgo
+package forma
 
 import (
 	"errors"
 	"fmt"
 	"sync"
 
-	"github.com/latere-ai/tgo/internal/prefix"
+	"latere.ai/x/forma/internal/prefix"
 )
 
 // Scheduler drives a [Batch]: it admits requests into slots, decides what each
@@ -71,7 +71,7 @@ type SchedulerOptions struct {
 // NewScheduler builds a scheduler over a batch of n slots.
 func (m *Model) NewScheduler(n int, o SchedulerOptions) (*Scheduler, error) {
 	if o.Reserve <= 0 {
-		return nil, fmt.Errorf("tgo: the scheduler's reserve is %d; it is how many "+
+		return nil, fmt.Errorf("forma: the scheduler's reserve is %d; it is how many "+
 			"positions an admitted sequence may grow by, and admitting without one "+
 			"fills every slot with sequences that cannot grow "+
 			"(specs/008-scheduler.md §3)", o.Reserve)
@@ -80,7 +80,7 @@ func (m *Model) NewScheduler(n int, o SchedulerOptions) (*Scheduler, error) {
 		o.Chunk = DefaultChunk
 	}
 	if o.Chunk < 0 {
-		return nil, fmt.Errorf("tgo: the prefill chunk is %d; a chunk is at least one "+
+		return nil, fmt.Errorf("forma: the prefill chunk is %d; a chunk is at least one "+
 			"token", o.Chunk)
 	}
 	b, err := m.NewBatch(n)
@@ -127,7 +127,7 @@ func (s *Scheduler) signal() {
 // that this check and the pool's cannot drift apart.
 func (s *Scheduler) Feasible(prompt, reserve int) error {
 	if prompt <= 0 {
-		return errors.New("tgo: the prompt is empty; there is nothing to condition on")
+		return errors.New("forma: the prompt is empty; there is nothing to condition on")
 	}
 	reserve, err := s.reserveFor(reserve)
 	if err != nil {
@@ -162,14 +162,14 @@ func (s *Scheduler) reserveFor(reserve int) (int, error) {
 		return s.reserve, nil
 	}
 	if reserve < 0 {
-		return 0, fmt.Errorf("tgo: the reserve is %d; it is how many positions "+
+		return 0, fmt.Errorf("forma: the reserve is %d; it is how many positions "+
 			"beyond its prompt an admitted sequence may grow by", reserve)
 	}
 	return reserve, nil
 }
 
 // ErrNoSlot is what [Scheduler.Admit] refuses with when every slot is live.
-var ErrNoSlot = errors.New("tgo: every slot is occupied")
+var ErrNoSlot = errors.New("forma: every slot is occupied")
 
 // Admit places a prompt in a free slot and returns which one.
 //
@@ -237,7 +237,7 @@ func (s *Scheduler) Finish(slot int) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if slot < 0 || slot >= len(s.slots) {
-		return fmt.Errorf("tgo: slot %d is outside a batch of %d", slot, len(s.slots))
+		return fmt.Errorf("forma: slot %d is outside a batch of %d", slot, len(s.slots))
 	}
 	if err := s.b.Evict(slot); err != nil {
 		return err
@@ -365,19 +365,19 @@ func (s *Scheduler) Feed(slot, token int) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if slot < 0 || slot >= len(s.slots) {
-		return fmt.Errorf("tgo: slot %d is outside a batch of %d", slot, len(s.slots))
+		return fmt.Errorf("forma: slot %d is outside a batch of %d", slot, len(s.slots))
 	}
 	st := &s.slots[slot]
 	if !st.live {
-		return fmt.Errorf("tgo: slot %d holds no sequence", slot)
+		return fmt.Errorf("forma: slot %d holds no sequence", slot)
 	}
 	if st.prefilled < len(st.prompt) {
-		return fmt.Errorf("tgo: slot %d is %d tokens into a %d-token prompt; a token "+
+		return fmt.Errorf("forma: slot %d is %d tokens into a %d-token prompt; a token "+
 			"fed before the prompt is scored would be generated from a distribution "+
 			"over the middle of it", slot, st.prefilled, len(st.prompt))
 	}
 	if token < 0 || token >= s.b.m.cfg.VocabSize {
-		return fmt.Errorf("tgo: token id %d is outside the model's vocabulary of %d",
+		return fmt.Errorf("forma: token id %d is outside the model's vocabulary of %d",
 			token, s.b.m.cfg.VocabSize)
 	}
 	st.feed = token

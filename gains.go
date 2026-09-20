@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Latere AI
 // SPDX-License-Identifier: Apache-2.0
 
-package tgo
+package forma
 
 import (
 	"encoding/binary"
@@ -10,13 +10,13 @@ import (
 
 	"golang.design/x/accel"
 
-	"github.com/latere-ai/tgo/model"
-	"github.com/latere-ai/tgo/safetensors"
+	"latere.ai/x/forma/model"
+	"latere.ai/x/forma/safetensors"
 )
 
 // loadGains uploads every RMSNorm gain as f32, which the loader cannot do.
 //
-// # Why this is here and not in tgo/weights
+// # Why this is here and not in forma/weights
 //
 // specs/004-model-graph.md §3 declares a norm gain as an f32 port —
 // nn.Graph.Gain writes accel.F32 and takes no policy — and
@@ -48,7 +48,7 @@ func (m *Model) loadGains(repo *safetensors.Repo, specs []model.WeightSpec) erro
 		}
 		if s.Permute {
 			if err := permuteHeads(plane, s.Heads); err != nil {
-				return fmt.Errorf("tgo: %q: %w", s.Tensor, err)
+				return fmt.Errorf("forma: %q: %w", s.Tensor, err)
 			}
 		}
 		buf, err := m.dev.NewBuffer(accel.BufferDescriptor{
@@ -56,11 +56,11 @@ func (m *Model) loadGains(repo *safetensors.Repo, specs []model.WeightSpec) erro
 			Usage: accel.BufferStorage | accel.BufferCopyDst | accel.BufferCopySrc,
 		})
 		if err != nil {
-			return fmt.Errorf("tgo: allocating the %q gain: %w", s.Port, err)
+			return fmt.Errorf("forma: allocating the %q gain: %w", s.Port, err)
 		}
 		if err := m.dev.Queue().WriteBuffer(buf, 0, plane); err != nil {
 			_ = buf.Close()
-			return fmt.Errorf("tgo: uploading the %q gain: %w", s.Port, err)
+			return fmt.Errorf("forma: uploading the %q gain: %w", s.Port, err)
 		}
 		m.gains[s.Port] = buf
 	}
@@ -71,19 +71,19 @@ func (m *Model) loadGains(repo *safetensors.Repo, specs []model.WeightSpec) erro
 func gainPlane(repo *safetensors.Repo, s model.WeightSpec) ([]float32, error) {
 	e, file, ok := repo.Tensor(s.Tensor)
 	if !ok {
-		return nil, fmt.Errorf("tgo: the checkpoint has no %q", s.Tensor)
+		return nil, fmt.Errorf("forma: the checkpoint has no %q", s.Tensor)
 	}
 	if len(e.Shape) != 1 {
-		return nil, fmt.Errorf("tgo: %q has shape %v; a norm gain is one value per feature",
+		return nil, fmt.Errorf("forma: %q has shape %v; a norm gain is one value per feature",
 			s.Tensor, e.Shape)
 	}
 	raw, err := file.Bytes(s.Tensor)
 	if err != nil {
-		return nil, fmt.Errorf("tgo: %q: %w", s.Tensor, err)
+		return nil, fmt.Errorf("forma: %q: %w", s.Tensor, err)
 	}
 	out := make([]float32, e.Shape[0])
 	if err := widen(e.DType, raw, out); err != nil {
-		return nil, fmt.Errorf("tgo: %q: %w", s.Tensor, err)
+		return nil, fmt.Errorf("forma: %q: %w", s.Tensor, err)
 	}
 	return out, nil
 }

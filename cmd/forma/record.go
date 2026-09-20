@@ -10,9 +10,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/latere-ai/tgo/bench"
-	"github.com/latere-ai/tgo/sample"
-	"github.com/latere-ai/tgo/weights"
+	"latere.ai/x/forma/bench"
+	"latere.ai/x/forma/sample"
+	"latere.ai/x/forma/weights"
 )
 
 // recordSchema names the shape of the JSON record.
@@ -20,7 +20,7 @@ import (
 // 017-D6 makes the JSON what a regression check reads, which makes it an
 // interface with a version: a checker that meets a record it does not
 // understand has to be able to say so rather than compare fields that moved.
-const recordSchema = "tgo.bench/1"
+const recordSchema = "forma.bench/1"
 
 // samplingFacts is the policy every number was produced under.
 //
@@ -106,7 +106,7 @@ type coldFacts struct {
 // the engine reported over the time the command line waited, which is the one
 // throughput a caller outside the engine can measure. It is reported beside the
 // breakdown and never instead of it -- 017-D1 exists because this number alone
-// cannot say whether a regression belongs to tgo or to accel.
+// cannot say whether a regression belongs to forma or to accel.
 type batchPoint struct {
 	Batch           int           `json:"batch"`
 	Cold            coldFacts     `json:"cold"`
@@ -129,7 +129,7 @@ type batchAxis struct {
 }
 
 // singleBatchNote is why the curve is one point.
-const singleBatchNote = "tgo does not batch yet. specs/008-scheduler.md is drafted and unbuilt, " +
+const singleBatchNote = "forma does not batch yet. specs/008-scheduler.md is drafted and unbuilt, " +
 	"so exactly one sequence is ever in flight and this axis has one point. " +
 	"017-D5 asks for a curve because 008 §1 shows the throughput ceiling falls as context grows, " +
 	"and a single batch size hides that shape. The axis is reported with one point, rather than " +
@@ -138,7 +138,7 @@ const singleBatchNote = "tgo does not batch yet. specs/008-scheduler.md is draft
 // comparisonNote is 017 §4 rule 1 applied to a record that has no rival in it.
 const comparisonNote = "No vLLM or sglang row is in this record. specs/017-benchmarks.md §3 compares " +
 	"against both on the same model, hardware, prompts and policy, and specs/011-sequencing.md schedules " +
-	"that for Wave 5. Publishing tgo's own numbers under a heading that implies a comparison would be the " +
+	"that for Wave 5. Publishing forma's own numbers under a heading that implies a comparison would be the " +
 	"decoration 017-D4 refuses, so the comparison is named as missing."
 
 // breakdownFacts says whether the record carries 017-D1's four terms, and if
@@ -162,11 +162,11 @@ type breakdownFacts struct {
 // that can still produce an empty breakdown: nobody passed a recorder.
 const noBreakdownNote = "The host/submit/device/readback breakdown is not in this record. " +
 	"017-D1 makes that breakdown the deliverable, and every term of it comes from a " +
-	"bench.Recorder the caller supplies through tgo.WithRecorder (017-D7). A record without " +
+	"bench.Recorder the caller supplies through forma.WithRecorder (017-D7). A record without " +
 	"the four terms is therefore a run whose session was opened without one, or one whose " +
 	"steps all measured zero. What is left is the wall-clock throughput and the time to " +
 	"first token, and a throughput on its own is precisely the number 017-D1 says cannot " +
-	"attribute a regression to tgo or to accel. It is reported as missing rather than as a " +
+	"attribute a regression to forma or to accel. It is reported as missing rather than as a " +
 	"table of zeros."
 
 // noPlanStatsNote is the other row of specs/017-benchmarks.md §3 this record
@@ -184,7 +184,7 @@ const noPlanStatsNote = "Plan compile time per bucket and plan cache hit rate ar
 	"statistics about it. What survives is the cold time to first token, which includes the first " +
 	"compile of every bucket the request touched along with the model load, and does not separate them."
 
-// benchRecord is the whole of one `tgo bench` run: the conditions, the axis,
+// benchRecord is the whole of one `forma bench` run: the conditions, the axis,
 // and a measurement at each point of it.
 //
 // The three note fields are the axes specs/017-benchmarks.md §3 asks for that
@@ -282,7 +282,7 @@ func encodeRecord(r benchRecord) ([]byte, error) {
 // the drift nobody notices until the two disagree.
 func renderMarkdown(w io.Writer, r benchRecord) {
 	c := r.Conditions
-	_, _ = fmt.Fprintf(w, "# tgo bench: %s\n\n", c.Model.Architecture)
+	_, _ = fmt.Fprintf(w, "# forma bench: %s\n\n", c.Model.Architecture)
 
 	_, _ = fmt.Fprint(w, "## Conditions\n\n")
 	_, _ = fmt.Fprint(w, "| what | value |\n| --- | --- |\n")

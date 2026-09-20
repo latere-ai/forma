@@ -344,7 +344,7 @@ func TestDirIsKeyedByTheResolvedShaNotTheRequestedRef(t *testing.T) {
 		t.Errorf("Dir = %q, want %q", first, want)
 	}
 
-	t.Setenv("TGO_CACHE", filepath.FromSlash("/env-cache"))
+	t.Setenv("FORMA_CACHE", filepath.FromSlash("/env-cache"))
 	got, err := (&Client{}).Dir(ref, "cccc3333")
 	if err != nil {
 		t.Fatal(err)
@@ -366,7 +366,7 @@ func TestWantedTakesTheCheckpointAndLeavesTheRest(t *testing.T) {
 		}
 	}
 	// The variants a real repo carries beside the weights. Downloading them
-	// multiplies an eight gigabyte fetch for bytes tgo cannot read.
+	// multiplies an eight gigabyte fetch for bytes forma cannot read.
 	for _, name := range []string{
 		"README.md", ".gitattributes", "pytorch_model.bin", "model.gguf",
 		"onnx/model.onnx", "coreml/model.mlpackage", "LICENSE",

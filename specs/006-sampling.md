@@ -15,7 +15,7 @@ accel 028 puts argmax, categorical sampling and top-k/top-p truncation on the
 device, with the random draw as an **input**. accel 039 specifies temperature,
 penalties and the composition order, and **has landed**: `tensor.Sample`
 composes the whole policy on the device and returns a token id. accel 043 §4
-moves the draw from a scalar to a per-row tensor, which tgo asked for in
+moves the draw from a scalar to a per-row tensor, which Forma asked for in
 [accel#3](https://github.com/golang-design/accel/issues/3) and which matters
 only once there is a batch.
 
@@ -86,7 +86,7 @@ swapped.
 > sees. The mask and the walk must agree about which entries exist, and they only
 > do if both read the values the walk will read.
 >
-> tgo follows accel here because [006-D1](#decision-record) makes this package
+> Forma follows accel here because [006-D1](#decision-record) makes this package
 > the *reference* for accel's device path: a reference that composes differently
 > is not one. Recorded rather than silently rewritten, because the order was
 > argued from vLLM's and the argument was not wrong so much as weaker.
@@ -136,10 +136,10 @@ swapped.
   would not be a reference — and a $p$ of 0.95 over a 152k vocabulary exceeds
   128 candidates routinely, so a refusal there would abort a decode loop on the
   data rather than on the configuration. accel keeps exactly $k$, breaking ties
-  lexicographically on (value, index); vLLM may return more than $k$. tgo
+  lexicographically on (value, index); vLLM may return more than $k$. Forma
   follows accel, because accel is what it will be checked against. accel exports
   the bound from its tensor layer as `tensor.TopMaxRounds`, so `sample.TopMaxRounds`
-  restates a published constant rather than one tgo cannot reach; the comment at
+  restates a published constant rather than one Forma cannot reach; the comment at
   `sample/sample.go:50` still says the opposite.
 - **$T = 0$ is greedy**, a distinct branch, not a division. It is also the
   branch that must be bit-exact.
@@ -155,7 +155,7 @@ swapped.
 > accel 043 §6 adopts this ordering into
 > [039](https://github.com/golang-design/accel/blob/main/specs/039-sampling-policy.md)'s
 > scope, on the grounds that it is documentation rather than code. When 039 is
-> built, this section stops being tgo's design and becomes tgo's reference
+> built, this section stops being Forma's design and becomes Forma's reference
 > implementation of accel's.
 
 ### 3.1 The penalties
@@ -202,7 +202,7 @@ $p$. Two subtleties:
 
 The promise a user checks is: **the same prompt and the same seed give the same
 completion.** accel 028 gives the token-level piece — a draw is an input — and
-tgo owns the sequence of draws.
+Forma owns the sequence of draws.
 
 `Sampler` holds a `math/rand/v2` PCG seeded once. **Step $i$ consumes exactly
 one $u_i \in [0,1)$, whether or not the policy is greedy.**
@@ -336,7 +336,7 @@ that spec's oracle, which is what 006-D1 now records.
 
 | id | decision | rejected | consequence |
 | --- | --- | --- | --- |
-| 006-D1 | the whole policy on the host until accel 039 lands | wait for 039; reimplement 039 inside tgo | microseconds; 039 landed on 2026-08-25, so the condition is discharged and the host path is now the reference rather than being deleted. [020](020-device-sampling.md) owns moving the stages down |
+| 006-D1 | the whole policy on the host until accel 039 lands | wait for 039; reimplement 039 inside Forma | microseconds; 039 landed on 2026-08-25, so the condition is discharged and the host path is now the reference rather than being deleted. [020](020-device-sampling.md) owns moving the stages down |
 | 006-D2 | one draw consumed per step regardless of policy | draw only when sampling | a mid-stream policy change does not shift the stream; costs one PCG step per greedy token |
 | 006-D3 | greedy bit-exact per device; cross-device divergence measured, not bounded | assert a cross-device tolerance | the number is reported rather than invented |
 | 006-D4 | stop strings match decoded text, with a hold-back buffer separate from the UTF-8 one | match on token ids; one shared buffer | a stop string need not align to a token; the two buffers hold for different reasons |

@@ -11,8 +11,8 @@ import (
 
 	"golang.design/x/accel/tensor"
 
-	"github.com/latere-ai/tgo/chat"
-	"github.com/latere-ai/tgo/nn"
+	"latere.ai/x/forma/chat"
+	"latere.ai/x/forma/nn"
 )
 
 // specs/024-qwen3-5-architecture.md, sub-scope B: the config, the schedule, the
@@ -21,7 +21,7 @@ import (
 // What this entry does **not** do is run. The gated delta block needs a gate
 // with a head axis and accel's is per token
 // ([C27](../specs/010-conformance.md), accel#27), so a forward pass is refused
-// by name. That is [000 D1](../specs/000-decisions.md)'s output: tgo knows this
+// by name. That is [000 D1](../specs/000-decisions.md)'s output: forma knows this
 // architecture and says what it cannot do yet, rather than not knowing it or
 // quietly building something else.
 //
@@ -33,7 +33,7 @@ import (
 // Qwen35Architecture is the architectures[0] value a qwen3_5 checkpoint carries.
 //
 // The MoE sibling is `Qwen3_5MoeForConditionalGeneration`, a different key, so
-// it is refused by the registry with the list of what tgo knows rather than
+// it is refused by the registry with the list of what forma knows rather than
 // mis-built by this entry (§2.5). They share every linear-attention field and
 // differ in the MLP, which is the shape a shared key would have hidden.
 const Qwen35Architecture = "Qwen3_5ForConditionalGeneration"
@@ -157,7 +157,7 @@ type qwen35Rope struct {
 //
 // rawConfig ignores an unknown JSON key, which is right for a dense model whose
 // extra fields are metadata and wrong here: a qwen3_5 config carries fields that
-// change the arithmetic, and a field tgo silently ignores is a model tgo
+// change the arithmetic, and a field forma silently ignores is a model forma
 // silently gets wrong. So an unknown key is a refusal that names it -- and a
 // field at the *wrong level* is a named refusal rather than a zero, which §2.1
 // shows the cost of.
@@ -426,8 +426,8 @@ func onlyKeys(raw json.RawMessage, allow map[string]bool, what string) error {
 	}
 	sort.Strings(extra)
 	return fmt.Errorf("model: %s carries %s, which this graph does not implement; a "+
-		"qwen3_5 config states fields that change the arithmetic and a field tgo "+
-		"ignored would be a model tgo silently got wrong "+
+		"qwen3_5 config states fields that change the arithmetic and a field forma "+
+		"ignored would be a model forma silently got wrong "+
 		"(specs/024-qwen3-5-architecture.md §7)", what, strings.Join(extra, ", "))
 }
 
@@ -446,7 +446,7 @@ func onlyKeys(raw json.RawMessage, allow map[string]bool, what string) error {
 // project exists not to write.
 //
 // So this refuses and says what it is waiting for. That is the output 000 D1
-// asks for: tgo knows this architecture, has read its config and its weight
+// asks for: forma knows this architecture, has read its config and its weight
 // map, and states the one operator it needs -- rather than not knowing it, or
 // quietly building something else.
 func (m *qwen35) Forward(g *nn.Graph, in Inputs) *tensor.Tensor {

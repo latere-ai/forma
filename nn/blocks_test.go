@@ -14,7 +14,7 @@ import (
 	"golang.design/x/accel/quant"
 	"golang.design/x/accel/tensor"
 
-	"github.com/latere-ai/tgo/nn"
+	"latere.ai/x/forma/nn"
 )
 
 // The weights below are multiples of 1/4 and smaller than 8, so f16 holds them
@@ -419,7 +419,7 @@ func TestTheScalePlaneIsDeclaredUnderTheWeightsNameAndSuffix(t *testing.T) {
 		1e-5, "quantized linear")
 }
 
-// TestAnF16CacheNarrowsTheScatteredRows is tgo's half of C24, built and
+// TestAnF16CacheNarrowsTheScatteredRows is forma's half of C24, built and
 // checked while accel's half is filed.
 //
 // One kernel reads the rows and writes the state, so the two share a dtype and

@@ -60,14 +60,14 @@ func qwen3Tensors(c qwen3Config) []Tensor {
 // TestRealCheckpoint loads a Qwen3 dense checkpoint at f16 and asserts the
 // shapes accel will see and that nothing saturated.
 //
-// It is gated on TGO_MODEL and skips without it. No test that runs by default
+// It is gated on FORMA_MODEL and skips without it. No test that runs by default
 // reads a real checkpoint: the smallest Qwen3 is over a gigabyte, CI never sets
 // the variable, and this is the release gate run by hand
 // (specs/000-decisions.md decision 8, specs/011-sequencing.md §4).
 func TestRealCheckpoint(t *testing.T) {
-	dir := os.Getenv("TGO_MODEL")
+	dir := os.Getenv("FORMA_MODEL")
 	if dir == "" {
-		t.Skip("TGO_MODEL is not set; this is the by-hand release gate, not a CI test")
+		t.Skip("FORMA_MODEL is not set; this is the by-hand release gate, not a CI test")
 	}
 	dev := openCPU(t)
 	repo := openRepoAt(t, dir)

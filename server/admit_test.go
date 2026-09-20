@@ -59,7 +59,7 @@ func TestAFullQueueIs429WithRetryAfter(t *testing.T) {
 	}
 	wantNames(t, w, "queue is full")
 	if body := get(t, s, "/metrics").Body.String(); !strings.Contains(body,
-		`tgo_sessions_rejected_total{reason="queue_full"} 1`) {
+		`forma_sessions_rejected_total{reason="queue_full"} 1`) {
 		t.Errorf("the rejection was not counted:\n%s", body)
 	}
 }
@@ -97,7 +97,7 @@ func TestAQueuedRequestIsRefusedWhenItsWaitRunsOut(t *testing.T) {
 	wantStatus(t, w, http.StatusTooManyRequests)
 	wantNames(t, w, "waited")
 	if body := get(t, s, "/metrics").Body.String(); !strings.Contains(body,
-		`tgo_sessions_rejected_total{reason="queue_timeout"} 1`) {
+		`forma_sessions_rejected_total{reason="queue_timeout"} 1`) {
 		t.Errorf("the timeout was not counted:\n%s", body)
 	}
 }
@@ -134,7 +134,7 @@ func TestAQueuedRequestEndsWhenItsClientDoes(t *testing.T) {
 	// a request cancelled before it reaches the queue is cancelled at the
 	// transport instead, never enqueues, and never counts as client_gone — so
 	// the test reported "did not end with its client" about a request that
-	// never got there. tgo_queue_depth is the state the cancellation needs, so
+	// never got there. forma_queue_depth is the state the cancellation needs, so
 	// the test waits for that state rather than guessing how long it takes.
 	if !awaitQueueDepth(t, s, 1) {
 		t.Fatal("the request never reached the queue, so there was nothing to cancel")
@@ -148,7 +148,7 @@ func TestAQueuedRequestEndsWhenItsClientDoes(t *testing.T) {
 	deadline := time.Now().Add(10 * time.Second)
 	for time.Now().Before(deadline) {
 		if strings.Contains(get(t, s, "/metrics").Body.String(),
-			`tgo_sessions_rejected_total{reason="client_gone"} 1`) {
+			`forma_sessions_rejected_total{reason="client_gone"} 1`) {
 			return
 		}
 		time.Sleep(time.Millisecond)
@@ -255,7 +255,7 @@ func TestRetryAfterRoundsUpAndNeverReachesZero(t *testing.T) {
 // got there. It polls a gauge rather than sleeping a guess: see the call site.
 func awaitQueueDepth(t *testing.T, s *Server, n int) bool {
 	t.Helper()
-	want := fmt.Sprintf("tgo_queue_depth %d\n", n)
+	want := fmt.Sprintf("forma_queue_depth %d\n", n)
 	deadline := time.Now().Add(10 * time.Second)
 	for time.Now().Before(deadline) {
 		if strings.Contains(get(t, s, "/metrics").Body.String(), want) {

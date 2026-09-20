@@ -13,8 +13,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/latere-ai/tgo/internal/hub"
-	"github.com/latere-ai/tgo/weights"
+	"latere.ai/x/forma/internal/hub"
+	"latere.ai/x/forma/weights"
 )
 
 // hfTokenEnv are the environment variables a Hugging Face token is read from
@@ -27,13 +27,13 @@ import (
 // package's reported discrepancies.
 var hfTokenEnv = []string{"HF_TOKEN", "HUGGING_FACE_HUB_TOKEN"}
 
-// pullOptions is `tgo pull`'s command line, parsed.
+// pullOptions is `forma pull`'s command line, parsed.
 type pullOptions struct {
 	Ref   hub.Ref
 	Token string
 }
 
-// pullFlagSet declares what `tgo pull` accepts. See [runFlagSet] for why
+// pullFlagSet declares what `forma pull` accepts. See [runFlagSet] for why
 // declaring is separate from parsing.
 func pullFlagSet() (*flag.FlagSet, *pullFlags) {
 	fs := flag.NewFlagSet("pull", flag.ContinueOnError)
@@ -43,10 +43,10 @@ func pullFlagSet() (*flag.FlagSet, *pullFlags) {
 	}
 }
 
-// pullFlags holds `tgo pull`'s flag values.
+// pullFlags holds `forma pull`'s flag values.
 type pullFlags struct{ revision, token *string }
 
-// parsePull parses and checks `tgo pull`'s arguments.
+// parsePull parses and checks `forma pull`'s arguments.
 func parsePull(args []string) (pullOptions, error) {
 	fs, f := pullFlagSet()
 	id, err := onePositional(fs, args, "repo id")
@@ -64,7 +64,7 @@ func parsePull(args []string) (pullOptions, error) {
 	}
 	if ref.IsLocal() {
 		return pullOptions{}, fmt.Errorf("%w: %s is a directory on this machine, and there is nothing "+
-			"to fetch; `tgo pull` takes a Hugging Face repo id such as Qwen/Qwen3-0.6B", errUsage, id)
+			"to fetch; `forma pull` takes a Hugging Face repo id such as Qwen/Qwen3-0.6B", errUsage, id)
 	}
 	if rev != "" {
 		ref.Revision = rev
@@ -79,7 +79,7 @@ func parsePull(args []string) (pullOptions, error) {
 	return pullOptions{Ref: ref, Token: strings.TrimSpace(token)}, nil
 }
 
-// puller is what `tgo pull` needs from [hub.Client].
+// puller is what `forma pull` needs from [hub.Client].
 //
 // An interface rather than the concrete client, for the reason [engine] is one:
 // every line below -- the listing, the refusals, the progress and the report --
@@ -89,7 +89,7 @@ type puller interface {
 	Fetch(ctx context.Context, ref hub.Ref) (string, error)
 }
 
-// newPuller builds the client one `tgo pull` uses. It is a variable so that the
+// newPuller builds the client one `forma pull` uses. It is a variable so that the
 // tests can replace it.
 var newPuller = func(o pullOptions, pr *progress) puller {
 	return &hub.Client{Token: o.Token, Progress: pr.Event}
@@ -98,7 +98,7 @@ var newPuller = func(o pullOptions, pr *progress) puller {
 // cmdPull downloads a checkpoint and prints where it landed.
 //
 // The path goes to stdout and everything else to stderr, so that
-// `tgo run "$(tgo pull Qwen/Qwen3-0.6B)"` works and the progress an operator
+// `forma run "$(forma pull Qwen/Qwen3-0.6B)"` works and the progress an operator
 // watches does not become part of the path.
 func cmdPull(args []string, stdout, stderr io.Writer) error {
 	o, err := parsePull(args)
@@ -110,7 +110,7 @@ func cmdPull(args []string, stdout, stderr io.Writer) error {
 
 	// Ctrl-C cancels the download rather than killing the process mid-write.
 	// specs/013-distribution.md 013-D3 makes that safe: a partial file keeps
-	// its temporary name, so the next `tgo pull` resumes from it and never
+	// its temporary name, so the next `forma pull` resumes from it and never
 	// leaves a file that looks whole.
 	ctx, stop := interrupts()
 	defer stop()
@@ -129,7 +129,7 @@ func cmdPull(args []string, stdout, stderr io.Writer) error {
 	files, total := wantedFiles(rev)
 	if len(files) == 0 {
 		return fmt.Errorf("%w: %s at %s lists %d files and none of them is a safetensors checkpoint "+
-			"tgo can load", hub.ErrNoFiles, o.Ref.ID(), shortSHA(rev.SHA), len(rev.Files))
+			"forma can load", hub.ErrNoFiles, o.Ref.ID(), shortSHA(rev.SHA), len(rev.Files))
 	}
 	_, _ = fmt.Fprintf(stderr, "%s at %s: %d files, %s\n", o.Ref.ID(), shortSHA(rev.SHA), len(files), weights.HumanBytes(total))
 	pr.start(len(files), total)

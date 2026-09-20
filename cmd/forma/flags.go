@@ -10,9 +10,9 @@ import (
 	"math"
 	"strings"
 
-	tgo "github.com/latere-ai/tgo"
-	"github.com/latere-ai/tgo/sample"
-	"github.com/latere-ai/tgo/weights"
+	forma "latere.ai/x/forma"
+	"latere.ai/x/forma/sample"
+	"latere.ai/x/forma/weights"
 )
 
 // modelDir parses fs over args and returns the one positional argument the
@@ -45,7 +45,7 @@ func onePositional(fs *flag.FlagSet, args []string, what string) (string, error)
 	default:
 		// The hint names the cause of the common case rather than the shape
 		// of the failure. [flag.FlagSet.Parse] stops at the first argument
-		// that is not a flag, so `tgo info <dir> --context 512` reaches here
+		// that is not a flag, so `forma info <dir> --context 512` reaches here
 		// with three positional arguments and a user reading only "one model
 		// directory" has no way to see that their flag was never parsed.
 		return "", fmt.Errorf("%w: one %s, and %d were given (%s); "+
@@ -84,16 +84,16 @@ func parsePrecision(s string) (weights.Precision, error) {
 // refuse to lower a kernel the graph needs. Without this flag such a machine
 // has no way to run the model at all, though a working backend is installed on
 // it.
-func parseDevice(s string) (tgo.Device, error) {
+func parseDevice(s string) (forma.Device, error) {
 	switch strings.ToLower(strings.TrimSpace(s)) {
 	case "auto", "":
-		return tgo.AutoDevice, nil
+		return forma.AutoDevice, nil
 	case "cpu":
-		return tgo.CPU, nil
+		return forma.CPU, nil
 	case "metal", "gpu":
-		return tgo.Metal, nil
+		return forma.Metal, nil
 	default:
-		return tgo.AutoDevice, fmt.Errorf("%w: device %q is not auto, cpu or metal", errUsage, s)
+		return forma.AutoDevice, fmt.Errorf("%w: device %q is not auto, cpu or metal", errUsage, s)
 	}
 }
 

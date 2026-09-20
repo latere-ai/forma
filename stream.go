@@ -1,15 +1,15 @@
 // SPDX-FileCopyrightText: 2026 Latere AI
 // SPDX-License-Identifier: Apache-2.0
 
-package tgo
+package forma
 
 import (
 	"context"
 	"time"
 
-	"github.com/latere-ai/tgo/bench"
-	"github.com/latere-ai/tgo/chat"
-	"github.com/latere-ai/tgo/internal/grammar"
+	"latere.ai/x/forma/bench"
+	"latere.ai/x/forma/chat"
+	"latere.ai/x/forma/internal/grammar"
 )
 
 // EventKind is what one [Event] says happened.

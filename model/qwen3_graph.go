@@ -8,7 +8,7 @@ import (
 
 	"golang.design/x/accel/tensor"
 
-	"github.com/latere-ai/tgo/nn"
+	"latere.ai/x/forma/nn"
 )
 
 // Forward records Qwen3's forward pass, specs/004-model-graph.md §3, one node

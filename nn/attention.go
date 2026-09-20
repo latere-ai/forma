@@ -206,7 +206,7 @@ func Attention(g *Graph, x *tensor.Tensor, w AttentionWeights,
 	// reconciled here: specs/004-model-graph.md section 2.5.2 permutes the
 	// projection's output channels -- and the QK-norm gains with them -- at
 	// load time, so the interleaved kernel computes the half-split rotation
-	// (004-D9). That is a byte layout tgo owns; nothing in this graph shows it.
+	// (004-D9). That is a byte layout forma owns; nothing in this graph shows it.
 	qh = tensor.RoPE(g.B, qh, cfg.HeadDim, cfg.RoPEBase, posQ)
 	kh = tensor.RoPE(g.B, kh, cfg.HeadDim, cfg.RoPEBase, posK)
 

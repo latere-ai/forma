@@ -15,9 +15,9 @@ import (
 
 	"golang.design/x/accel"
 
-	tgo "github.com/latere-ai/tgo"
-	"github.com/latere-ai/tgo/model"
-	"github.com/latere-ai/tgo/weights"
+	forma "latere.ai/x/forma"
+	"latere.ai/x/forma/model"
+	"latere.ai/x/forma/weights"
 )
 
 func TestRunDispatch(t *testing.T) {
@@ -48,7 +48,7 @@ func TestRunDispatch(t *testing.T) {
 		&stdout, &stderr); err != nil {
 		t.Fatalf("run bench: %v", err)
 	}
-	if !strings.Contains(stdout.String(), "# tgo bench") {
+	if !strings.Contains(stdout.String(), "# forma bench") {
 		t.Errorf("bench did not write the table:\n%s", stdout.String())
 	}
 
@@ -73,8 +73,8 @@ func TestRunDispatch(t *testing.T) {
 	if err := run([]string{"help"}, &stdout, &stderr); err != nil {
 		t.Fatalf("run help: %v", err)
 	}
-	for _, want := range []string{"tgo run", "tgo bench", "--json", "--precision"} {
-		if !strings.Contains(stdout.String(), strings.TrimPrefix(want, "tgo ")) {
+	for _, want := range []string{"forma run", "forma bench", "--json", "--precision"} {
+		if !strings.Contains(stdout.String(), strings.TrimPrefix(want, "forma ")) {
 			t.Errorf("the usage does not mention %q:\n%s", want, stdout.String())
 		}
 	}
@@ -164,7 +164,7 @@ func TestInfoFlags(t *testing.T) {
 	}
 }
 
-// TestRealCheckpoint reads the checkpoint TGO_MODEL names.
+// TestRealCheckpoint reads the checkpoint FORMA_MODEL names.
 //
 // It is skipped by default (specs/000-decisions.md decision 8): the smallest
 // Qwen3 is over a gigabyte, and a CI that downloads one is a CI nobody runs
@@ -172,9 +172,9 @@ func TestInfoFlags(t *testing.T) {
 // config this repository wrote, and this is the one place the arithmetic meets
 // a model it did not choose.
 func TestRealCheckpoint(t *testing.T) {
-	dir := os.Getenv("TGO_MODEL")
+	dir := os.Getenv("FORMA_MODEL")
 	if dir == "" {
-		t.Skip("TGO_MODEL is not set; this test reads a real checkpoint")
+		t.Skip("FORMA_MODEL is not set; this test reads a real checkpoint")
 	}
 	useCPUDevice(t)
 	var stdout, stderr strings.Builder
@@ -248,10 +248,10 @@ func TestDeviceFlagReachesBothTheDescriptionAndTheEngine(t *testing.T) {
 		&stdout, &stderr); err != nil {
 		t.Fatalf("cmdRun: %v", err)
 	}
-	if len(*asked) != 1 || (*asked)[0] != tgo.CPU {
+	if len(*asked) != 1 || (*asked)[0] != forma.CPU {
 		t.Errorf("the description opened %v, want the CPU the flag named", *asked)
 	}
-	if len(opened) != 1 || opened[0].Device != tgo.CPU {
+	if len(opened) != 1 || opened[0].Device != forma.CPU {
 		t.Errorf("the engine was opened with %v", opened)
 	}
 	// And an unknown device is refused before anything is opened.
@@ -273,7 +273,7 @@ func TestDeviceFlagReachesBothTheDescriptionAndTheEngine(t *testing.T) {
 	if err != nil {
 		t.Fatalf("parseBench: %v", err)
 	}
-	if o.Engine.Device != tgo.AutoDevice {
+	if o.Engine.Device != forma.AutoDevice {
 		t.Errorf("the default device is %v, want auto", o.Engine.Device)
 	}
 }
@@ -302,12 +302,12 @@ func TestUsageDocumentsEveryFlag(t *testing.T) {
 			tc.set.VisitAll(func(f *flag.Flag) {
 				declared[f.Name] = true
 				if !documented[f.Name] {
-					t.Errorf("`tgo %s` accepts --%s and the usage does not mention it", tc.command, f.Name)
+					t.Errorf("`forma %s` accepts --%s and the usage does not mention it", tc.command, f.Name)
 				}
 			})
 			for name := range documented {
 				if !declared[name] {
-					t.Errorf("the usage documents `tgo %s --%s`, which the command does not accept",
+					t.Errorf("the usage documents `forma %s --%s`, which the command does not accept",
 						tc.command, name)
 				}
 			}
@@ -358,7 +358,7 @@ func TestDefaultPromptIsWhatTheUsageSays(t *testing.T) {
 // because a user who named one had a reason to.
 func TestCommandsReportADeviceThatWillNotOpen(t *testing.T) {
 	prev := openDevice
-	openDevice = func(want tgo.Device) (*accel.Device, error) { return nil, errNoDevice }
+	openDevice = func(want forma.Device) (*accel.Device, error) { return nil, errNoDevice }
 	t.Cleanup(func() { openDevice = prev })
 	useFakeEngine(t, &fakeEngine{promptTokens: 1})
 
@@ -378,7 +378,7 @@ func TestCommandsReportADeviceThatWillNotOpen(t *testing.T) {
 				err = fn([]string{dir}, &stdout, &stderr)
 			}
 			if !errors.Is(err, errNoDevice) {
-				t.Fatalf("`tgo %s` with no device = %v, want the device error", name, err)
+				t.Fatalf("`forma %s` with no device = %v, want the device error", name, err)
 			}
 			if stdout.Len() != 0 {
 				t.Errorf("a command that could not open a device wrote to stdout: %q", stdout.String())

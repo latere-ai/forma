@@ -20,7 +20,7 @@ obstruction is [007 §1](007-engine.md)'s surface, and this spec owns the change
 
 `sample.Sampler.Probs` already returns the post-policy distribution without
 consuming a draw ([006-D7](006-sampling.md)). Nothing calls it, and the server
-cannot: **a logprob is per token and a `tgo.Event` carries decoded text.**
+cannot: **a logprob is per token and a `forma.Event` carries decoded text.**
 
 ```mermaid
 flowchart LR
@@ -112,21 +112,21 @@ where it is served is worse than one that was never claimed; a field
 subtracted where it is *not* served is [009-D12](009-server.md)'s defect,
 which is why the subtraction is per dialect.
 
-**Two routes can serve them, through two codecs.** `/v1/completions` is tgo's
+**Two routes can serve them, through two codecs.** `/v1/completions` is Forma's
 own `Frontend` ([009 §3.3](009-server.md)). `/v1/chat/completions` is
 `latere.ai/x/pkg/llmdialect`'s, whose `ir` carries `Request.LogProbs` and
 `TopLogProbs`, `Response.LogProbs` and `Event.LogProbs` on a text delta. The
 handler converts the engine's `TokenProb` to `ir.TokenLogProb` once, sets it on
 the response or the event, and every `Frontend` reads it from there. The
 Anthropic and Responses surfaces have no member for one, so the ask stays a
-loss there whatever tgo could compute.
+loss there whatever Forma could compute.
 
 | route | encoder | shape |
 | --- | --- | --- |
-| `/v1/completions` | tgo's | `choices[].logprobs` with the parallel `tokens`, `token_logprobs` and `top_logprobs` arrays it has always declared and answered `null` for |
+| `/v1/completions` | Forma's | `choices[].logprobs` with the parallel `tokens`, `token_logprobs` and `top_logprobs` arrays it has always declared and answered `null` for |
 | `/v1/chat/completions` | `llmdialect` | `choices[].logprobs.content[]` with `token`, `logprob`, `bytes` and `top_logprobs`, on the body and on each streamed delta |
 | `/v1/messages` | `llmdialect` | Anthropic's shape carries none; a loss |
-| `/v1/responses` | `llmdialect` | the ask reaches the IR, and the encoder tgo answers through has no member; a loss the handler adds |
+| `/v1/responses` | `llmdialect` | the ask reaches the IR, and the encoder Forma answers through has no member; a loss the handler adds |
 
 **030-D5 was the gap, and 030-D6 is what replaced it.** While the `ir` had no
 logprobs shape, `/v1/chat/completions` kept the loss entry and the gap was
@@ -167,7 +167,7 @@ distribution the grammar had not yet cut.
 | `Top` is descending, has length `TopLogProbs`, and its entries have nil `Top` | §2 |
 | `LogProbs()` is empty when `Policy.LogProbs` is false, and `Probs` is not called | §5 |
 | the same seed produces the same completion with and without `LogProbs` | [006-D7](006-sampling.md): an observation that perturbed what it describes would not be describing it |
-| `logprobs` is absent from `X-Tgo-Loss` on `/v1/completions` and present on the other three | §4, and the per-dialect table; subtracting it everywhere is 009-D12's defect |
+| `logprobs` is absent from `X-Forma-Loss` on `/v1/completions` and present on the other three | §4, and the per-dialect table; subtracting it everywhere is 009-D12's defect |
 | a $-\infty$ encodes as `null` in the `token_logprobs` array | §4 |
 | a request with no `logprobs` still answers `logprobs: null`, not an empty object | the shape the route has always declared |
 
@@ -178,8 +178,8 @@ distribution the grammar had not yet cut.
 | 030-D1 | a side accessor on `Stream` | a field on `Event`; a new `EventKind` | `Event` keeps meaning one thing, and 009 §3.2's kind-to-block mapping stays one-to-one |
 | 030-D2 | report the **post-policy** distribution | the raw softmax over the untruncated vocabulary | the number describes the distribution the token was drawn from; a raw softmax describes one nothing sampled |
 | 030-D3 | $-\infty$ for a masked token, `null` on the wire | a floor, or omitting the entry | a floor is a number a consumer averages; omitting breaks the per-token parallel arrays the legacy shape declares |
-| 030-D5 | the three `llmdialect` routes keep the loss and the gap is **reported** | append the member to the encoded body from outside the `Frontend` | superseded by 030-D6 once the field landed; while it held, tgo never knew a dialect's JSON ([§4](#4-the-wire-and-the-loss-table)) |
-| 030-D6 | logprobs travel on `ir.Response` and `ir.Event`, and every `Frontend` reads them there | a side interface only tgo's codec implements | one conversion in the handler, no optional interfaces, and `/v1/chat/completions` serves what `/v1/completions` does ([§4](#4-the-wire-and-the-loss-table)) |
+| 030-D5 | the three `llmdialect` routes keep the loss and the gap is **reported** | append the member to the encoded body from outside the `Frontend` | superseded by 030-D6 once the field landed; while it held, Forma never knew a dialect's JSON ([§4](#4-the-wire-and-the-loss-table)) |
+| 030-D6 | logprobs travel on `ir.Response` and `ir.Event`, and every `Frontend` reads them there | a side interface only Forma's codec implements | one conversion in the handler, no optional interfaces, and `/v1/chat/completions` serves what `/v1/completions` does ([§4](#4-the-wire-and-the-loss-table)) |
 | 030-D4 | off by default, and the pass is skipped | always compute and let the caller ignore it | a whole-vocabulary `exp` per step is what [017-D3](017-benchmarks.md) calls an instrument that changes what it measures |
 
 ## Outcome
@@ -203,7 +203,7 @@ ask for them, `Stream.LogProbs()` returns the last step's, and
 - **§4 named two routes and there is one.** The draft said
   `/v1/chat/completions` and `/v1/completions`. `latere.ai/x/pkg/llmdialect`'s
   `ir` carries no logprobs shape at all — not on `ir.Response`, not on
-  `ir.Event` — so the three dialects it encodes cannot express one whatever tgo
+  `ir.Event` — so the three dialects it encodes cannot express one whatever Forma
   computes. Corrected before a line was written, and it became
   [030-D5](#decision-record).
 - **The engine is not asked for work no encoder can carry.** `mapPolicy` sets
@@ -225,7 +225,7 @@ ask for them, `Stream.LogProbs()` returns the last step's, and
 
 **Second route, 2026-09-02.** `llmdialect` gained the logprobs shape on its
 IR, so `/v1/chat/completions` now serves them whole-body and streaming
-([030-D6](#decision-record)). The side interfaces tgo's codec alone
+([030-D6](#decision-record)). The side interfaces Forma's codec alone
 implemented are gone: `server/generate.go` converts once to `ir.TokenLogProb`,
 `server/legacy.go` reads `resp.LogProbs` and `ev.LogProbs` like the dialect
 encoders do, and `server/loss.go` honours `logprobs` and `top_logprobs` on both
@@ -237,10 +237,10 @@ null answer for a caller that did not ask.
 
 **Not built.** Nothing this spec designs. The two routes §4 named both serve
 logprobs. `/v1/messages` and `/v1/responses` report a loss because their wire
-has no member for one, which is a dialect's shape and not tgo's work.
+has no member for one, which is a dialect's shape and not Forma's work.
 
 **Filed as [latere-ai/pkg#7](https://github.com/latere-ai/pkg/issues/7)** on
-2026-08-28, with the shape that would close it and the two details that bit tgo:
+2026-08-28, with the shape that would close it and the two details that bit Forma:
 that a masked token's $-\infty$ needs a JSON answer, and that the number has to
 say which distribution it is of. The loss report is what tells a caller in the
 meantime.

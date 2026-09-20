@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/latere-ai/tgo"
+	"latere.ai/x/forma"
 )
 
 // An engine that does its own admission, and what its refusals have to look
@@ -21,7 +21,7 @@ import (
 // moved with it: a deployment's answer must not change because the queue is one
 // layer down. Scripted rather than batched, because what is under test is the
 // mapping and not the queue -- the queue's own bounds are asserted in package
-// tgo, and driving them through a real batch would make this a race against a
+// forma, and driving them through a real batch would make this a race against a
 // forward pass.
 type queueingEngine struct {
 	fakeEngine
@@ -57,13 +57,13 @@ func TestAnEngineThatQueuesAnswers429WithItsOwnBudget(t *testing.T) {
 	}{
 		{
 			name:   "the budget elapsed",
-			err:    fmt.Errorf("tgo: waited 1.5s for a slot: %w", tgo.ErrQueueTimeout),
+			err:    fmt.Errorf("forma: waited 1.5s for a slot: %w", forma.ErrQueueTimeout),
 			status: http.StatusTooManyRequests, retryAfter: "2",
 			reason: "queue_timeout", says: "waited 1.5s for a slot",
 		},
 		{
 			name:   "the queue is full",
-			err:    fmt.Errorf("tgo: 32 requests are waiting: %w", tgo.ErrQueueFull),
+			err:    fmt.Errorf("forma: 32 requests are waiting: %w", forma.ErrQueueFull),
 			status: http.StatusTooManyRequests, retryAfter: "2",
 			reason: "queue_full", says: "32 requests are waiting",
 		},
@@ -71,7 +71,7 @@ func TestAnEngineThatQueuesAnswers429WithItsOwnBudget(t *testing.T) {
 			// A client that hung up while queued is a departure and not a
 			// failure, and nothing is written to it.
 			name:   "the client hung up while queued",
-			err:    fmt.Errorf("tgo: %w", context.Canceled),
+			err:    fmt.Errorf("forma: %w", context.Canceled),
 			status: 499, reason: "client_gone",
 		},
 		{
@@ -79,7 +79,7 @@ func TestAnEngineThatQueuesAnswers429WithItsOwnBudget(t *testing.T) {
 			// will, which is the same answer a session gives a prompt larger
 			// than its cache.
 			name:   "the prompt does not fit the pool",
-			err:    fmt.Errorf("tgo: a prompt of 9000: %w", tgo.ErrContextExhausted),
+			err:    fmt.Errorf("forma: a prompt of 9000: %w", forma.ErrContextExhausted),
 			status: http.StatusBadRequest, reason: "bad_request",
 		},
 	} {
@@ -101,12 +101,12 @@ func TestAnEngineThatQueuesAnswers429WithItsOwnBudget(t *testing.T) {
 				t.Errorf("the answer does not carry the engine's own words %q: %s",
 					c.says, w.Body.String())
 			}
-			if strings.Contains(w.Body.String(), "tgo: tgo:") {
+			if strings.Contains(w.Body.String(), "forma: forma:") {
 				t.Errorf("the message is prefixed twice: %s", w.Body.String())
 			}
 			m := get(t, s, "/metrics").Body.String()
 			if !strings.Contains(m,
-				fmt.Sprintf(`tgo_sessions_rejected_total{reason=%q} 1`, c.reason)) &&
+				fmt.Sprintf(`forma_sessions_rejected_total{reason=%q} 1`, c.reason)) &&
 				c.reason != "bad_request" {
 				t.Errorf("the refusal was not counted as %q:\n%s", c.reason, m)
 			}
@@ -120,7 +120,7 @@ func TestAnEngineThatQueuesAnswers429WithItsOwnBudget(t *testing.T) {
 func TestARetryAfterComesFromTheEngineThatWaited(t *testing.T) {
 	t.Parallel()
 	eng := &queueingEngine{wait: 45 * time.Second}
-	eng.chatErr = fmt.Errorf("tgo: %w", tgo.ErrQueueTimeout)
+	eng.chatErr = fmt.Errorf("forma: %w", forma.ErrQueueTimeout)
 	// The server's own budget is a different number, so a Retry-After that came
 	// from it would be visible.
 	s := newServerOver(t, eng, WithConcurrency(4), WithQueueWait(3*time.Second))
@@ -135,7 +135,7 @@ func TestARetryAfterComesFromTheEngineThatWaited(t *testing.T) {
 	// And an engine that does not queue falls back to the admitter's budget,
 	// which is the number that describes what that request waited.
 	plain := &fakeEngine{}
-	plain.chatErr = fmt.Errorf("tgo: %w", tgo.ErrQueueTimeout)
+	plain.chatErr = fmt.Errorf("forma: %w", forma.ErrQueueTimeout)
 	s = newServerOver(t, plain, WithQueueWait(3*time.Second))
 	w = post(t, s, "/v1/completions",
 		`{"model":"`+fakeName+`","max_tokens":2,"prompt":"hi"}`)

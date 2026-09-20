@@ -39,7 +39,7 @@ type Frontend interface {
 ```
 
 `Backend` is the other half — encoding a request *to* an upstream provider — and
-**tgo never uses it.** tgo is the upstream. Naming that asymmetry is most of
+**Forma never uses it.** Forma is the upstream. Naming that asymmetry is most of
 understanding the dependency: a gateway uses both halves, a model server uses
 one.
 
@@ -64,7 +64,7 @@ flowchart LR
   C2["OpenAI SDK"] --> R
   C3["Responses client"] --> R
   R -->|ir.Request| A["server: one adapter"]
-  A -->|chat.Message, Policy| E["tgo engine"]
+  A -->|chat.Message, Policy| E["forma engine"]
   E -->|token stream| A
   A -->|ir.Event| R
   R --> C1 & C2 & C3
@@ -98,16 +98,16 @@ imported, and llmdialect's subtree is **stdlib-only**. It also cannot break
 [000 D2](000-decisions.md): nothing there imports `C`.
 
 **That is a property of llmdialect's current imports, not a promise it makes.**
-One OTEL import added upstream would arrive in tgo on the next `go get`, and the
+One OTEL import added upstream would arrive in Forma on the next `go get`, and the
 first symptom would be a slower build rather than an error. So
 [009-D14](#decision-record) puts a footprint check in CI from M9: the non-stdlib
 build list must match an allowlist, and growing it is a decision someone makes on
 purpose.
 
-**`llmdialect` is a dependency of `tgo/server`, not of `tgo`.** A caller
-embedding tgo as a library gets the engine and does not inherit the dialect
+**`llmdialect` is a dependency of `forma/server`, not of `forma`.** A caller
+embedding Forma as a library gets the engine and does not inherit the dialect
 layer, its IR types, or its release cycle. The mapping `ir.Request` →
-`chat.Message` + `Policy` is tgo's, in one file, and it is the only place the
+`chat.Message` + `Policy` is Forma's, in one file, and it is the only place the
 two vocabularies meet.
 
 This is [009-D1](#decision-record) unchanged in substance: **the wire is at the
@@ -116,17 +116,17 @@ for the price of a translation table rather than three parsers.
 
 **Rejected: making `ir.Request` the engine's argument type.** It is a neutral IR
 rather than an OpenAI schema, so the original objection does not apply — but it
-would put a third-party type in tgo's public API and couple every engine
+would put a third-party type in Forma's public API and couple every engine
 decision to another module's releases.
 
-**Rejected: reimplementing the dialects inside tgo.** Same shape, none of the
+**Rejected: reimplementing the dialects inside Forma.** Same shape, none of the
 code, a second implementation of a thing that already exists one layer up, and
 guaranteed drift.
 
 ## 3. Messages are blocks, not strings
 
 `ir.Message` is `{Role, Blocks []Block}` with typed blocks — text, tool use,
-tool result, thinking. tgo's `chat.Message` takes the same shape, as a **strict
+tool result, thinking. Forma's `chat.Message` takes the same shape, as a **strict
 subset**:
 
 ```go
@@ -145,7 +145,7 @@ const (
 )
 ```
 
-No `Image`, no `Signature`, no `CacheHint`: Qwen3 dense is text-only, tgo issues
+No `Image`, no `Signature`, no `CacheHint`: Qwen3 dense is text-only, Forma issues
 no replay tokens, and it has no prompt cache. [004-D2](004-model-graph.md) makes
 a vision model additive, and that is when `BlockImage` arrives.
 
@@ -185,7 +185,7 @@ translation rather than a state machine.
 ### 3.3 `/v1/completions` is a fourth Frontend, written here
 
 §1 attributes every dialect to `llmdialect`, which carries three. The legacy
-completions surface is the fourth and it is tgo's: `dialectLegacy`, the value
+completions surface is the fourth and it is Forma's: `dialectLegacy`, the value
 `"openai-completions"`, is an `ir.Dialect` of the same type so that everything
 keyed by dialect keeps working, and it is not one of `ir`'s own
 (`server/legacy.go:27`).
@@ -226,22 +226,22 @@ otherwise run correctly and identically.
 
 `llmdialect` already draws this line, with a **loss report**: fields a target
 cannot represent are accumulated in `ir.Request.Loss` rather than dropped
-silently. tgo adopts it, with a rule for which side a field falls on:
+silently. Forma adopts it, with a rule for which side a field falls on:
 
 | category | rule | examples |
 | --- | --- | --- |
 | **changes the answer** | **refuse**, naming the field | `n > 1` (needs batching, [008](008-scheduler.md)), a schema the grammar compiler cannot compile ([015](015-structured-output.md)), a `logit_bias` id outside the vocabulary |
 | **advisory** | accept, run, and **record the loss** | `cache_control`, `service_tier`, `user`, `metadata`, `citations` |
 
-Losses are surfaced two ways, both from the same list: an `X-Tgo-Loss` response
-header, and a `tgo_request_loss_total{field}` counter. A field that turns up
+Losses are surfaced two ways, both from the same list: an `X-Forma-Loss` response
+header, and a `forma_request_loss_total{field}` counter. A field that turns up
 constantly in that counter is a feature request with evidence attached.
 
 ### 4.1 `ir.Request` is narrower than `Policy`, so the loss list must be corrected
 
 `llmdialect`'s IR carries no `seed`, `logit_bias`, `presence_penalty`,
 `frequency_penalty` or `repetition_penalty`, and its OpenAI Chat frontend adds
-each to `Loss` as unrepresentable. **tgo implements every one of them**
+each to `Loss` as unrepresentable. **Forma implements every one of them**
 ([007 §1](007-engine.md)'s `Policy`), so emitting that list verbatim would report
 as unhonoured exactly the knobs that were honoured — and §8's row "every advisory
 field appears in the loss header" would pass over the bug.
@@ -251,11 +251,11 @@ So the handler parses those fields from the **raw body** alongside
 header.
 
 **The subtraction is per dialect, and getting that wrong is a real defect rather
-than a tidiness issue.** The set of names tgo honours is a *union* across four
+than a tidiness issue.** The set of names Forma honours is a *union* across four
 surfaces — `max_tokens`, `max_completion_tokens`, `max_output_tokens`, `stop`,
 `stop_sequences` — and subtracting the union everywhere reports a knob that set
 nothing as though it were honoured. Measured: `max_output_tokens` on
-`/v1/chat/completions` applied no bound, `X-Tgo-Loss` came back empty, and the
+`/v1/chat/completions` applied no bound, `X-Forma-Loss` came back empty, and the
 completion ran to context exhaustion **with nothing saying so**. False in 12 of
 56 name-by-route cells.
 
@@ -276,7 +276,7 @@ produce the same tokens.
 
 ### 4.2 The rest of the field map
 
-| field | tgo |
+| field | Forma |
 | --- | --- |
 | `model` | must name the loaded model, else 404 |
 | `stream` | both; SSE per §5 |
@@ -284,8 +284,8 @@ produce the same tokens.
 | `seed` | honoured as a **stream** seed, [006 §4](006-sampling.md) |
 | `presence_penalty`, `frequency_penalty`, `repetition_penalty` | mapped |
 | `logit_bias` | applied first, [006 §3](006-sampling.md) |
-| `logprobs`, `top_logprobs` | **advisory**: accepted, not served, and reported in `X-Tgo-Loss` (`server/loss_test.go:273`). `sample.Sampler.Probs` does not move the stream and nothing in `server/` calls it; the legacy encoder answers `logprobs: null` on every choice |
-| `thinking` / `reasoning` | maps to the template's thinking flag, [003 §3](003-chat-template.md). The **budget is advisory**: tgo does not stop the model mid-thought |
+| `logprobs`, `top_logprobs` | **advisory**: accepted, not served, and reported in `X-Forma-Loss` (`server/loss_test.go:273`). `sample.Sampler.Probs` does not move the stream and nothing in `server/` calls it; the legacy encoder answers `logprobs: null` on every choice |
+| `thinking` / `reasoning` | maps to the template's thinking flag, [003 §3](003-chat-template.md). The **budget is advisory**: Forma does not stop the model mid-thought |
 | `tools`, `tool_choice` | rendered into the prompt via the model's template; the model's text comes back as blocks. **No forced grammar** until [015](015-structured-output.md), so a malformed call is possible and is reported as text rather than as a parsed call |
 
 **Amended 2026-08-26:** `response_format: json_schema` was in that row when
@@ -295,7 +295,7 @@ the answer had to be refused whole. It is now honoured: `response_format`,
 refusal narrowed to a schema the compiler will not compile, answered with the
 keyword and the obstruction it named (015-D4). The reasoning is unchanged --
 enforcing part of a schema is the silent failure the rule exists to prevent --
-and only what tgo can enforce moved.
+and only what Forma can enforce moved.
 
 `tools` is the row to read carefully. Returning what the model emitted, rather
 than a parsed `tool_calls` array, is a deliberate under-promise: without
@@ -311,7 +311,7 @@ Each dialect's `EventEncoder` writes its own SSE framing from the same
 MessageStart (BlockStart (TextDelta|ArgsDelta|ThinkingDelta)* BlockStop)* MessageDelta MessageStop
 ```
 
-so tgo emits one canonical sequence and three wire formats fall out. Three
+so Forma emits one canonical sequence and three wire formats fall out. Three
 things a naive implementation gets wrong, none of which the encoder can do for
 us:
 
@@ -336,11 +336,11 @@ an `{"type":"error","error":{...}}` body; OpenAI sends an error chunk before
 closing. ollama hand-writes both, which is the evidence that there is no shared
 shape to borrow.
 
-**tgo therefore owns a small per-dialect error encoder**, beside the frontend
+**Forma therefore owns a small per-dialect error encoder**, beside the frontend
 rather than inside it, covering the pre-stream body and the mid-stream frame.
 §8 tests it per dialect. This is one of **two** places §2's "three surfaces for
 one adapter" is not true. The other is `/v1/completions`: `llmdialect` carries
-three dialects and §1's fourth route is a `Frontend` tgo wrote itself
+three dialects and §1's fourth route is a `Frontend` Forma wrote itself
 (`server/legacy.go`), so the legacy surface costs a whole codec rather than a
 table row.
 
@@ -361,23 +361,23 @@ submission granularity and total throughput is what one sequence gets. The
 server does not pretend otherwise:
 
 ```
-tgo_requests_in_flight            {dialect}
-tgo_queue_depth
-tgo_queue_wait_seconds            histogram
-tgo_decode_step_seconds           histogram
-tgo_logits_readback_seconds       histogram   # 010 C6, in one number
-tgo_request_loss_total            {field}     # section 4
-tgo_sessions_rejected_total       {reason}
+forma_requests_in_flight            {dialect}
+forma_queue_depth
+forma_queue_wait_seconds            histogram
+forma_decode_step_seconds           histogram
+forma_logits_readback_seconds       histogram   # 010 C6, in one number
+forma_request_loss_total            {field}     # section 4
+forma_sessions_rejected_total       {reason}
 ```
 
-`tgo_logits_readback_seconds` against `tgo_decode_step_seconds` is
+`forma_logits_readback_seconds` against `forma_decode_step_seconds` is
 [010 §3](010-conformance.md)'s readback share measured in production rather than
-in a benchmark. `tgo_queue_wait_seconds` is what [008 §1](008-scheduler.md)
+in a benchmark. `forma_queue_wait_seconds` is what [008 §1](008-scheduler.md)
 costs, in the units callers care about.
 
 ### 6.1 The exported seam, and its two constructors
 
-`server` takes an `Engine`, not a `*tgo.Model`. Four interfaces are the seam —
+`server` takes an `Engine`, not a `*forma.Model`. Four interfaces are the seam —
 `Engine`, `Session`, `Stream` and the `SessionSpec` that opens one — and
 [009-D4](#decision-record) is what they are for: every handler is tested against
 a fake engine with no device, and one end-to-end run covers the real one.
@@ -415,7 +415,7 @@ with no text.
 ## 7. Not in scope
 
 Authentication, per-key rate limiting, multi-model routing, and a model
-management API. tgo serves one model; everything above belongs in front of it —
+management API. Forma serves one model; everything above belongs in front of it —
 which, in this stack, is where `llmdialect` came from.
 
 The server binds to `127.0.0.1` by default. A non-loopback bind needs an
@@ -462,7 +462,7 @@ GET routes are live.
 | 3 | blocks as a strict subset: `ir.BlockImage` is refused rather than dropped, redacted thinking is dropped with the reason stated | `chat/chat.go:49-67`, `server/adapt.go:162-228` |
 | 3.1 | thinking is dropped by block type, so the forgeable textual boundary does not exist | `chat/qwen3.go:261-266`, `server/dialect_test.go:121` |
 | 3.2 | typed stream events, one to one with `ir.Event` | `stream.go:20-70,163-192`, `server/generate.go:247-268` |
-| 4 | refusals name their field; advisory fields run and come back in `X-Tgo-Loss` and the counter | `server/refuse.go:37-53`, `server/loss.go:155-213`, `server/server.go:123-126` |
+| 4 | refusals name their field; advisory fields run and come back in `X-Forma-Loss` and the counter | `server/refuse.go:37-53`, `server/loss.go:155-213`, `server/server.go:123-126` |
 | 4.1 | the subtraction is per dialect, and the whole name-by-route matrix is tested | `server/loss.go:104-126`, `server/loss_test.go:136,183` |
 | 4.2 | the field map, including the 2026-08-26 schema amendment | `server/adapt.go:86-123,272-325`, `server/extras.go:150-175` |
 | 5 | a flush per event, cancellation on disconnect, and a terminal `MessageDelta`+`MessageStop` | `server/generate.go:107-173`, `server/stream_test.go:174,380,413` |
@@ -474,7 +474,7 @@ GET routes are live.
 **What diverged** from the design, and why the code is right:
 
 - §1 attributes every dialect to `llmdialect`, which carries three.
-  `/v1/completions` is a fourth `Frontend` tgo wrote itself, 277 lines of
+  `/v1/completions` is a fourth `Frontend` Forma wrote itself, 277 lines of
   decode, encode and SSE (`server/legacy.go`). Writing it as a `Frontend`
   rather than as a fifth handler is what keeps it on one pipeline, one pair of
   loss tables and one error encoder instead of a fourth copy of each.
@@ -498,7 +498,7 @@ GET routes are live.
   because their vocabulary has no other value — which is why the gap was
   invisible on three routes of four (`server/generate.go:309`,
   `server/stream_test.go:262`). `StopToolUse` and `StopRefusal` stay
-  unreachable and neither is a gap: tgo emits a tool call as text
+  unreachable and neither is a gap: Forma emits a tool call as text
   ([009-D6](#decision-record)) and has no refusal classifier.
 - §5's flush uses `http.NewResponseController` rather than an `http.Flusher`
   type assertion. It reports the failure a wrapped `ResponseWriter` would
@@ -518,7 +518,7 @@ loss counter's cardinality bound.
 Owned elsewhere. `logprobs` and `top_logprobs` are accepted and reported as an
 advisory loss, and serving them is [030](030-logprobs.md)'s. Writing this
 paragraph out is what found why: the obstruction is [007 §1](007-engine.md)'s
-surface, not this one. A logprob is **per token** and `tgo.Event` carries
+surface, not this one. A logprob is **per token** and `forma.Event` carries
 **decoded text** — the tokenizer holds back an incomplete UTF-8 prefix, so one
 delta can be zero tokens, one, or several — and there is no field on an `Event`
 for a token id or a probability. 030 puts the accessor on `Stream` and §4 of it
@@ -527,7 +527,7 @@ says what each dialect does with the result; this spec consumes it.
 [022](022-batched-serving.md) makes a scheduler engine the
 default and leaves `WrapPool` behind `--prefix-cache session` and `off`, which
 is what makes concurrent requests go faster rather than interleave (§6). And
-[021](021-admission-queue.md) gives `tgo_queue_wait_seconds` a real number,
+[021](021-admission-queue.md) gives `forma_queue_wait_seconds` a real number,
 counting the wait for cache blocks as well as the wait for a session slot.
 ## Decision record
 
@@ -539,11 +539,11 @@ counting the wait for cache blocks as well as the wait for a session slot.
 | 009-D4 | handlers tested against a fake engine, plus one real end-to-end | only end-to-end | the HTTP surface is fully covered with no device |
 | 009-D5 | one model, no auth, no routing | a management API | the boundary is stated rather than discovered |
 | 009-D6 | `tools` returns what the model emitted | parse into a dialect's `tool_calls` | without [015](015-structured-output.md) nothing checks validity; parsing would assert what was not verified |
-| 009-D7 | metrics expose the readback share, queue wait, and loss | throughput only | the numbers that name tgo's upstream costs are visible in production |
+| 009-D7 | metrics expose the readback share, queue wait, and loss | throughput only | the numbers that name Forma's upstream costs are visible in production |
 | 009-D8 | loopback by default; a public bind needs a flag | bind `0.0.0.0` by default | an unauthenticated server is not exposed by omission |
-| 009-D12 | subtract the fields tgo honours from `llmdialect`'s loss list, **per dialect** | emit `Loss.Fields()` verbatim; subtract the union everywhere | the IR is narrower than `Policy`, so the header would report honoured knobs as dropped. **Amended 2026-08-26:** the first wording was dialect-blind and shipped a defect — a name honoured on *some* route was subtracted on *every* route, so a request that set nothing ran to context exhaustion reporting no loss ([§4.1](#41-irrequest-is-narrower-than-policy-so-the-loss-list-must-be-corrected)) |
-| 009-D13 | tgo owns a per-dialect error encoder | expect `Frontend` to cover errors | `Frontend` has no error path and the dialects genuinely differ; ollama hand-writes both ([§5.1](#51-errors-need-a-per-dialect-encoder-which-the-frontend-half-does-not-give)) |
-| 009-D9 | serve three dialects via `llmdialect`'s `Frontend` half | OpenAI Chat only; reimplement the dialects in tgo | three surfaces for one adapter. `Backend` is a gateway's half and tgo never uses it |
-| 009-D10 | `llmdialect` is a `tgo/server` dependency, not a core one | make `ir.Request` the engine's argument | a library embedder inherits neither the IR types nor the dialect layer. **Verified 2026-08-24:** `latere.ai/x/pkg` is one module carrying golang-migrate, the OTEL SDK, goldmark and oauth2 — and none of it reaches a consumer. Go's module graph pruning keeps a consumer's `go.sum` at two lines and links **stdlib only** beside llmdialect's own packages ([§2.1](#21-what-the-dependency-actually-costs)) |
-| 009-D14 | gate the dependency footprint in CI from M9 | trust that llmdialect stays stdlib-only | the property that makes D10 true is a property of llmdialect's *current* imports, not a promise; one OTEL import upstream would land in tgo silently on the next upgrade |
+| 009-D12 | subtract the fields Forma honours from `llmdialect`'s loss list, **per dialect** | emit `Loss.Fields()` verbatim; subtract the union everywhere | the IR is narrower than `Policy`, so the header would report honoured knobs as dropped. **Amended 2026-08-26:** the first wording was dialect-blind and shipped a defect — a name honoured on *some* route was subtracted on *every* route, so a request that set nothing ran to context exhaustion reporting no loss ([§4.1](#41-irrequest-is-narrower-than-policy-so-the-loss-list-must-be-corrected)) |
+| 009-D13 | Forma owns a per-dialect error encoder | expect `Frontend` to cover errors | `Frontend` has no error path and the dialects genuinely differ; ollama hand-writes both ([§5.1](#51-errors-need-a-per-dialect-encoder-which-the-frontend-half-does-not-give)) |
+| 009-D9 | serve three dialects via `llmdialect`'s `Frontend` half | OpenAI Chat only; reimplement the dialects in Forma | three surfaces for one adapter. `Backend` is a gateway's half and Forma never uses it |
+| 009-D10 | `llmdialect` is a `forma/server` dependency, not a core one | make `ir.Request` the engine's argument | a library embedder inherits neither the IR types nor the dialect layer. **Verified 2026-08-24:** `latere.ai/x/pkg` is one module carrying golang-migrate, the OTEL SDK, goldmark and oauth2 — and none of it reaches a consumer. Go's module graph pruning keeps a consumer's `go.sum` at two lines and links **stdlib only** beside llmdialect's own packages ([§2.1](#21-what-the-dependency-actually-costs)) |
+| 009-D14 | gate the dependency footprint in CI from M9 | trust that llmdialect stays stdlib-only | the property that makes D10 true is a property of llmdialect's *current* imports, not a promise; one OTEL import upstream would land in Forma silently on the next upgrade |
 | 009-D11 | messages and stream events are **blocks**, a strict subset of `ir.Block` | `Content string` | forced by [003-D4](003-chat-template.md): stripping prior thinking from a string is a textual boundary, and textual boundaries can be forged |

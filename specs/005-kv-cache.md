@@ -11,7 +11,7 @@ depends_on:
 
 The KV cache is the largest allocation in a serving process after the weights,
 the only one that scales with concurrency, and the one whose shape decides
-whether batching is possible at all. This spec is written twice over: what tgo
+whether batching is possible at all. This spec is written twice over: what Forma
 builds against accel **today**, and what accel
 [043](https://github.com/golang-design/accel/blob/main/specs/043-per-row-values.md)
 changes.
@@ -38,10 +38,10 @@ func Attention(b *Builder, q *Tensor, k, v *State, opts AttentionOptions) *Tenso
 `State` is caller-owned mutable storage the planner never aliases. It is a
 **version**, not a handle: `ScatterRows` returns the next version and reading an
 earlier one is refused, which turns write-then-read into an ordinary DAG edge
-rather than a rule the planner is told. tgo therefore orders nothing by hand.
+rather than a rule the planner is told. Forma therefore orders nothing by hand.
 
 Since 2026-08-24 the cache may be **f16**, and `Pages` binds a **page table** —
-both asked for by tgo and both landed. What remains, verified by probe rather
+both asked for by Forma and both landed. What remains, verified by probe rather
 than by reading commits:
 
 | | state |
@@ -62,7 +62,7 @@ accel 043 §4 is explicit that a `State` addressed through a page table is the
 non-orthogonal growth 043 exists to avoid. `Pages` is nil-able: nil is a
 contiguous cache, which is the same thing with an identity table.
 
-That matters to tgo more than it looks. **There is one cache type and one code
+That matters to Forma more than it looks. **There is one cache type and one code
 path**, and turning paging on is binding a tensor rather than choosing a
 different implementation. [005-D5](#decision-record) was written expecting to
 rebind, and rebinding is all it turned out to be.
@@ -72,7 +72,7 @@ rebind, and rebinding is all it turned out to be.
 ### 2.1 Contiguous, which is the degenerate case
 
 A contiguous cache is a paged one with an identity table and a block size of
-one, so this is not a second design — it is the shape tgo binds when `Pages` is
+one, so this is not a second design — it is the shape Forma binds when `Pages` is
 nil. **One state per role, sliced per layer** — two allocations for the whole model:
 
 $$\text{Shape}_{K} = \text{Shape}_{V} = [\,L,\; C,\; H_{kv},\; d_h\,]$$
@@ -81,10 +81,10 @@ with $L$ layers, per-layer capacity $C$, $H_{kv}$ key/value heads and head
 dimension $d_h$. Layer $\ell$'s window is `LayerState(b, s, ℓ)`, giving
 `[C, H_kv, d_h]`, and position $t$ of layer $\ell$ is row $t$ of that.
 
-> **This is the design tgo wanted, and for one milestone it could not have it.**
+> **This is the design Forma wanted, and for one milestone it could not have it.**
 > `Attention` and `ScatterRows` both refused a view at a non-zero offset, with
 > the instruction "use one state per layer" — 72 states, ports and bindings for a
-> 36-layer model where the natural count is two. tgo filed it as
+> 36-layer model where the natural count is two. Forma filed it as
 > [accel#9](https://github.com/golang-design/accel/issues/9); accel closed it,
 > and a probe confirms both operators now bind a layer view.
 > [C12](010-conformance.md).
@@ -96,7 +96,7 @@ dimension $d_h$. Layer $\ell$'s window is `LayerState(b, s, ℓ)`, giving
 The cost is that layer windows must be *proven* disjoint rather than disjoint by
 construction, which is the test in §7.
 
-### 2.2 Paged, which is what tgo builds
+### 2.2 Paged, which is what Forma builds
 
 The rows a sequence owns stop being contiguous. A page table maps the
 sequence's logical position to a physical block:
@@ -178,14 +178,14 @@ is in. The caller knows: it allocated the buffer. That is also why
 
 `Attention` refused any cache longer than the decode kernel's workgroup width of
 **128 positions**, and the check bound prefill too. A 128-token context is below
-a system prompt's overhead, so every number in §3 described memory tgo could not
+a system prompt's overhead, so every number in §3 described memory Forma could not
 allocate.
 
 **Closed on 2026-08-24.** accel
 [044](https://github.com/golang-design/accel/blob/main/specs/044-unbounded-context.md)
 replaced the lane-per-position geometry with a tiling loop carrying a running
 maximum, denominator and output accumulator, so capacity left the launch geometry
-entirely. A 4096-position cache is verified working. tgo asked for it in
+entirely. A 4096-position cache is verified working. Forma asked for it in
 [accel#8](https://github.com/golang-design/accel/issues/8) and wrote the design;
 accel implemented it with five recorded deviations.
 
@@ -245,7 +245,7 @@ buys one conversation's memory, while the pool is the allocation that scales wit
 concurrency. Every constraint this spec was written around has been removed
 upstream.
 
-## 4. What tgo does now
+## 4. What Forma does now
 
 One state pair, `LayerState` per layer, one `Session` per conversation. Prefill
 scatters $T$ rows at positions $0..T-1$; each decode step scatters one row at
@@ -273,10 +273,10 @@ position $t$ at offset $t$.
 
 **As of accel's current tree, `RoPE(b, x, rotaryDim, baseName, positions *Tensor)`
 takes one position per row**, and refuses a positions tensor whose length does
-not match the row count. tgo builds against that signature: a prefill binds
+not match the row count. Forma builds against that signature: a prefill binds
 $[0..T-1]$, a decode binds $[t]$. The single-sequence case is a one-row tensor
 rather than a special case — which is 043 §3's orthogonality test, and it means
-tgo has no batched path to write later, only a wider binding.
+Forma has no batched path to write later, only a wider binding.
 
 ## 6. The migration, and why it is small
 
@@ -293,16 +293,16 @@ Recorded now so it is not rediscovered:
 | layer views | one state per layer | a bound sub-range | **done**, [C12](010-conformance.md); bound at `model/qwen3_graph.go:88` |
 
 **Six of seven landed within a day of being asked for, and every one was a
-binding change.** That is [005-D5](#decision-record) paying off: tgo built no
+binding change.** That is [005-D5](#decision-record) paying off: Forma built no
 second path to switch to, and there was nothing to switch.
 
 Every row is a **binding** change. None is a structural one, because the plan's
 shape does not depend on which of these it reads — and that is exactly why
-[008 §5](008-scheduler.md) requires tgo to address the cache through a
+[008 §5](008-scheduler.md) requires Forma to address the cache through a
 `Session` rather than through a global offset, and to leave the batch dimension
 present at 1 rather than absent.
 
-**tgo does not build a second cache implementation to switch to.** It builds
+**Forma does not build a second cache implementation to switch to.** It builds
 one, against the signatures accel has, and rebinds.
 
 ## 7. Tests
@@ -317,14 +317,14 @@ one, against the signatures accel has, and rebinds.
 - **A paged prefill's output matches the host oracle**, not merely its `base`
   scalar. Asserting the scalar is what let [C13](010-conformance.md) pass as
   working for a day.
-- **A stale version is refused.** accel guarantees it; tgo depends on it, so the
+- **A stale version is refused.** accel guarantees it; Forma depends on it, so the
   test lives here too.
 - **The §3 arithmetic is a function**, and a table test checks it against the
   numbers above. A memory model nobody executes is a comment.
 - **Capacity refusal**, which is two refusals at two layers
   ([005-D8](#decision-record)):
   - the **device** cannot hold the requested context times the requested session
-    count. That is the server's, in `kvAdmission` (`cmd/tgo/serve.go:329`), at
+    count. That is the server's, in `kvAdmission` (`cmd/forma/serve.go:329`), at
     startup, and it names the pool, the weights, what is left and what one
     session costs. It cannot be the library's: `NewSession` knows the capacity
     and not how many sessions will exist beside it, and the whole point is to
@@ -354,16 +354,16 @@ tree existing.
 
 | section | what landed | where |
 | --- | --- | --- |
-| 1.1 | all four signatures bound as written; `State` versioning orders the writes, so tgo hand-orders nothing | `nn/attention.go:214-226` |
+| 1.1 | all four signatures bound as written; `State` versioning orders the writes, so Forma hand-orders nothing | `nn/attention.go:214-226` |
 | 1.2 | one cache type and one code path; `Pages` is nil-able at every layer and half a paged binding is refused | `nn/attention.go:135-143`, `nn/refuse_test.go:165` |
 | 2.1 | two allocations for the whole model, sliced per layer — 005-D1 as restored, 2 states and not 72 | `model/graph.go:229-231`, `model/qwen3_graph.go:88` |
 | 2.2 | $\text{row}(t) = \text{pages}[\lfloor t/B \rfloor] \cdot B + t \bmod B$ implemented once, used by both the host slot fill and the page-table binding | `plan.go:160-165` |
 | 2.3 | a permuted page table gives the contiguous run's logits bit for bit, with a negative control; reach past the table is refused | `model/paged_test.go:65`, `:131`, `:208` |
-| 3 | the arithmetic is a function and takes the width term $w$, table-tested against §3's own numbers | `cmd/tgo/info.go:286`, `cmd/tgo/info_test.go:26` |
+| 3 | the arithmetic is a function and takes the width term $w$, table-tested against §3's own numbers | `cmd/forma/info.go:286`, `cmd/forma/info_test.go:26` |
 | 4 | one `Session` per conversation, $C$ a session parameter defaulting to 4096, and the 005-D3 cost print at model open | `options.go:96`, `session.go:117-165`, `model.go:205-214` |
 | 5 | `RoPE` binds a positions tensor per row, separate for `q` and `k` because GQA makes the two row counts differ; a decode is one row of the same port | `nn/attention.go:206-207`, `model/graph.go:26-33` |
 | 6 | six of the seven migration rows are binding changes that landed; the seventh is not moving | this file, §6 |
-| 7 | bullets 1, 3 and half of 5: prefill/decode agreement at block and engine level, a paged prefill against a contiguous reference, and the per-position arithmetic table-tested | `nn/attention_test.go:296`, `:361`, `engine_test.go:92`, `model/paged_test.go:65`, `cmd/tgo/info_test.go:26` |
+| 7 | bullets 1, 3 and half of 5: prefill/decode agreement at block and engine level, a paged prefill against a contiguous reference, and the per-position arithmetic table-tested | `nn/attention_test.go:296`, `:361`, `engine_test.go:92`, `model/paged_test.go:65`, `cmd/forma/info_test.go:26` |
 
 **What diverged** from the design, and why the code is right:
 
@@ -379,7 +379,7 @@ tree existing.
   of two states sliced per layer would not compile at all.
 
 - **§3's width term reached `cacheBytes` on 2026-08-27**, and until then did
-  not. The function hardcoded f32 while `cmd/tgo`'s `kvBytesPerPosition` took a
+  not. The function hardcoded f32 while `cmd/forma`'s `kvBytesPerPosition` took a
   dtype and priced it correctly, so under `--prefix-cache process` the library
   reported twice what the f16 pool costs and the command line reported the
   truth — two numbers for one quantity, neither obviously the wrong one. It now
@@ -387,7 +387,7 @@ tree existing.
   and is table-tested against the same worked example §3 states.
 
 - **§3's arithmetic is implemented twice and only the CLI copy takes $w$.**
-  `cmd/tgo/info.go:286` is the version §3 describes; `model.go:504` hardcodes
+  `cmd/forma/info.go:286` is the version §3 describes; `model.go:504` hardcodes
   `const f32 = 4`. The split is not right, and it is the open item below.
 - **§5 is stricter than written.** The spec asks for one position per row; the
   code binds two position ports, `posQ` and `posK`, because grouped-query
@@ -431,8 +431,8 @@ shape for every layer, which holds for a dense transformer and not for a hybrid.
 | 005-D1 | **one state pair for the model, `LayerState` per layer** | one state per layer | **Amended twice on 2026-08-24, and it ends where it started.** First written as one pair; corrected to $2L$ when `Attention` was found to refuse a layer view; restored when [accel#9](https://github.com/golang-design/accel/issues/9) closed and a probe confirmed both `Attention` and `ScatterRows` bind one. 2 allocations, not 72 |
 | 005-D2 | context capacity is a session parameter defaulting to 4096 | the model's `max_position_embeddings` | a 32k default would reserve 9.66 GB before the first token |
 | 005-D3 | print the cache cost when capacity is raised | allocate and fail | the user learns the number when they ask, not from an OOM |
-| 005-D4 | no paging, no f16 cache; both filed upstream | a private page table in tgo | forbidden by [000 D1](000-decisions.md); the arithmetic *was* the filing. **Amended 2026-08-24 (twice):** accel 043 adopted both, then landed both. tgo now builds a paged f16 cache and it pays today: the shared pool is allocated f16 (`blocks.go:88`), the projected rows are narrowed before `ScatterRows` (`nn/attention.go:214-226`), and the halving is measured by `kvBytesPerPosition` — 288 KB per position in f32 against 144 KB in f16 (`cmd/tgo/info_test.go:26-45`) |
+| 005-D4 | no paging, no f16 cache; both filed upstream | a private page table in Forma | forbidden by [000 D1](000-decisions.md); the arithmetic *was* the filing. **Amended 2026-08-24 (twice):** accel 043 adopted both, then landed both. Forma now builds a paged f16 cache and it pays today: the shared pool is allocated f16 (`blocks.go:88`), the projected rows are narrowed before `ScatterRows` (`nn/attention.go:214-226`), and the halving is measured by `kvBytesPerPosition` — 288 KB per position in f32 against 144 KB in f16 (`cmd/forma/info_test.go:26-45`) |
 | 005-D5 | build one cache path against today's signatures and rebind | a paged path behind a flag, switched when 043 lands | **Vindicated.** Six of the seven changes in §6 landed within a day, all as binding changes. A flagged second path would have been written and deleted without ever running |
 | 005-D6 | follow the "use one state per layer" instruction rather than route around it | reshape the cache to hide the refusal | the noise was visible and filed, and the filing is what closed it. A hidden workaround would still be in the code |
 | 005-D8 | the **device**-memory refusal is the server's and the **per-request** one is the library's | one capacity check behind `NewSession` | the arithmetic needs the session count and the weight footprint, which only the process that plans the pool has; a library refusal would either guess the count or refuse nothing. §7 states both, so neither layer is left assuming the other did it |
-| 005-D7 | do not compose attention from primitives to beat the 128 ceiling | build score-MatMul / Softmax / value-MatMul in tgo | forbidden by [000 D1](000-decisions.md); accel 007 assigns the fallback to `Attention`, and composing it here would hide the register's most important row |
+| 005-D7 | do not compose attention from primitives to beat the 128 ceiling | build score-MatMul / Softmax / value-MatMul in Forma | forbidden by [000 D1](000-decisions.md); accel 007 assigns the fallback to `Attention`, and composing it here would hide the register's most important row |

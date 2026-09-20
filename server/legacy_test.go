@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	tgo "github.com/latere-ai/tgo"
+	forma "latere.ai/x/forma"
 )
 
 // specs/030-logprobs.md §6, the wire half.
@@ -18,16 +18,16 @@ import (
 // TestLogProbsAreServedOnTheOneRouteThatCanCarryThem is §4.
 //
 // llmdialect's ir has no logprobs shape at all, so the three dialects it
-// encodes cannot express one whatever tgo computes. /v1/completions is tgo's
+// encodes cannot express one whatever forma computes. /v1/completions is forma's
 // own Frontend and can. 030-D5 reports that rather than reaching past a codec
-// to append a member to a body tgo did not write.
+// to append a member to a body forma did not write.
 func TestLogProbsAreServedOnTheOneRouteThatCanCarryThem(t *testing.T) {
 	t.Parallel()
 	eng := &fakeEngine{
 		script: text("ab"),
-		probs: [][]tgo.TokenProb{{{
+		probs: [][]forma.TokenProb{{{
 			ID: 7, Text: "ab", LogProb: -0.5,
-			Top: []tgo.TokenProb{
+			Top: []forma.TokenProb{
 				{ID: 7, Text: "ab", LogProb: -0.5},
 				// A token the policy gave no chance. 030-D3: -Inf is null on
 				// the wire, not a floor a consumer would average.
@@ -98,13 +98,13 @@ func TestARequestThatDidNotAskStillAnswersNull(t *testing.T) {
 // TestStreamingServesTheSameLogProbs is §4's consistency requirement.
 //
 // Serving them only when `stream` is false would make a number depend on how
-// the caller asked for delivery, and X-Tgo-Loss would call the member honoured
+// the caller asked for delivery, and X-Forma-Loss would call the member honoured
 // either way.
 func TestStreamingServesTheSameLogProbs(t *testing.T) {
 	t.Parallel()
 	eng := &fakeEngine{
 		script: text("a", "b"),
-		probs: [][]tgo.TokenProb{
+		probs: [][]forma.TokenProb{
 			{{ID: 1, Text: "a", LogProb: -0.25}},
 			{{ID: 2, Text: "b", LogProb: -1.5}},
 		},

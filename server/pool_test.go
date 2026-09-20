@@ -12,13 +12,13 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/latere-ai/tgo"
-	"github.com/latere-ai/tgo/server"
+	"latere.ai/x/forma"
+	"latere.ai/x/forma/server"
 )
 
 // specs/019-session-affinity.md through the real handler.
 //
-// Every other pooling test lives in the tgo package, where the routing and the
+// Every other pooling test lives in the forma package, where the routing and the
 // token ids are. What is here is the half that only the server can be wrong
 // about: that a request's session is borrowed rather than allocated, that it is
 // given back with its history, and that cache_salt reaches the affinity key
@@ -28,14 +28,14 @@ import (
 // pool of n sessions.
 //
 // The prefix cache is what a pooled session has to reuse: pooling keeps the
-// history and [tgo.WithPrefixCache] is what is allowed to read it. Without both
+// history and [forma.WithPrefixCache] is what is allowed to read it. Without both
 // the pool is only an allocator.
 func poolServer(t *testing.T, n int) (*server.Server, *recordingEngine) {
 	t.Helper()
-	m, err := tgo.Open(writeCheckpoint(t), tgo.WithDevice(tgo.CPU), tgo.WithContext(96),
-		tgo.WithPrefixCache(tgo.CacheSession, 96))
+	m, err := forma.Open(writeCheckpoint(t), forma.WithDevice(forma.CPU), forma.WithContext(96),
+		forma.WithPrefixCache(forma.CacheSession, 96))
 	if err != nil {
-		t.Fatalf("tgo.Open: %v", err)
+		t.Fatalf("forma.Open: %v", err)
 	}
 	t.Cleanup(func() {
 		if err := m.Close(); err != nil {
@@ -283,10 +283,10 @@ func TestCacheSaltIsNotReportedAsLost(t *testing.T) {
 	if w.Code != http.StatusOK {
 		t.Fatalf("status = %d: %s", w.Code, w.Body.String())
 	}
-	for f := range strings.SplitSeq(w.Header().Get("X-Tgo-Loss"), ", ") {
+	for f := range strings.SplitSeq(w.Header().Get("X-Forma-Loss"), ", ") {
 		if f == "cache_salt" {
-			t.Fatalf("X-Tgo-Loss = %q reports cache_salt, which bounded what this request "+
-				"could reuse", w.Header().Get("X-Tgo-Loss"))
+			t.Fatalf("X-Forma-Loss = %q reports cache_salt, which bounded what this request "+
+				"could reuse", w.Header().Get("X-Forma-Loss"))
 		}
 	}
 }
@@ -338,9 +338,9 @@ func TestAPooledSessionSurvivesACancelledRequest(t *testing.T) {
 // that cannot hold N sessions' cache says so before the server binds, rather
 // than under load.
 func TestWrapPoolRefusesAPoolThatCannotBeReserved(t *testing.T) {
-	m, err := tgo.Open(writeCheckpoint(t), tgo.WithDevice(tgo.CPU), tgo.WithContext(96))
+	m, err := forma.Open(writeCheckpoint(t), forma.WithDevice(forma.CPU), forma.WithContext(96))
 	if err != nil {
-		t.Fatalf("tgo.Open: %v", err)
+		t.Fatalf("forma.Open: %v", err)
 	}
 	t.Cleanup(func() { _ = m.Close() })
 	if _, err := server.WrapPool(m, synthName, 0); err == nil {
@@ -463,10 +463,10 @@ func TestAdmissionAboveThePoolIsRefused(t *testing.T) {
 // session rather than a cache per session.
 func processPoolServer(t *testing.T, n int) (*server.Server, *recordingEngine) {
 	t.Helper()
-	m, err := tgo.Open(writeCheckpoint(t), tgo.WithDevice(tgo.CPU), tgo.WithContext(256),
-		tgo.WithPrefixCache(tgo.CacheProcess, 256))
+	m, err := forma.Open(writeCheckpoint(t), forma.WithDevice(forma.CPU), forma.WithContext(256),
+		forma.WithPrefixCache(forma.CacheProcess, 256))
 	if err != nil {
-		t.Fatalf("tgo.Open: %v", err)
+		t.Fatalf("forma.Open: %v", err)
 	}
 	t.Cleanup(func() {
 		if err := m.Close(); err != nil {
@@ -495,9 +495,9 @@ func processPoolServer(t *testing.T, n int) (*server.Server, *recordingEngine) {
 // and it is the thing no session-scoped cache can do at any pool size.
 //
 // Two *different* conversations, sharing a long opening turn and diverging
-// after it. Under [tgo.CacheSession] the second is cold whichever session it
+// after it. Under [forma.CacheSession] the second is cold whichever session it
 // lands on, because a session reuses only what it computed itself. Under
-// [tgo.CacheProcess] it reuses the shared opening, and a request carrying a
+// [forma.CacheProcess] it reuses the shared opening, and a request carrying a
 // cache_salt does not.
 func TestAProcessPoolSharesAcrossConversations(t *testing.T) {
 	s, eng := processPoolServer(t, 2)
@@ -545,16 +545,16 @@ func TestAProcessPoolSharesAcrossConversations(t *testing.T) {
 // TestTheUnpooledEngineCarriesTheSalt is the direction server.Wrap dropped.
 //
 // A session of its own shares nothing with another session, so under
-// [tgo.CacheSession] the salt reached nothing and losing it was invisible.
-// Under [tgo.CacheProcess] every session draws from one block pool: two tenants
+// [forma.CacheSession] the salt reached nothing and losing it was invisible.
+// Under [forma.CacheProcess] every session draws from one block pool: two tenants
 // with the same system prompt seeded identically, the second one's first token
 // arrived fast, and that timing is a membership test over the first one's
 // prompt. §4's loss report told both of them cache_salt had been honoured.
 func TestTheUnpooledEngineCarriesTheSalt(t *testing.T) {
-	m, err := tgo.Open(writeCheckpoint(t), tgo.WithDevice(tgo.CPU), tgo.WithContext(256),
-		tgo.WithPrefixCache(tgo.CacheProcess, 256))
+	m, err := forma.Open(writeCheckpoint(t), forma.WithDevice(forma.CPU), forma.WithContext(256),
+		forma.WithPrefixCache(forma.CacheProcess, 256))
 	if err != nil {
-		t.Fatalf("tgo.Open: %v", err)
+		t.Fatalf("forma.Open: %v", err)
 	}
 	t.Cleanup(func() {
 		if err := m.Close(); err != nil {

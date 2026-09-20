@@ -16,9 +16,9 @@ import (
 
 	"golang.design/x/accel"
 
-	"github.com/latere-ai/tgo/model"
-	"github.com/latere-ai/tgo/safetensors"
-	"github.com/latere-ai/tgo/weights"
+	"latere.ai/x/forma/model"
+	"latere.ai/x/forma/safetensors"
+	"latere.ai/x/forma/weights"
 )
 
 // TestKVCacheArithmetic checks specs/005-kv-cache.md §3 against the worked
@@ -150,7 +150,7 @@ func TestGainsArePricedAtF32AtEveryPrecision(t *testing.T) {
 //
 // choosePrecision and footprint restate weights.planLoad, which is unexported
 // and reachable only through a load that needs a device and moves every byte of
-// the checkpoint. `tgo info` prints the choice without doing that, so the rule
+// the checkpoint. `forma info` prints the choice without doing that, so the rule
 // exists twice and the two must not drift. This test runs a real load over a
 // synthesised checkpoint and compares the loader's own Report against what this
 // package computed from the declared shapes.
@@ -508,7 +508,7 @@ func TestResolvedIntoLeavesAnAgreeingReportAlone(t *testing.T) {
 
 // TestCacheWidthIsMeasuredNotAssumed is the drift specs/005-kv-cache.md §3
 // promises: the f32 constraint that forced the wide store is closed upstream
-// and the design tgo builds is f16, so the day the key and value states narrow,
+// and the design forma builds is f16, so the day the key and value states narrow,
 // a table that kept printing f32 would overstate every cache it prices by two.
 func TestCacheWidthIsMeasuredNotAssumed(t *testing.T) {
 	m := modelFacts{Layers: 36, KVHeads: 8, HeadDim: 128}

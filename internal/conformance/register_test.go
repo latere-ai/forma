@@ -93,7 +93,7 @@ func TestSplicedOutputIsInsideTheTable(t *testing.T) {
 	}
 
 	spliced := append([]string{"# spec", "", header}, append(append(append([]string{},
-		rows...), "FAIL", "FAIL\tgithub.com/latere-ai/tgo/internal/conformance\t0.245s"),
+		rows...), "FAIL", "FAIL\tlatere.ai/x/forma/internal/conformance\t0.245s"),
 		"", "prose")...)
 	if _, err := registerBlock(spliced); err == nil {
 		t.Fatal("output spliced under the last register row read as a clean table; " +

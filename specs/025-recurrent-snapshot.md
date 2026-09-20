@@ -314,7 +314,7 @@ composition that runs, with its dispatch count stated, is one kernel to *want*
 and none to be blocked on. Following 000-D1 here would file a gap that does not
 exist.
 
-**Where the nodes live, which decides whether 192 dispatches is a lot.** tgo
+**Where the nodes live, which decides whether 192 dispatches is a lot.** Forma
 compiles a plan per shape and submits it every step (`session.go:70`,
 `session.go:73`). A snapshot happens once per request and a restore at most once,
 so copy nodes in the step graph would run on every step and 192 dispatches would

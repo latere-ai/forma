@@ -148,7 +148,7 @@ Four of these carry a rule rather than a value:
   device ([004-D7](004-model-graph.md)).
 - **`Gathered` is a property of the tensor, not a policy**
   ([§5.3](#53-the-embedding-table-cannot-pack)). It is declared here so that one
-  rule decides both the footprint `tgo info` prints and the load itself; two
+  rule decides both the footprint `forma info` prints and the load itself; two
   callers pinning it separately is two rules that have to agree.
 - **`Report` carries what was *not* chosen.** `F16Bytes`, `Int8Bytes` and
   `Int4Bytes` are the numbers `Auto` compared, so a caller can see the decision
@@ -364,7 +364,7 @@ plane and has no three-plane form. So a load at int4 caps the embedding at int8.
 
 That is declared per tensor (`weights.Tensor.Gathered`) rather than discovered
 as a refusal at record time, and it is declared in the **loader** rather than by
-each caller: the footprint `tgo info` prints and the load itself are computed by
+each caller: the footprint `forma info` prints and the load itself are computed by
 two different pieces of code, and a cap applied in one of them prints a number
 the device never has.
 
@@ -378,7 +378,7 @@ common and defensible point.
 
 > Until 2026-08-24 that recommendation named a configuration accel refused:
 > `GatherRows` read f32 only, so an f16 embedding was not expressible and the
-> choice was 1.56 GB at f32 or int8 with nothing between. tgo filed it as part
+> choice was 1.56 GB at f32 or int8 with nothing between. Forma filed it as part
 > of [accel#11](https://github.com/golang-design/accel/issues/11) and it landed
 > ([C14](010-conformance.md)). The middle width now exists.
 
@@ -475,7 +475,7 @@ nobody has taken. Measuring it needs a real checkpoint, which puts it with
 
 ### 7.1 The final copy no longer exists
 
-tgo asked accel for a buffer *over* host memory the caller owns
+Forma asked accel for a buffer *over* host memory the caller owns
 ([accel#7](https://github.com/golang-design/accel/issues/7)). accel declined
 that shape, correctly — a buffer over caller memory is a promise about a
 lifetime accel cannot see — and pointed the problem the other way:
@@ -555,8 +555,8 @@ fresh pool: when a pool reports space and cannot hand it out contiguously,
 values; the pools are larger by each buffer's rounding to 256 bytes, by the
 headroom, and by whatever the last chunk did not use.
 
-**And `tgo info` states the footprint rule a second time.** `planeBytes`
-(`cmd/tgo/info.go:192`) prices a norm gain at f32 under every policy, because
+**And `forma info` states the footprint rule a second time.** `planeBytes`
+(`cmd/forma/info.go:192`) prices a norm gain at f32 under every policy, because
 [§2.2](#22-norm-gains-take-a-different-path-and-it-is-a-second-copy) means a gain
 never enters the quantized path — pricing one at f16 understates Qwen3-0.6B by
 128 KiB. It also counts each declared **port** rather than each checkpoint
@@ -567,7 +567,7 @@ pins that they agree.
 
 ## 8. What this spec does not do
 
-Downloading. `tgo pull` is a Hugging Face client, and it is
+Downloading. `forma pull` is a Hugging Face client, and it is
 [013](013-distribution.md) — cache layout, resumable range requests, and the
 `.gitattributes`-shaped LFS pointers that a naive fetch returns instead of
 weights. The loader here takes a local directory and nothing else.
@@ -594,7 +594,7 @@ landed with Wave 2 on 2026-08-24, and int4 with Wave 10 on 2026-08-27
 | 5 | the f16-int8-int4 ladder against a budget, and the choice printed | `weights/weights.go:445`, `:409` |
 | 5.1 | three forms at 2.0, 1.0625 and 0.53125 bytes per weight | `weights/weights.go:268` |
 | 5.2 | int4 only where int8 misses the budget | `weights/weights.go:505` |
-| 5.3 | a gathered tensor caps at int8, declared in the loader and mirrored by `tgo info` | `weights/weights.go:154`, `:542`; `cmd/tgo/info.go:202` |
+| 5.3 | a gathered tensor caps at int8, declared in the loader and mirrored by `forma info` | `weights/weights.go:154`, `:542`; `cmd/forma/info.go:202` |
 | 5.4 | the bound asserted by tests and by conformance, not by the loader | `weights/convert_test.go:515`; `internal/conformance/tolerance.go:101` |
 | 6 | all six rows refuse by name, and eight more the table does not list | `safetensors/safetensors.go:147`, `:245`; `safetensors/repo.go:159`, `:188` |
 | 7 | one tensor at a time, the raw plane dead before the transpose allocates | `weights/weights.go:551`, `:616` |
@@ -647,7 +647,7 @@ The eight documentation items left this paragraph on 2026-08-28:
 | §3's NaN rule | [§3](#3-dtype-bf16-to-f32-exactly-f32-to-f16-with-a-rule) — a NaN is returned canonically and is not counted against `MaxSaturation` |
 | §6's missing rows | [§6](#6-refusals) — seven added: the header cap, the short file, malformed entries, both overflow guards, the `weight_map` path escape, and an empty index |
 | peak host bytes as an argument | [§7](#7-memory-what-is-resident-and-when) says the bound is read off the allocations and nothing measures the process |
-| §7's device side | [§7.2](#72-what-the-arena-reserves) — the 64 MiB chunks, the 256-byte granularity, the headroom, that a pool never grows, and `tgo info`'s second copy of the footprint rule |
+| §7's device side | [§7.2](#72-what-the-arena-reserves) — the 64 MiB chunks, the 256-byte granularity, the headroom, that a pool never grows, and `forma info`'s second copy of the footprint rule |
 
 Owned elsewhere: §5.4's tier-3 measurement, quantization error on real blocks
 rather than a synthetic fixture, is [010 §3](010-conformance.md)'s third row. So
@@ -663,6 +663,6 @@ is measuring peak host bytes, for the same reason — both need a checkpoint.
 | 001-D5 | the int8 error bound is measured on real blocks, post-transpose | a hand-tuned tolerance | the assertion is derived and cannot be quietly raised |
 | 001-D6 | the reader treats the file as hostile and refuses by name | trust the header | every §6 row is a unit test needing no model |
 | 001-D7 | convert and upload shard by shard | load the model into host memory first | peak host memory is one shard plus one tensor |
-| 001-D8 | convert **into** device memory via `Buffer.Access` | convert to a host slice, then upload | the converted plane never exists on the host at f16 or int8 on a host-visible pool; int4 holds its three planes once, and the staging fallback holds the whole plane. accel declined the buffer-over-caller-memory shape tgo asked for and offered this, which needs no lifetime promise ([§7.1](#71-the-final-copy-no-longer-exists)) |
+| 001-D8 | convert **into** device memory via `Buffer.Access` | convert to a host slice, then upload | the converted plane never exists on the host at f16 or int8 on a host-visible pool; int4 holds its three planes once, and the staging fallback holds the whole plane. accel declined the buffer-over-caller-memory shape Forma asked for and offered this, which needs no lifetime promise ([§7.1](#71-the-final-copy-no-longer-exists)) |
 | 001-D10 | the int8 bound is asserted where the **activations** are, not at load | sample blocks and check the bound during the load | a loader has weights and no activations, so what it could check is that quantize/dequantize round-trips within half a step — arithmetic on the quantizer, true by construction, re-measured per tensor on every load ([§5.4](#54-the-bound-is-measured-not-assumed)) |
 | 001-D9 | allocate weight buffers from a host-visible pool, falling back to `Queue.WriteBuffer` | assume `Access` always works | `Access` refuses a device-local pool by design, so the fallback is the honest shape on a discrete GPU. It carries f16 and i8 only, so an int4 load on such a device fails today ([§7.1](#71-the-final-copy-no-longer-exists)) |

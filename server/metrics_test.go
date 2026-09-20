@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-// §6's numbers. 009-D7: the series that name tgo's upstream costs are the ones
+// §6's numbers. 009-D7: the series that name forma's upstream costs are the ones
 // worth exporting, and the pair that carries the point is the readback against
 // the step.
 
@@ -30,13 +30,13 @@ func TestMetricsExposeEverySeriesTheSpecNames(t *testing.T) {
 	}
 	body := w.Body.String()
 	for _, want := range []string{
-		"tgo_requests_in_flight",
-		"tgo_queue_depth",
-		"tgo_queue_wait_seconds_count",
-		"tgo_decode_step_seconds_count",
-		"tgo_logits_readback_seconds_count",
-		"tgo_request_loss_total",
-		"tgo_sessions_rejected_total",
+		"forma_requests_in_flight",
+		"forma_queue_depth",
+		"forma_queue_wait_seconds_count",
+		"forma_decode_step_seconds_count",
+		"forma_logits_readback_seconds_count",
+		"forma_request_loss_total",
+		"forma_sessions_rejected_total",
 	} {
 		if !strings.Contains(body, want) {
 			t.Errorf("no %s series:\n%s", want, body)
@@ -44,7 +44,7 @@ func TestMetricsExposeEverySeriesTheSpecNames(t *testing.T) {
 	}
 	// Every series is typed and documented, or a scrape reads it as untyped.
 	for line := range strings.SplitSeq(body, "\n") {
-		if strings.HasPrefix(line, "# HELP tgo_") {
+		if strings.HasPrefix(line, "# HELP forma_") {
 			name := strings.Fields(line)[2]
 			if !strings.Contains(body, "# TYPE "+name+" ") {
 				t.Errorf("%s has HELP and no TYPE", name)
@@ -66,9 +66,9 @@ func TestTheReadbackAndTheStepAreBothObserved(t *testing.T) {
 	}
 	body := get(t, s, "/metrics").Body.String()
 	for _, want := range []string{
-		"tgo_decode_step_seconds_count 3",
-		"tgo_logits_readback_seconds_count 3",
-		"tgo_queue_wait_seconds_count 3",
+		"forma_decode_step_seconds_count 3",
+		"forma_logits_readback_seconds_count 3",
+		"forma_queue_wait_seconds_count 3",
 	} {
 		if !strings.Contains(body, want) {
 			t.Errorf("want %q:\n%s", want, body)
@@ -84,7 +84,7 @@ func TestARefusedRequestObservesNoDecodeStep(t *testing.T) {
 	wantStatus(t, post(t, s, "/v1/chat/completions", routes[0].body(`,"n":9`)),
 		http.StatusBadRequest)
 	if body := get(t, s, "/metrics").Body.String(); !strings.Contains(body,
-		"tgo_decode_step_seconds_count 0") {
+		"forma_decode_step_seconds_count 0") {
 		t.Errorf("a refused request was counted as a decode step:\n%s", body)
 	}
 }
@@ -98,7 +98,7 @@ func TestTheInFlightGaugeRisesAndFalls(t *testing.T) {
 	release := busy(t, s, eng)
 
 	if body := get(t, s, "/metrics").Body.String(); !strings.Contains(body,
-		`tgo_requests_in_flight{dialect="openai-chat"} 1`) {
+		`forma_requests_in_flight{dialect="openai-chat"} 1`) {
 		t.Errorf("the gauge did not rise:\n%s", body)
 	}
 	release()
@@ -106,7 +106,7 @@ func TestTheInFlightGaugeRisesAndFalls(t *testing.T) {
 	deadline := time.Now().Add(10 * time.Second)
 	for time.Now().Before(deadline) {
 		if strings.Contains(get(t, s, "/metrics").Body.String(),
-			`tgo_requests_in_flight{dialect="openai-chat"} 0`) {
+			`forma_requests_in_flight{dialect="openai-chat"} 0`) {
 			return
 		}
 		time.Sleep(time.Millisecond)
@@ -123,7 +123,7 @@ func TestALossLabelIsEscaped(t *testing.T) {
 		routes[0].body(`,"a\"quoted\\field":1`))
 	wantStatus(t, w, http.StatusOK)
 	body := get(t, s, "/metrics").Body.String()
-	if !strings.Contains(body, `tgo_request_loss_total{field="a\"quoted\\field"} 1`) {
+	if !strings.Contains(body, `forma_request_loss_total{field="a\"quoted\\field"} 1`) {
 		t.Errorf("the label was not escaped:\n%s", body)
 	}
 }

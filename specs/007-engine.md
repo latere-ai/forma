@@ -12,14 +12,14 @@ depends_on:
 # The engine
 
 Everything above the graph and below the API. This is also the spec that owns
-**tgo's public surface**, per [000 D10](000-decisions.md): the engine is what a
+**Forma's public surface**, per [000 D10](000-decisions.md): the engine is what a
 caller touches, and everything under it is internal because it is where accel's
 shape will move.
 
 ## 1. The public surface
 
 ```go
-package tgo
+package forma
 
 // Open loads a model directory and prepares a device.
 func Open(dir string, opts ...Option) (*Model, error)
@@ -163,7 +163,7 @@ in tension — the `Model` lock protects a resource accel shares, and the
 ## 3. Plans and buckets
 
 `tensor.PlanCache` keys on the recorded graph's identity, so the same builder
-function called twice returns one plan. tgo records:
+function called twice returns one plan. Forma records:
 
 - **one decode plan**, shape-fixed at $T = 1$, compiled on first use;
 - **one prefill plan per bucket**, compiled on first use;
@@ -282,14 +282,14 @@ which is v0:
 - **Device-side sampling** removes the readback entirely; only the chosen id
   comes back. [010 C6](010-conformance.md) **closed**: `tensor.Sample` composes
   the whole policy on the device. The upstream half is done and the outstanding
-  work is tgo's own adoption of it, which is
+  work is Forma's own adoption of it, which is
   [020](020-device-sampling.md)'s.
 - **Overlapping step $t+1$'s submission with step $t$'s sampling** needs the
   sampled id to reach the device without a host round trip — the same
   dependency, and it closed with it.
 
 v0 measured the floor and reported it upstream, which is what closed C6. "How
-much of a decode step is the readback" is exactly the question tgo exists to
+much of a decode step is the readback" is exactly the question Forma exists to
 answer for accel.
 
 ## 6. Weights are `Weight` ports, and getting it wrong is silent
@@ -330,7 +330,7 @@ a user's context is unanswerable.
 
 ## Outcome
 
-The engine is the root `tgo` package, and it runs. It landed whole in Wave 4 on
+The engine is the root `forma` package, and it runs. It landed whole in Wave 4 on
 2026-08-25 — `Open`, `Model`, `Session`, `Stream`, `Policy`, `Usage`, the
 submission lock, the bucketed plan cache, the pad-row scatter, the decode loop
 and both error rules — and has been extended through Wave 11 with Int4, a
@@ -384,7 +384,7 @@ scheduler and the session pool are [008](008-scheduler.md)'s and
 [019](019-session-affinity.md)'s; and the batched serving path is
 [022](022-batched-serving.md)'s. One piece of description debt remains against
 this surface and is not a design gap: `doc.go:90-92` still says sharing across
-sessions is refused because tgo's graph declares no page-table port, which
+sessions is refused because Forma's graph declares no page-table port, which
 `Open` and `blocks.go` contradict. It is package documentation, so it is fixed
 in code rather than here.
 
@@ -395,7 +395,7 @@ in code rather than here.
 | 007-D1 | `Model` concurrent-safe, `Session` not, stated | lock the session internally | a caller's bug is reported, not hidden |
 | 007-D2 | ~~power-of-two prefill buckets, configurable~~ → **a fixed ladder, clamped to the session's capacity** | exact-$T$ plans; one fixed max shape | **Amended 2026-08-27.** Nothing exposes the set, because the measurement that would justify a different one ([010 §3](010-conformance.md)) has not been taken; bounded compiles; $2\ln 2 - 1 \approx 39\%$ mean padding |
 | 007-D3 | ~~pad rows scatter to a scratch row~~ → **pad ids are $\ge C$ and write nothing** | a mask input; a scratch buffer | **Amended 2026-08-24.** `ScatterRows` guarantees an out-of-range index writes nothing. No extra allocation, and §8 pins the guarantee |
-| 007-D4 | host sampling with a logits readback in v0 | wait for accel 039 | **Amended 2026-08-27.** The decision stands and its reason has changed: the floor was measured and reported upstream, and [C6](010-conformance.md) closed on it, so what remains is tgo adopting `tensor.Sample` ([020](020-device-sampling.md)) rather than accel building it |
+| 007-D4 | host sampling with a logits readback in v0 | wait for accel 039 | **Amended 2026-08-27.** The decision stands and its reason has changed: the floor was measured and reported upstream, and [C6](010-conformance.md) closed on it, so what remains is Forma adopting `tensor.Sample` ([020](020-device-sampling.md)) rather than accel building it |
 | 007-D5 | a failed step makes the session unusable | reset and continue | a partial cache write is not recoverable |
 | 007-D6 | ~~`Stream` is an iterator publicly, a channel internally~~ → **an iterator over synchronous steps** | a channel in the public API | **Amended 2026-08-27.** Early return does not leak, and many sequences at once arrived as [008](008-scheduler.md)'s exported `Scheduler` rather than as a channel under one `Stream` |
 | 007-D7 | the plan cache, KV layout and builders stay unexported | export them for advanced users | they are where accel's shape moves; [000 D10](000-decisions.md) |

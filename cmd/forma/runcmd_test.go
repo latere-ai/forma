@@ -10,10 +10,10 @@ import (
 	"testing"
 	"time"
 
-	tgo "github.com/latere-ai/tgo"
-	"github.com/latere-ai/tgo/model"
-	"github.com/latere-ai/tgo/sample"
-	"github.com/latere-ai/tgo/weights"
+	forma "latere.ai/x/forma"
+	"latere.ai/x/forma/model"
+	"latere.ai/x/forma/sample"
+	"latere.ai/x/forma/weights"
 )
 
 func TestParseRun(t *testing.T) {
@@ -74,7 +74,7 @@ func TestParseRunRefusals(t *testing.T) {
 }
 
 // TestCmdRunStreamsToStdout pins the split: tokens go to stdout and everything
-// else to stderr, so that `tgo run ... > answer.txt` holds the answer.
+// else to stderr, so that `forma run ... > answer.txt` holds the answer.
 func TestCmdRunStreamsToStdout(t *testing.T) {
 	useCPUDevice(t)
 	e := useFakeEngine(t, &fakeEngine{promptTokens: 6, ttft: 12 * time.Millisecond})
@@ -96,10 +96,10 @@ func TestCmdRunStreamsToStdout(t *testing.T) {
 		t.Fatalf("the engine saw %d requests", len(e.requests))
 	}
 	if e.requests[0].Recorder.Enabled() {
-		t.Error("`tgo run` enabled the instrument; 017-D3 keeps it off by default")
+		t.Error("`forma run` enabled the instrument; 017-D3 keeps it off by default")
 	}
 	if e.requests[0].Raw {
-		t.Error("`tgo run` sent the prompt raw; a chat model expects its template")
+		t.Error("`forma run` sent the prompt raw; a chat model expects its template")
 	}
 	if !e.closed {
 		t.Error("cmdRun did not close the engine")
@@ -145,19 +145,19 @@ func TestRenderUsage(t *testing.T) {
 }
 
 // TestLivePrecisionMapsEveryChoice pins the third copy of the same three
-// names. weights.Precision is what the flag parses into and tgo.Precision is
+// names. weights.Precision is what the flag parses into and forma.Precision is
 // what specs/007-engine.md's Open takes, and a mapping that fell through to
 // auto for int8 would silently load a model at twice the size the user asked
 // for and print no refusal.
 func TestLivePrecisionMapsEveryChoice(t *testing.T) {
 	for _, tc := range []struct {
 		in   weights.Precision
-		want tgo.Precision
+		want forma.Precision
 	}{
-		{weights.F16, tgo.F16},
-		{weights.Int8, tgo.Int8},
-		{weights.Auto, tgo.AutoPrecision},
-		{weights.Inherit, tgo.AutoPrecision},
+		{weights.F16, forma.F16},
+		{weights.Int8, forma.Int8},
+		{weights.Auto, forma.AutoPrecision},
+		{weights.Inherit, forma.AutoPrecision},
 	} {
 		if got := livePrecision(tc.in); got != tc.want {
 			t.Errorf("livePrecision(%v) = %v, want %v", tc.in, got, tc.want)
@@ -171,10 +171,10 @@ func TestLivePrecisionMapsEveryChoice(t *testing.T) {
 // the end-of-sequence token and one that ended on a stop string are the same
 // observation, and the sentence says so rather than picking one.
 func TestStopReasonNamesTheBudgetAndOtherwiseSaysItCannotTell(t *testing.T) {
-	if got := stopReason(tgo.Usage{CompletionTokens: 8}, 8); !strings.Contains(got, "budget") {
+	if got := stopReason(forma.Usage{CompletionTokens: 8}, 8); !strings.Contains(got, "budget") {
 		t.Errorf("a completion that used its whole budget stopped on %q", got)
 	}
-	got := stopReason(tgo.Usage{CompletionTokens: 3}, 8)
+	got := stopReason(forma.Usage{CompletionTokens: 3}, 8)
 	if strings.Contains(got, "budget") {
 		t.Errorf("a completion that stopped early was blamed on the budget: %q", got)
 	}
@@ -182,7 +182,7 @@ func TestStopReasonNamesTheBudgetAndOtherwiseSaysItCannotTell(t *testing.T) {
 		t.Errorf("stop reason %q claims to know which of the two ended the stream", got)
 	}
 	// A run with no budget cannot have exhausted one, whatever it produced.
-	if s := stopReason(tgo.Usage{CompletionTokens: 100}, 0); strings.Contains(s, "budget") {
+	if s := stopReason(forma.Usage{CompletionTokens: 100}, 0); strings.Contains(s, "budget") {
 		t.Errorf("an unbounded run stopped on %q", s)
 	}
 }
@@ -212,13 +212,13 @@ func TestCmdRunPrintsTheResolvedPrecisionNotThePredictedOne(t *testing.T) {
 }
 
 // TestCmdRunPrintsThePolicyBesideTheThroughput is 017-D4 applied to the one
-// number `tgo run` prints.
+// number `forma run` prints.
 //
 // [renderUsage] reports tokens per second, and a tokens-per-second figure
 // without the hardware, the model, the precision and the sampling policy is
 // decoration: a run at temperature 0.9 and a greedy one are different products,
 // and a reader who cannot tell which produced the number cannot compare it to
-// anything. `tgo bench` carries the four in its conditions table; this is the
+// anything. `forma bench` carries the four in its conditions table; this is the
 // same rule where the command line prints a rate on its own.
 func TestCmdRunPrintsThePolicyBesideTheThroughput(t *testing.T) {
 	useCPUDevice(t)

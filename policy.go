@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Latere AI
 // SPDX-License-Identifier: Apache-2.0
 
-package tgo
+package forma
 
 import (
 	"errors"
@@ -9,7 +9,7 @@ import (
 	"math"
 	"slices"
 
-	"github.com/latere-ai/tgo/sample"
+	"latere.ai/x/forma/sample"
 )
 
 // Policy is one request's sampling configuration, plus the two limits that
@@ -19,7 +19,7 @@ import (
 // argmax, no bias, no penalties, no truncation.
 //
 // specs/007-engine.md §1. The first nine fields are
-// [github.com/latere-ai/tgo/sample.Policy]'s, restated so a caller does not
+// [latere.ai/x/forma/sample.Policy]'s, restated so a caller does not
 // import the sampler to name a temperature; MaxTokens, Stop and Seed are the
 // engine's, because a package that sees one row of logits knows nothing about
 // a sequence (006-D4).
@@ -144,32 +144,32 @@ func (p Policy) sampling() sample.Policy {
 // number into a request should get an error, not a stack trace.
 func (p Policy) check(vocab int) error {
 	if p.MaxTokens < 0 {
-		return fmt.Errorf("tgo: MaxTokens is %d; it is zero for unbounded or a positive "+
+		return fmt.Errorf("forma: MaxTokens is %d; it is zero for unbounded or a positive "+
 			"count", p.MaxTokens)
 	}
 	if p.Temperature < 0 || p.Temperature != p.Temperature {
-		return fmt.Errorf("tgo: Temperature is %v; it is zero for greedy or positive",
+		return fmt.Errorf("forma: Temperature is %v; it is zero for greedy or positive",
 			p.Temperature)
 	}
 	if p.TopK < 0 || p.TopK > sample.TopMaxRounds {
-		return fmt.Errorf("tgo: TopK is %d; it is zero for no truncation or 1..%d, which is "+
+		return fmt.Errorf("forma: TopK is %d; it is zero for no truncation or 1..%d, which is "+
 			"what accel's kernel can reproduce", p.TopK, sample.TopMaxRounds)
 	}
 	if p.TopP < 0 || p.TopP > 1 || p.TopP != p.TopP {
-		return fmt.Errorf("tgo: TopP is %v; it is zero for no truncation or lies in (0, 1]",
+		return fmt.Errorf("forma: TopP is %v; it is zero for no truncation or lies in (0, 1]",
 			p.TopP)
 	}
 	if p.RepetitionPenalty < 0 || p.RepetitionPenalty != p.RepetitionPenalty {
-		return fmt.Errorf("tgo: RepetitionPenalty is %v; it is not negative",
+		return fmt.Errorf("forma: RepetitionPenalty is %v; it is not negative",
 			p.RepetitionPenalty)
 	}
 	if p.PenaltyWindow < 0 {
-		return fmt.Errorf("tgo: PenaltyWindow is %d; it is zero for the whole context or a "+
+		return fmt.Errorf("forma: PenaltyWindow is %d; it is zero for the whole context or a "+
 			"positive count", p.PenaltyWindow)
 	}
 	for id, bias := range p.LogitBias {
 		if id < 0 || id >= vocab {
-			return fmt.Errorf("tgo: LogitBias names token %d and the vocabulary holds %d",
+			return fmt.Errorf("forma: LogitBias names token %d and the vocabulary holds %d",
 				id, vocab)
 		}
 		// Negative infinity bans a token, which is the point. NaN and positive
@@ -177,20 +177,20 @@ func (p Policy) check(vocab int) error {
 		// comparison and the other makes the argmax unconditional whatever the
 		// model computed, and the sampler refuses both.
 		if bias != bias || math.IsInf(float64(bias), 1) {
-			return fmt.Errorf("tgo: LogitBias for token %d is %v; a bias is finite or "+
+			return fmt.Errorf("forma: LogitBias for token %d is %v; a bias is finite or "+
 				"negative infinity, which bans the token", id, bias)
 		}
 	}
 	if p.TopLogProbs < 0 || p.TopLogProbs > sample.TopMaxRounds {
-		return fmt.Errorf("tgo: TopLogProbs is %d; it is zero for none or 1..%d, which is "+
+		return fmt.Errorf("forma: TopLogProbs is %d; it is zero for none or 1..%d, which is "+
 			"what the truncation stages walk", p.TopLogProbs, sample.TopMaxRounds)
 	}
 	if p.TopLogProbs > 0 && !p.LogProbs {
-		return errors.New("tgo: TopLogProbs is set and LogProbs is not; the alternatives " +
+		return errors.New("forma: TopLogProbs is set and LogProbs is not; the alternatives " +
 			"to a token are reported beside its own probability, not instead of it")
 	}
 	if slices.Contains(p.Stop, "") {
-		return fmt.Errorf("tgo: Stop holds an empty string, which every completion " +
+		return fmt.Errorf("forma: Stop holds an empty string, which every completion " +
 			"contains before its first token")
 	}
 	// A stop string cuts the text at the point it matched and ends the stream
@@ -202,7 +202,7 @@ func (p Policy) check(vocab int) error {
 	// dropped without a word is the same request answered differently
 	// (015-D9).
 	if len(p.Schema) > 0 && len(p.Stop) > 0 {
-		return fmt.Errorf("tgo: Schema and Stop are set together; a stop string cuts the "+
+		return fmt.Errorf("forma: Schema and Stop are set together; a stop string cuts the "+
 			"completion where it matched, so it would end a constrained request on half a "+
 			"document, and Schema promises one that parses. Drop Stop, or drop Schema: "+
 			"%q", p.Stop)

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Latere AI
 // SPDX-License-Identifier: Apache-2.0
 
-package tgo
+package forma
 
 import (
 	"context"
@@ -12,7 +12,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/latere-ai/tgo/internal/prefix"
+	"latere.ai/x/forma/internal/prefix"
 )
 
 // The queue's suite runs against a fake admitter, which is 021-D2's point:

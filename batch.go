@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Latere AI
 // SPDX-License-Identifier: Apache-2.0
 
-package tgo
+package forma
 
 import (
 	"errors"
@@ -13,8 +13,8 @@ import (
 	"golang.design/x/accel"
 	"golang.design/x/accel/tensor"
 
-	"github.com/latere-ai/tgo/internal/prefix"
-	"github.com/latere-ai/tgo/model"
+	"latere.ai/x/forma/internal/prefix"
+	"latere.ai/x/forma/model"
 )
 
 // Batch runs several sequences in one forward pass.
@@ -100,7 +100,7 @@ type Work struct {
 
 // ErrNoBlockPool is what [Model.NewBatch] refuses a model with no shared block
 // pool with.
-var ErrNoBlockPool = errors.New("tgo: a batched step needs a shared block pool")
+var ErrNoBlockPool = errors.New("forma: a batched step needs a shared block pool")
 
 // NewBatch reserves n slots over the model's shared block pool.
 //
@@ -115,7 +115,7 @@ var ErrNoBlockPool = errors.New("tgo: a batched step needs a shared block pool")
 // under load.
 func (m *Model) NewBatch(n int) (*Batch, error) {
 	if n < 2 {
-		return nil, fmt.Errorf("tgo: a batch of %d slot(s) is a session; a batch is "+
+		return nil, fmt.Errorf("forma: a batch of %d slot(s) is a session; a batch is "+
 			"two or more sequences stepping together", n)
 	}
 	if m.blocks == nil {
@@ -130,7 +130,7 @@ func (m *Model) NewBatch(n int) (*Batch, error) {
 	}
 	buckets, err := batchBuckets(n, rows)
 	if err != nil {
-		return nil, fmt.Errorf("tgo: %w", err)
+		return nil, fmt.Errorf("forma: %w", err)
 	}
 
 	c := m.cfg
@@ -148,7 +148,7 @@ func (m *Model) NewBatch(n int) (*Batch, error) {
 			Usage: accel.BufferStorage | accel.BufferCopyDst | accel.BufferCopySrc,
 		})
 		if err != nil {
-			return fmt.Errorf("tgo: allocating %s for a batch of %d: %w", label, n, err)
+			return fmt.Errorf("forma: allocating %s for a batch of %d: %w", label, n, err)
 		}
 		*dst = buf
 		return nil
@@ -196,7 +196,7 @@ func (m *Model) NewBatch(n int) (*Batch, error) {
 func (m *Model) batchRows(n int) (int, error) {
 	rows := m.blocks.positions
 	if rows < n {
-		return 0, fmt.Errorf("tgo: a shared pool of %d positions cannot carry a batch "+
+		return 0, fmt.Errorf("forma: a shared pool of %d positions cannot carry a batch "+
 			"of %d slots, each of which needs at least one", rows, n)
 	}
 	return rows, nil
@@ -239,7 +239,7 @@ func (b *Batch) Admit(slot int, ids []int, salt string, reserve int) (int, error
 		return 0, err
 	}
 	if len(ids) == 0 {
-		return 0, errors.New("tgo: the prompt is empty; there is nothing to condition on")
+		return 0, errors.New("forma: the prompt is empty; there is nothing to condition on")
 	}
 	s := b.slots[slot]
 	s.release()
@@ -247,7 +247,7 @@ func (b *Batch) Admit(slot int, ids []int, salt string, reserve int) (int, error
 		IDs: ids, Session: salt, Salt: salt, Reserve: reserve,
 	})
 	if err != nil {
-		return 0, fmt.Errorf("tgo: admitting a %d-token prompt with a reserve of %d "+
+		return 0, fmt.Errorf("forma: admitting a %d-token prompt with a reserve of %d "+
 			"to slot %d: %w", len(ids), reserve, slot, err)
 	}
 	s.lease, s.pages = l, l.Blocks()
@@ -316,10 +316,10 @@ func (b *Batch) step(work []Work) ([][]float32, timings, error) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 	if b.closed {
-		return nil, t, errors.New("tgo: the batch is closed")
+		return nil, t, errors.New("forma: the batch is closed")
 	}
 	if len(work) == 0 {
-		return nil, t, errors.New("tgo: a step with no work computes nothing")
+		return nil, t, errors.New("forma: a step with no work computes nothing")
 	}
 
 	members := make([]model.Member, len(b.slots))
@@ -330,18 +330,18 @@ func (b *Batch) step(work []Work) ([][]float32, timings, error) {
 			return nil, t, err
 		}
 		if seen[w.Slot] {
-			return nil, t, fmt.Errorf("tgo: slot %d appears twice in one step; a slot is "+
+			return nil, t, fmt.Errorf("forma: slot %d appears twice in one step; a slot is "+
 				"one sequence and its tokens are consecutive", w.Slot)
 		}
 		seen[w.Slot] = true
 		if len(w.Tokens) == 0 {
-			return nil, t, fmt.Errorf("tgo: slot %d contributes no tokens; a slot with "+
+			return nil, t, fmt.Errorf("forma: slot %d contributes no tokens; a slot with "+
 				"nothing to do is absent from the work rather than empty in it", w.Slot)
 		}
 		total += len(w.Tokens)
 	}
 	if total > b.rows {
-		return nil, t, fmt.Errorf("tgo: %d tokens do not fit a batch sized for %d",
+		return nil, t, fmt.Errorf("forma: %d tokens do not fit a batch sized for %d",
 			total, b.rows)
 	}
 
@@ -353,7 +353,7 @@ func (b *Batch) step(work []Work) ([][]float32, timings, error) {
 	for _, w := range work {
 		s := b.slots[w.Slot]
 		if err := s.reserve(w.Tokens); err != nil {
-			return nil, t, fmt.Errorf("tgo: slot %d: %w", w.Slot, err)
+			return nil, t, fmt.Errorf("forma: slot %d: %w", w.Slot, err)
 		}
 		members[w.Slot].Tokens = w.Tokens
 		members[w.Slot].Pages = s.pages
@@ -361,7 +361,7 @@ func (b *Batch) step(work []Work) ([][]float32, timings, error) {
 
 	rows, err := b.buckets.For(total)
 	if err != nil {
-		return nil, t, fmt.Errorf("tgo: %w", err)
+		return nil, t, fmt.Errorf("forma: %w", err)
 	}
 	step, err := model.NewBatchStep(b.m.cfg, rows, members, CacheBlock, b.m.blocks.positions)
 	if err != nil {
@@ -391,7 +391,7 @@ func (b *Batch) step(work []Work) ([][]float32, timings, error) {
 		{b.extents, step.Extents}, {b.last, step.Last},
 	} {
 		if err := q.WriteBuffer(wr.buf, 0, wr.data); err != nil {
-			return nil, t, fmt.Errorf("tgo: binding a batched step's inputs: %w", err)
+			return nil, t, fmt.Errorf("forma: binding a batched step's inputs: %w", err)
 		}
 	}
 	table := make([]uint32, len(b.slots)*b.m.blocks.maxPages())
@@ -401,13 +401,13 @@ func (b *Batch) step(work []Work) ([][]float32, timings, error) {
 		}
 	}
 	if err := q.WriteBuffer(b.pageBuf, 0, table); err != nil {
-		return nil, t, fmt.Errorf("tgo: binding the batch's page tables: %w", err)
+		return nil, t, fmt.Errorf("forma: binding the batch's page tables: %w", err)
 	}
 	fence := plan.Submit(q, bind)
 	t.submit = time.Since(mark)
 	mark = time.Now()
 	if err := fence.Wait(); err != nil {
-		return nil, t, fmt.Errorf("tgo: submitting a %d-slot step of %d tokens: %w",
+		return nil, t, fmt.Errorf("forma: submitting a %d-slot step of %d tokens: %w",
 			len(work), total, err)
 	}
 	t.device = time.Since(mark)
@@ -432,7 +432,7 @@ func (b *Batch) step(work []Work) ([][]float32, timings, error) {
 	v := b.m.cfg.VocabSize
 	span := b.hLogits[lo*v : (hi+1)*v]
 	if err := q.ReadBuffer(b.logits, lo*v, span); err != nil {
-		return nil, t, fmt.Errorf("tgo: reading a batched step's logits back: %w", err)
+		return nil, t, fmt.Errorf("forma: reading a batched step's logits back: %w", err)
 	}
 	t.readback = time.Since(mark)
 
@@ -444,7 +444,7 @@ func (b *Batch) step(work []Work) ([][]float32, timings, error) {
 	for i, w := range work {
 		s := b.slots[w.Slot]
 		if err := s.commit(w.Tokens); err != nil {
-			return nil, t, fmt.Errorf("tgo: slot %d: %w", w.Slot, err)
+			return nil, t, fmt.Errorf("forma: slot %d: %w", w.Slot, err)
 		}
 		s.history = append(s.history, w.Tokens...)
 		s.length += len(w.Tokens)
@@ -460,10 +460,10 @@ func (b *Batch) step(work []Work) ([][]float32, timings, error) {
 // usable reports whether a slot index names a slot of a live batch.
 func (b *Batch) usable(slot int) error {
 	if b.closed {
-		return errors.New("tgo: the batch is closed")
+		return errors.New("forma: the batch is closed")
 	}
 	if slot < 0 || slot >= len(b.slots) {
-		return fmt.Errorf("tgo: slot %d is outside a batch of %d", slot, len(b.slots))
+		return fmt.Errorf("forma: slot %d is outside a batch of %d", slot, len(b.slots))
 	}
 	return nil
 }
@@ -497,7 +497,7 @@ func (b *Batch) bindings(rows int) (tensor.Bindings, error) {
 	} {
 		view, err := e.buf.View(0, e.count)
 		if err != nil {
-			return tensor.Bindings{}, fmt.Errorf("tgo: binding %q: %w", e.name, err)
+			return tensor.Bindings{}, fmt.Errorf("forma: binding %q: %w", e.name, err)
 		}
 		bufs[e.name] = view
 	}

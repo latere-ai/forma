@@ -11,7 +11,7 @@ import (
 	"golang.design/x/accel"
 	"golang.design/x/accel/quant"
 
-	"github.com/latere-ai/tgo/safetensors"
+	"latere.ai/x/forma/safetensors"
 )
 
 // The f16 constants specs/001-weights.md §3 states the rule in terms of.

@@ -13,16 +13,16 @@ import (
 // The loss report is two corrections applied to llmdialect's, in that order.
 //
 // llmdialect accumulates the fields *its IR* cannot carry. That is the right
-// list for a gateway and the wrong one for tgo in both directions:
+// list for a gateway and the wrong one for forma in both directions:
 //
 //   - ir.Request has no seed, logit_bias or penalties, so every frontend files
-//     each as an unknown top-level field -- and tgo implements all of them
+//     each as an unknown top-level field -- and forma implements all of them
 //     (specs/007-engine.md §1's Policy). Emitting the list verbatim would
 //     report as unhonoured exactly the knobs that were honoured (009-D12).
 //     honoured is subtracted.
 //
-//   - ir.Request *does* carry things tgo drops: a caller identity, a
-//     prompt-cache breakpoint, a thinking budget, a tool_choice tgo cannot
+//   - ir.Request *does* carry things forma drops: a caller identity, a
+//     prompt-cache breakpoint, a thinking budget, a tool_choice forma cannot
 //     force without constrained decoding (009-D6). llmdialect files none of
 //     those, because its IR represents them fine. dropped is added.
 //
@@ -30,7 +30,7 @@ import (
 // field is one edit, and a Policy field missing from honoured fails a test
 // rather than silently starting to report itself as lost.
 
-// honoured maps a [github.com/latere-ai/tgo.Policy] field to the wire fields
+// honoured maps a [latere.ai/x/forma.Policy] field to the wire fields
 // that set it, across all four dialects.
 //
 // TestEveryPolicyFieldIsHonoured reflects over Policy and fails on a field
@@ -61,7 +61,7 @@ var honoured = map[string][]string{
 
 // honouredSession are the wire names that configure the *session* rather than
 // the sampler, so they are honoured without being
-// [github.com/latere-ai/tgo.Policy] fields and cannot go in [honoured], whose
+// [latere.ai/x/forma.Policy] fields and cannot go in [honoured], whose
 // invariant is that its keys are exactly Policy's.
 //
 // One entry. cache_salt is the isolation boundary under both engines and
@@ -107,7 +107,7 @@ var honouredEverywhere = []string{
 // reporting an honoured knob as lost.
 // The schema is the sharpest case in the table: each dialect spells it
 // differently -- response_format, output_format, text.format -- and all three
-// names reach the same [github.com/latere-ai/tgo.Policy] field, so subtracting
+// names reach the same [latere.ai/x/forma.Policy] field, so subtracting
 // the union would report a schema as enforced on the three routes that never
 // saw one.
 var honouredHere = map[ir.Dialect][]string{
@@ -116,10 +116,10 @@ var honouredHere = map[ir.Dialect][]string{
 	ir.DialectOpenAIChat: {"max_tokens", "max_completion_tokens", "stop", "response_format",
 		"logprobs", "top_logprobs"},
 	// The Anthropic and Responses surfaces have no member for a logprob, so
-	// the ask stays a loss there whatever tgo could compute.
+	// the ask stays a loss there whatever forma could compute.
 	ir.DialectAnthropicMessages: {"max_tokens", "stop_sequences", "output_format"},
 	ir.DialectOpenAIResponses:   {"max_output_tokens", "text"},
-	// The other route that serves them, through tgo's own codec. Its
+	// The other route that serves them, through forma's own codec. Its
 	// `logprobs` member is itself the count; [parseExtras] reads a
 	// top_logprobs beside it from any body, so that spelling applies here too.
 	dialectLegacy: {"max_tokens", "stop", "logprobs", "top_logprobs"},
@@ -142,18 +142,18 @@ var honouredOn = func() map[ir.Dialect]map[string]bool {
 	return out
 }()
 
-// Loss fields this package adds, for things llmdialect represents and tgo does
+// Loss fields this package adds, for things llmdialect represents and forma does
 // not act on.
 const (
 	// lossUser is a caller-supplied end-user identifier: OpenAI's `user`,
-	// Anthropic's `metadata.user_id`. tgo has no per-user anything.
+	// Anthropic's `metadata.user_id`. forma has no per-user anything.
 	lossUser ir.LossField = "user"
 
 	// lossMetadata is a request-scoped bag the Responses dialect accepts and
 	// discards; it never reaches ir.Request at all.
 	lossMetadata ir.LossField = "metadata"
 
-	// lossToolChoice is a forced or restricted tool choice. tgo renders tools
+	// lossToolChoice is a forced or restricted tool choice. forma renders tools
 	// into the prompt and cannot force a call without constrained decoding
 	// (009-D6, specs/015-structured-output.md).
 	lossToolChoice ir.LossField = "tool_choice"
@@ -163,7 +163,7 @@ const (
 	lossParallelToolCalls ir.LossField = "parallel_tool_calls"
 )
 
-// lossReport is what X-Tgo-Loss carries: llmdialect's list, corrected.
+// lossReport is what X-Forma-Loss carries: llmdialect's list, corrected.
 //
 // Order is llmdialect's insertion order first and this package's additions
 // after, deduplicated, so the header is stable for a given request. The
@@ -183,7 +183,7 @@ func lossReport(d ir.Dialect, req *ir.Request, raw map[string]bool) []string {
 	}
 	// A logprobs ask llmdialect represented but this route cannot answer. The
 	// Responses frontend reads top_logprobs into ir.Request and files no
-	// loss, because its IR carries it; tgo serves it only where the encoder
+	// loss, because its IR carries it; forma serves it only where the encoder
 	// can (specs/030-logprobs.md §4), so the ask is reported here on the
 	// routes that cannot.
 	if req.LogProbs && !honours["logprobs"] {
@@ -195,7 +195,7 @@ func lossReport(d ir.Dialect, req *ir.Request, raw map[string]bool) []string {
 	return out.Strings()
 }
 
-// dropped is what tgo accepts, runs, and does nothing with.
+// dropped is what forma accepts, runs, and does nothing with.
 //
 // Every entry is advisory by §4's test: a request with it and a request without
 // it produce the same tokens. A field that changed the tokens would be in
@@ -219,13 +219,13 @@ func dropped(req *ir.Request, raw map[string]bool) []ir.LossField {
 	}
 	if req.Reasoning != nil {
 		if req.Reasoning.BudgetTokens > 0 {
-			// The budget is advisory: tgo does not stop the model mid-thought
+			// The budget is advisory: forma does not stop the model mid-thought
 			// (§4.1's thinking row).
 			out = append(out, ir.LossThinkingBudget)
 		}
 		if req.Reasoning.Effort != "" {
 			// The template's thinking flag is a boolean, so a tier is a tier
-			// tgo cannot spend.
+			// forma cannot spend.
 			out = append(out, ir.LossReasoningEffort)
 		}
 	}
@@ -241,7 +241,7 @@ func dropped(req *ir.Request, raw map[string]bool) []ir.LossField {
 }
 
 // blocksCacheHint reports whether any block asks for a prompt-cache
-// breakpoint. tgo has no prompt cache until specs/016-prefix-cache.md.
+// breakpoint. forma has no prompt cache until specs/016-prefix-cache.md.
 func blocksCacheHint(blocks []ir.Block) bool {
 	return slices.ContainsFunc(blocks, func(b ir.Block) bool { return b.CacheHint })
 }
@@ -250,7 +250,7 @@ func messagesCacheHint(msgs []ir.Message) bool {
 	return slices.ContainsFunc(msgs, func(m ir.Message) bool { return blocksCacheHint(m.Blocks) })
 }
 
-// header renders a loss list for X-Tgo-Loss.
+// header renders a loss list for X-Forma-Loss.
 //
 // Comma-separated, because a loss list is a set of field names and an HTTP
 // header holding a set is a comma-separated one (RFC 9110 §5.6.1).

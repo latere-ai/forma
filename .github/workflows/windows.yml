@@ -1,6 +1,6 @@
 name: windows
 
-# tgo builds and tests on Windows, and that guarantee predates the shared
+# forma builds and tests on Windows, and that guarantee predates the shared
 # pipeline. It is here rather than in go-verify's matrix because the Windows
 # runner image ships no GNU make, and the shared contract is make targets.
 #

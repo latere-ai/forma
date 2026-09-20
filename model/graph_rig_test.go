@@ -13,8 +13,8 @@ import (
 	"golang.design/x/accel"
 	"golang.design/x/accel/tensor"
 
-	"github.com/latere-ai/tgo/internal/oracle"
-	"github.com/latere-ai/tgo/nn"
+	"latere.ai/x/forma/internal/oracle"
+	"latere.ai/x/forma/nn"
 )
 
 // synthetic is the config every graph test below is recorded at:
@@ -304,7 +304,7 @@ const (
 // §2.5.2's half-split-to-interleaved permutation is the loader's, applied to
 // bytes before they reach any graph. A fixture generated in accel's basis is
 // therefore the right one to compare a *graph* against; the permutation itself
-// is tgo/weights' test.
+// is forma/weights' test.
 func referenceForward(c *Config, w map[string][]float32, ids []int, order qkOrder) []float64 {
 	t := len(ids)
 	f := func(name string) []float64 { return f64s(w[name]) }
@@ -516,7 +516,7 @@ func TestDecodeAtOneTokenEqualsThePrefillsLastRow(t *testing.T) {
 }
 
 // u32sToInts is the reference's id type, which is plain ints because the
-// oracle takes no tgo types (010 §5).
+// oracle takes no forma types (010 §5).
 func u32sToInts(v []uint32) []int {
 	out := make([]int, len(v))
 	for i, x := range v {

@@ -15,7 +15,7 @@ depends_on:
 path must not break on a multimodal tokenizer". This spec is that row, and it is
 the smallest of [018](018-hybrid-models.md)'s four children.
 
-tgo serves text. The checkpoint does not. The question is not whether tgo can
+Forma serves text. The checkpoint does not. The question is not whether Forma can
 render a picture; it is what happens to a token that *stands for* one, on a path
 that has no vision tower to fill it in.
 
@@ -32,10 +32,10 @@ that has no vision tower to fill it in.
 Three facts follow, and each decides one section below.
 
 1. **The two ids are inside the vocabulary.** 248056 and 248057 are less than
-   248320, so every range check tgo already runs admits them (§2).
+   248320, so every range check Forma already runs admits them (§2).
 2. **The ids are declared, the spellings are not.** `config.json` names two
    integers. A surface form such as `<|image_pad|>` is a checkpoint convention
-   and is not what the head predicts; the integer is. So tgo must read the ids
+   and is not what the head predicts; the integer is. So Forma must read the ids
    and must never look them up by text.
 3. **The head is `ForConditionalGeneration`.** The LM head predicts over all
    248320 rows, the two placeholder rows included, so the model can emit one.
@@ -99,13 +99,13 @@ The refusal path exists and is reached from two places.
   `chat/qwen3_test.go:433`.
 
 Both, deliberately. The wire refusal names the dialect member the caller sent,
-which `chat` cannot know. The `chat` refusal catches a caller using tgo as a
-library with no server in front, which is most of `package tgo`'s API surface.
+which `chat` cannot know. The `chat` refusal catches a caller using Forma as a
+library with no server in front, which is most of `package forma`'s API surface.
 
 **Rejected: expand an image part into a run of placeholder ids.** This is what
 the reference implementation's template does — it writes the placeholder token
 once per image patch and the vision tower then overwrites those embedding rows
-before the first layer runs. tgo has no vision tower. The same expansion here
+before the first layer runs. Forma has no vision tower. The same expansion here
 produces exactly §5's failure, with a prompt that renders, tokenizes, and runs.
 
 **Rejected: refuse in one place only.** Either half alone leaves a hole: the
@@ -146,7 +146,7 @@ below are one rule stated once.
 
 `plan.go:236` and `scheduler.go:254` already refuse an id outside the vocabulary,
 in the same sentence shape. A placeholder id is refused beside it, with the
-reason rather than the range: this id stands for a picture, tgo computes no
+reason rather than the range: this id stands for a picture, Forma computes no
 embedding for it, and scoring it would run the model over a row nothing wrote.
 
 It goes there and not at the server because both call sites are public API. A
@@ -185,7 +185,7 @@ text prompt whether or not the checkpoint can also see; the vision tower is an
 leaves nothing uncomputed. §5's guards are what turn "uses none of it" from a
 property of the request into a property of the run.
 
-**What tgo prints.** `renderInfo` (`cmd/tgo/info.go:426-434`) reports the
+**What Forma prints.** `renderInfo` (`cmd/forma/info.go:426-434`) reports the
 vocabulary size; beside it, a checkpoint whose config declares either placeholder
 id gets one line naming the ids and stating that image and video input are
 refused. A user then learns what this checkpoint can do elsewhere *before* they
@@ -196,8 +196,8 @@ correct without the vision tower. Refusing is the overclaim's mirror image — i
 reports "cannot" where the honest answer is "this part, correctly".
 
 **Rejected: say nothing.** The refusal in §4 is then the first time a user hears
-that the checkpoint had a capability tgo declines. `docs/orientation.md`'s "What
-tgo will not do" is a promise to say so in advance, and a per-checkpoint
+that the checkpoint had a capability Forma declines. `docs/orientation.md`'s "What
+Forma will not do" is a promise to say so in advance, and a per-checkpoint
 capability is exactly the case that needs it.
 
 ## 7. The vocabulary size and the sampler (026-D5)
@@ -243,7 +243,7 @@ adjustment and it names a $k$ the device cannot walk, which is the refusal at
 | `TestPlaceholderIDRefusedAsInput` | `Scheduler.Feed` and `Plan.Score` refuse 248056 by id, with the placeholder reason and not the range message, on a config that declares it |
 | `TestPlaceholderIDMasked` | with a logits row whose maximum is at 248056, the sampler draws something else at every temperature and with a grammar absent; the mask is −∞ and survives the penalties |
 | `TestPlaceholderNeverFedBack` | a stream whose first step would draw 248056 never assigns it to `st.feed`, so the next step's `Inputs.IDs` holds no placeholder |
-| `TestInfoNamesPlaceholderIDs` | `tgo info` on a multimodal config prints the ids and the refusal; on a text-only config it prints neither line |
+| `TestInfoNamesPlaceholderIDs` | `forma info` on a multimodal config prints the ids and the refusal; on a text-only config it prints neither line |
 
 The round-trip test is the one that would decay first. It must compare against a
 **text-only fixture's ids for the same prompt**, not against a golden recorded
@@ -272,5 +272,5 @@ correct encoding from a consistently wrong one.
 | 026-D1 | the tokenizer carries the placeholder ids as ordinary added tokens; no change to `package tokenizer` | refuse at load a checkpoint that declares `image_token_id` | the tokenizer cannot see `config.json` and reproduces an added token exactly, so there is nothing here it gets wrong; and refusal would discard the complete text inference [026-D4](#decision-record) establishes |
 | 026-D2 | an image part is refused by name at the wire **and** in `chat` | expand it into a run of placeholder ids, as the reference template does; or refuse in one place only | the expansion is [026-D3](#decision-record)'s failure with a prompt that renders and runs. One place alone leaves either `Session.Chat` or the dialect field name uncovered |
 | 026-D3 | the placeholder ids are refused where an id enters (`plan.go:236`, `scheduler.go:254`) and masked to −∞ where a token is drawn (`stream.go:271`, and the batched path's sampler) | filter the id at the decoder; or rely on the placeholder row being harmless | `stream.go:281` feeds the drawn id back before the decoder sees it, so a decode-time filter stops the text and not the token. The row is overwritten by the vision encoder upstream and by nothing here, so gathering it is reading a value this run never computed |
-| 026-D4 | a text-only prompt on a multimodal checkpoint runs, and `tgo info` names what is declined | refuse the checkpoint; or run it and say nothing | 64 layers of text inference are correct without the vision tower. Silence makes §4's refusal the first notice a user gets, which is what `docs/orientation.md` promises not to do |
+| 026-D4 | a text-only prompt on a multimodal checkpoint runs, and `forma info` names what is declined | refuse the checkpoint; or run it and say nothing | 64 layers of text inference are correct without the vision tower. Silence makes §4's refusal the first notice a user gets, which is what `docs/orientation.md` promises not to do |
 | 026-D5 | the sampler is unchanged; only the readback grows | scale `TopMaxRounds` with the vocabulary | 128 is accel's round count and not a function of $V$, so scaling it names a $k$ the device cannot walk. The 993 KB row makes [C3](010-conformance.md)'s on-device sampling a throughput item for this checkpoint rather than a nicety |

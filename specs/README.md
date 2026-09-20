@@ -1,8 +1,8 @@
-# tgo specs
+# Forma specs
 
 **Audience: contributors.** These are design documents — decisions, the
 alternatives that were rejected, and the reasoning — written before the code and
-kept honest afterwards. Documentation for people *using* tgo lives in
+kept honest afterwards. Documentation for people *using* Forma lives in
 [`../docs/`](../docs/) and is written for a different reader.
 
 Start with [000-decisions.md](000-decisions.md). It is normative: a spec here
@@ -138,7 +138,7 @@ where the code is, what diverged, and what is open.
 | [007](007-engine.md) | complete | sessions, plans, buckets, the decode loop | — |
 | [008](008-scheduler.md) | complete | continuous batching: slots, admission, eviction, chunked prefill | — |
 | [009](009-server.md) | complete | three wire dialects over one neutral request | — |
-| [010](010-conformance.md) | implemented | **what tgo proves about accel**, and the register of gaps | §3's five measurements are named and none is run |
+| [010](010-conformance.md) | implemented | **what Forma proves about accel**, and the register of gaps | §3's five measurements are named and none is run |
 | [011](011-sequencing.md) | record | build order, what landed, and where a measurement goes | — |
 | [013](013-distribution.md) | complete | fetching checkpoints, and the cache | — |
 | [015](015-structured-output.md) | complete | schema-constrained decoding | — |
@@ -151,6 +151,7 @@ where the code is, what diverged, and what is open.
 | [023](023-cache-kinds.md) | implemented | three state shapes in one forward pass, and what a block reserves | §10's six rows that need a stack running all three kinds, which is 024's graph |
 | [024](024-qwen3-5-architecture.md) | implemented | the `qwen3_5` config, weight map and hybrid graph | §11's sub-scope A, small and unblocked, and sub-scope C, blocked on accel#27 |
 | [030](030-logprobs.md) | complete | reporting the distribution a token was drawn from | — |
+| [031](031-forma-rename.md) | implemented | Forma repository, module, command, and public naming | remote publication and installation verification |
 
 **What is next.** Six specs, each scoped to be finished in one pass. Two are the
 residue of a spec above that was scoped too large: 008 shed three, of which
@@ -167,7 +168,6 @@ two, 015 shed one.
 | [027](027-batched-benchmarks.md) | drafted | the throughput curve 017-D5 designed and nothing measures | 017 |
 | [028](028-performance-gate.md) | drafted | a build that loses throughput fails like one that loses a test | 017 |
 | [029](029-grammar-front-ends.md) | drafted | EBNF and regex over the machine the schema path already built | 015 |
-| [031](031-forma-rename.md) | drafted | Forma repository, module, command, and public naming | naming migration |
 
 **Three of them judged themselves too large** and named their own passes:
 [022](022-batched-serving.md) §14 and [024](024-qwen3-5-architecture.md) §11 each
@@ -247,7 +247,7 @@ flowchart LR
 
 int4 storage shipped, so the footprint is 13.4 GiB, and `nn.LinearAttention` and
 `nn.DepthwiseCausalConv` both exist with value tests that pass. Most of what is
-left is a graph tgo has not written.
+left is a graph Forma has not written.
 
 **One upstream gap came first, was reported, and is closed.** Writing
 [024](024-qwen3-5-architecture.md) found that accel's `tensor.LinearAttention`
@@ -323,7 +323,7 @@ Q4_K super-block is two levels of scale over eight sub-blocks with a minimum
 each.
 
 **`rope_scaling`: YaRN.** [004](004-model-graph.md) §7 refuses any scaling it
-does not implement, which is the right refusal and caps tgo at a checkpoint's
+does not implement, which is the right refusal and caps Forma at a checkpoint's
 trained context.
 
 **Speculative decoding.** The standard 2–3× decode win, and
@@ -334,18 +334,18 @@ and the sampler's history.
 
 **Embeddings and pooling.** `/v1/embeddings`, a pooling strategy, and an
 encoder-shaped graph with no cache. A large share of what inference servers
-serve, and tgo has none of it.
+serve, and Forma has none of it.
 
 **LoRA adapters.** [016](016-prefix-cache.md) §10.3 records that an adapter must
 reach the prefix cache key, which is what makes this more than a weight sum. It
 should be written `deferred` with its trigger, the way [014](014-jinja.md) is.
 
-**A second GPU backend.** [Issue #2](https://github.com/latere-ai/tgo/issues/2)
+**A second GPU backend.** [Issue #2](https://github.com/latere-ai/forma/issues/2)
 is the one open issue, and its design lives in accel, as
 [060](https://github.com/golang-design/accel/blob/main/specs/060-cuda-bringup.md)
 and [061](https://github.com/golang-design/accel/blob/main/specs/061-ptx-target.md),
-because tgo authors no kernels. What is tgo's is three call sites that spell
-"GPU" as Metal — `model.go:374`, `cmd/tgo/env.go:111` and
+because Forma authors no kernels. What is Forma's is three call sites that spell
+"GPU" as Metal — `model.go:374`, `cmd/forma/env.go:111` and
 `internal/conformance/tier.go:164`, each `Prefer: []accel.Backend{accel.BackendMetal}` —
 plus `tier.go:120`, which reads the backend back by name, and `options.go`'s
 `Device` kind, whose `Metal` member is the value all three switch on. The fix
@@ -353,7 +353,7 @@ is not a CUDA arm in three switches: `Device` names a kind and the preference
 is a list, so it becomes a spec once accel 060 has a device to open. It also
 inherits one budget hazard 060 §6 measured: on a unified-memory part
 `Limits.MaxPoolBytes` is host RAM, and `weights/device.go:55` picks the
-precision and `cmd/tgo/serve.go:635` sizes KV admission from it.
+precision and `cmd/forma/serve.go:635` sizes KV admission from it.
 
 **Multi-device.** A permanent scope boundary rather than unwritten work. It
 belongs in [000](000-decisions.md) as a decision with its rejected alternative,
@@ -378,7 +378,7 @@ shipped the same day. [010 §2](010-conformance.md) is the register and
 
 ## The one thing to understand before contributing
 
-tgo does not write kernels. [000 D1](000-decisions.md) makes this project
+Forma does not write kernels. [000 D1](000-decisions.md) makes this project
 accel's validating consumer, and a patch that works around a missing accel
 operator with private device code will be rejected however good it is — because
 the gap it hides is the output this project exists to produce.

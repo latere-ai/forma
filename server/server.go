@@ -157,7 +157,7 @@ func (s *Server) dialect(front llmdialect.Frontend) http.Handler {
 		// Before anything is written, because the list is known now and a
 		// header set after WriteHeader is a header nobody receives.
 		if len(req.loss) > 0 {
-			w.Header().Set("X-Tgo-Loss", header(req.loss))
+			w.Header().Set("X-Forma-Loss", header(req.loss))
 			s.metrics.lost(req.loss)
 		}
 
@@ -184,27 +184,27 @@ func (s *Server) decode(front llmdialect.Frontend, w http.ResponseWriter,
 	// nobody is reading.
 	body, err := io.ReadAll(http.MaxBytesReader(w, r.Body, s.opt.maxBody))
 	if err != nil {
-		return nil, badRequest("tgo: reading the request body: %v", err)
+		return nil, badRequest("forma: reading the request body: %v", err)
 	}
 	top, err := topLevel(body)
 	if err != nil {
-		return nil, badRequest("tgo: %v", err)
+		return nil, badRequest("forma: %v", err)
 	}
 	if aerr := refuseRaw(d, top); aerr != nil {
 		return nil, aerr
 	}
 	req, err := front.DecodeRequest(body)
 	if err != nil {
-		return nil, badRequest("tgo: %v", err)
+		return nil, badRequest("forma: %v", err)
 	}
 	if req.Model != s.eng.Name() {
 		return nil, &apiError{kind: errNotFound, field: "model", reason: "not_found",
-			msg: fmt.Sprintf("tgo: this server serves %q and the request asked for %q; "+
+			msg: fmt.Sprintf("forma: this server serves %q and the request asked for %q; "+
 				"it serves one model and does no routing", s.eng.Name(), req.Model)}
 	}
 	ex, err := parseExtras(top)
 	if err != nil {
-		return nil, badRequest("tgo: %v", err)
+		return nil, badRequest("forma: %v", err)
 	}
 	out, aerr := adapt(d, req, ex, keys(top), s.eng)
 	if aerr != nil {
@@ -240,13 +240,13 @@ func (s *Server) models(w http.ResponseWriter, _ *http.Request) {
 	writeJSON(w, map[string]any{
 		"object": "list",
 		"data": []map[string]any{{
-			"id": s.eng.Name(), "object": "model", "created": 0, "owned_by": "tgo",
+			"id": s.eng.Name(), "object": "model", "created": 0, "owned_by": "forma",
 		}},
 	})
 }
 
 // buildIdentity is what /version reports: the main module's version and the
-// VCS revision and time the toolchain stamped. tgo links no build flags, so
+// VCS revision and time the toolchain stamped. forma links no build flags, so
 // the build info is the only record of what a binary is.
 func buildIdentity() health.Build {
 	var b health.Build
@@ -286,7 +286,7 @@ func (s *Server) exposeMetrics(w http.ResponseWriter, _ *http.Request) {
 func writeJSON(w http.ResponseWriter, v any) {
 	raw, err := json.Marshal(v)
 	if err != nil {
-		http.Error(w, `{"error":{"message":"tgo: the body could not be encoded"}}`,
+		http.Error(w, `{"error":{"message":"forma: the body could not be encoded"}}`,
 			http.StatusInternalServerError)
 		return
 	}
@@ -321,7 +321,7 @@ func (s *Server) Listen(addr string) (net.Listener, error) {
 		return nil, err
 	}
 	if public {
-		s.notice("tgo: listening on %s, which is reachable from the network. This server "+
+		s.notice("forma: listening on %s, which is reachable from the network. This server "+
 			"has no authentication and no rate limiting: anyone who can reach it can use "+
 			"the model.", ln.Addr())
 	}

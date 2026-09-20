@@ -8,7 +8,7 @@ import (
 	"math/rand/v2"
 	"testing"
 
-	"github.com/latere-ai/tgo/internal/oracle"
+	"latere.ai/x/forma/internal/oracle"
 )
 
 // rows returns count rows of vocab logits from a seeded generator, so a stream

@@ -1,14 +1,14 @@
-# The per-push gate configuration for tgo. Every check runs from
+# The per-push gate configuration for forma. Every check runs from
 # latere.ai/x/ci-gate, pinned in go.mod, so each one runs the same on a laptop
 # as it does on a runner.
 
 cover:
-  trim_prefix: github.com/latere-ai/tgo/
+  trim_prefix: latere.ai/x/forma/
   exempt:
     # A short list on purpose. Every entry is a promise that the package is
     # thin enough that its coverage would measure the test harness rather than
     # the code. The value is the reason; lateregate rejects an empty one.
-    cmd/tgo: >-
+    cmd/forma: >-
       argument parsing and process wiring; the packages under it carry the
       logic
     internal/conformance: >-
@@ -28,7 +28,7 @@ race:
   timeout: 45m
 
 hermetic:
-  # Nothing besides the toolchain. tgo's tests reach no system binary, and the
+  # Nothing besides the toolchain. forma's tests reach no system binary, and the
   # empty list is what keeps that true.
   allow: []
 
@@ -92,7 +92,7 @@ depcheck:
     - openbsd/amd64
     - netbsd/amd64
   packages:
-    github.com/latere-ai/tgo/server:
+    latere.ai/x/forma/server:
       decision: 009-D14
       allow:
         golang.design/x/accel: the compute layer; 000 D1 makes every package here reach it
@@ -100,7 +100,7 @@ depcheck:
         latere.ai/x/pkg/llmdialect: the three wire dialects, 009-D10; this is the one 009-D14 exists to watch
         latere.ai/x/pkg/health: the fleet's probe surface, /livez /readyz /version /metrics; pure Go, stdlib only
         github.com/ebitengine/purego: accel's cgo-free dynamic loading of Metal, reached through accel on darwin only
-    github.com/latere-ai/tgo/tokenizer:
+    latere.ai/x/forma/tokenizer:
       decision: 002-D10
       allow:
         golang.org/x/text: Unicode normalisation, 002-D10; pure Go, so 000 D2 holds

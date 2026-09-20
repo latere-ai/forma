@@ -3,11 +3,11 @@
 Thank you for looking. This project has one unusual rule and a few ordinary
 ones; the unusual one is first because it decides whether a patch is wanted.
 
-## The rule: tgo does not write kernels
+## The rule: Forma does not write kernels
 
-tgo is [accel](https://github.com/golang-design/accel)'s validating consumer.
+Forma is [accel](https://github.com/golang-design/accel)'s validating consumer.
 Every operation that touches a device goes through accel's tensor layer, and
-tgo contains **no kernels, no backend code, and no device-conditional
+Forma contains **no kernels, no backend code, and no device-conditional
 numerics.**
 
 When accel cannot express something, the sequence is fixed:
@@ -50,7 +50,7 @@ cannot go stale. The rules are in `.lateregate.yaml`; the checker is
 
 - **Every bug fix has a test that fails without the fix.** No exceptions.
 - **No test downloads weights.** CI runs on synthetic configurations — 2 layers,
-  hidden size 64, vocab 128, seeded weights. Real weights run behind `TGO_MODEL`
+  hidden size 64, vocab 128, seeded weights. Real weights run behind `FORMA_MODEL`
   and never in CI ([000 D8](specs/000-decisions.md)).
 - **Tolerances are derived, and carry a comment naming the term that produced
   them.** A tolerance raised to make a test pass is a finding, not a fix
@@ -83,7 +83,7 @@ cannot go stale. The rules are in `.lateregate.yaml`; the checker is
   wrong shape reads as correct. This has cost three waves: twelve surviving
   mutants in `model`, the whole f16 permutation path in `weights` (where
   `head_dim = 2` makes the rotary permutation the identity), and a
-  layer/kv-head swap in `cmd/tgo`. Where a collision is unavoidable, say so in
+  layer/kv-head swap in `cmd/forma`. Where a collision is unavoidable, say so in
   the fixture's comment and name what it cannot discriminate.
 
 The coverage floor is 90% per package, not per repository — an average lets a
@@ -134,7 +134,7 @@ tree; CI reads what you committed. A file you forgot to stage passes locally and
 fails everywhere else:
 
 ```sh
-T=$(mktemp -d) && git clone -q . $T/tgo && (cd $T/tgo && go build ./... && go test ./...)
+T=$(mktemp -d) && git clone -q . $T/forma && (cd $T/forma && go build ./... && go test ./...)
 ```
 
 This has cost a red build once already — `go.mod` was left out of a commit that
@@ -194,14 +194,14 @@ ten minutes `go test` allows by default.
 
 ## Dependencies
 
-tgo's core is stdlib, `golang.design/x/accel`, and
+Forma's core is stdlib, `golang.design/x/accel`, and
 `golang.org/x/text/unicode/norm` for Unicode NFC — which the tokenizer cannot be
 correct without and the standard library does not provide
-([002-D10](specs/002-tokenizer.md)). `tgo/server` adds
+([002-D10](specs/002-tokenizer.md)). `forma/server` adds
 `latere.ai/x/pkg/llmdialect` and nothing else.
 
 That module carries a large dependency set of its own, and none of it reaches
-tgo — Go's module graph pruning keeps a consumer's build list to llmdialect's
+Forma — Go's module graph pruning keeps a consumer's build list to llmdialect's
 stdlib-only subtree ([009 §2.1](specs/009-server.md)). **This holds because of
 what llmdialect currently imports, not because of a guarantee**, so from M9 CI
 checks the non-stdlib build list against an allowlist.
@@ -226,14 +226,14 @@ earlier decision, say which and what changed your mind.
 
 ## Writing
 
-Every sentence tgo emits or carries is written for one reader, and the
+Every sentence Forma emits or carries is written for one reader, and the
 register follows the reader:
 
 - User, a person or a coding harness: the server's error `message` in each
   wire dialect, CLI output, the docs. Short and plain: what happened and
   what to do next, naming a command or a page, never a package, a function,
   a table, or a Kubernetes object.
-- Contributor, someone changing tgo: specs, this file, package
+- Contributor, someone changing Forma: specs, this file, package
   documentation, commit messages, source comments. Precise, in the project's
   own terms, with the reason a design is what it is.
 - Developer, someone debugging a running system: logs, scheduler and runner

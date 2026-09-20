@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Latere AI
 // SPDX-License-Identifier: Apache-2.0
 
-package tgo
+package forma
 
 import (
 	"encoding/binary"
@@ -12,7 +12,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/latere-ai/tgo/model"
+	"latere.ai/x/forma/model"
 )
 
 // The synthetic model every test below runs on: specs/007-engine.md §8's
@@ -48,7 +48,7 @@ const (
 
 // tokenizerFixture is the tokenizer every test loads.
 //
-// It is tgo/tokenizer's own synthetic vocabulary, read rather than copied: it
+// It is forma/tokenizer's own synthetic vocabulary, read rather than copied: it
 // is 582 byte-level BPE tokens with Qwen's control tokens and the thinking
 // markers, which is exactly what this package's block state machine reads, and
 // a second copy in this directory would be a fixture that drifts.

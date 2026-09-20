@@ -12,16 +12,16 @@ import (
 	"os/signal"
 	"time"
 
-	"github.com/latere-ai/tgo/sample"
-	"github.com/latere-ai/tgo/weights"
+	"latere.ai/x/forma/sample"
+	"latere.ai/x/forma/weights"
 )
 
-// defaultPrompt is what `tgo run` sends when the user gives no --prompt. It is
+// defaultPrompt is what `forma run` sends when the user gives no --prompt. It is
 // a question rather than a greeting so that a run with no arguments produces
 // enough tokens to see the stream move.
 const defaultPrompt = "In one paragraph, what is a transformer?"
 
-// runOptions is `tgo run`'s command line, parsed.
+// runOptions is `forma run`'s command line, parsed.
 type runOptions struct {
 	Dir       string
 	Prompt    string
@@ -33,7 +33,7 @@ type runOptions struct {
 	Engine    engineOptions
 }
 
-// runFlagSet declares what `tgo run` accepts.
+// runFlagSet declares what `forma run` accepts.
 //
 // Declaring is separate from parsing so that [TestUsageDocumentsEveryFlag] can
 // enumerate the set and hold it against the usage text. A flag that exists and
@@ -56,7 +56,7 @@ func runFlagSet() (*flag.FlagSet, *runFlags) {
 	}
 }
 
-// runFlags holds `tgo run`'s flag values.
+// runFlags holds `forma run`'s flag values.
 type runFlags struct {
 	prompt             *string
 	raw                *bool
@@ -67,7 +67,7 @@ type runFlags struct {
 	precision, device  *string
 }
 
-// parseRun parses and checks `tgo run`'s arguments.
+// parseRun parses and checks `forma run`'s arguments.
 //
 // Parsing returns a struct and checking is part of parsing, so that every
 // refusal in the flag set is reachable from a test with no device, no model and
@@ -115,7 +115,7 @@ func parseRun(args []string) (runOptions, error) {
 // cmdRun generates from a prompt and streams the text to stdout.
 //
 // Tokens go to stdout and everything else goes to stderr, so that
-// `tgo run ... > answer.txt` holds the answer and nothing else. The precision
+// `forma run ... > answer.txt` holds the answer and nothing else. The precision
 // choice is on stderr rather than suppressed, because specs/001-weights.md §5
 // requires it to be printed.
 func cmdRun(args []string, stdout, stderr io.Writer) error {
@@ -142,9 +142,9 @@ func cmdRun(args []string, stdout, stderr io.Writer) error {
 	// the backend because [renderUsage] below prints a tokens-per-second
 	// figure. 017-D4: a throughput number without the hardware, the model, the
 	// precision and the policy is decoration, and two runs compared at
-	// different policies are compared at nothing. `tgo bench` carries the four
+	// different policies are compared at nothing. `forma bench` carries the four
 	// in its conditions table; this is the same rule on the one number
-	// `tgo run` prints.
+	// `forma run` prints.
 	_, _ = fmt.Fprintf(stderr, "model %s, %s, %s at %d positions of context (%s)\n",
 		rep.Model.Architecture, rep.Precision.Why, weights.HumanBytes(rep.Memory.ResidentBytes),
 		rep.Memory.Context, rep.Hardware.Backend)

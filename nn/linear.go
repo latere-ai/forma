@@ -23,7 +23,7 @@ type LinearConfig struct {
 // LinearAttention is one gated delta layer's recurrence.
 //
 // specs/018-hybrid-models.md. Three of every four layers of Qwen3.8-27B are
-// this, so the operator tgo spent its design on covers a quarter of that model.
+// this, so the operator forma spent its design on covers a quarter of that model.
 //
 //	u = S k,   S ← αS + β·k·(v−u)ᵀ,   o = S q
 //

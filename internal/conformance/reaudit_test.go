@@ -12,14 +12,14 @@ import (
 	"golang.design/x/accel/quant"
 	"golang.design/x/accel/tensor"
 
-	"github.com/latere-ai/tgo/weights"
+	"latere.ai/x/forma/weights"
 )
 
 // The re-audit of every register row still open, run when accel's tracker went
 // to zero open issues.
 //
 // specs/010-conformance.md §2.3 rule 1 says an open row cites an *open* issue,
-// and every issue tgo filed is now closed while four rows are not. §2.2.1 is why
+// and every issue forma filed is now closed while four rows are not. §2.2.1 is why
 // that is a question and not an answer: on 2026-08-24 accel closed ten issues
 // and four of the capabilities were still absent, because each fix matched its
 // issue's title and a title is a summary where a register row is a capability.
@@ -96,9 +96,9 @@ func TestC21Int4IsRepresentableAndComputes(t *testing.T) {
 		kernel, k*n, len(codes), len(scales))
 }
 
-// TestC21TgoStoresInt4Weights is what the re-audit's finding turned into.
+// TestC21FormaStoresInt4Weights is what the re-audit's finding turned into.
 //
-// The row closed on accel's half while tgo's loader still named only f16 and
+// The row closed on accel's half while forma's loader still named only f16 and
 // int8, so this asserted the gap. It asserts the capability now, and the
 // arithmetic that made the gap worth naming: a form at 0.53125 bytes per weight
 // rather than 1.0625 is what decides whether a 27B-class model fits hardware
@@ -108,7 +108,7 @@ func TestC21Int4IsRepresentableAndComputes(t *testing.T) {
 // answered "MatMul is f16-only" with an f32 GEMM, the report was accepted, and
 // the casts stayed — because a fix that matches an issue's title need not
 // remove the cost the row is about.
-func TestC21TgoStoresInt4Weights(t *testing.T) {
+func TestC21FormaStoresInt4Weights(t *testing.T) {
 	if got := weights.Int4.String(); got != "int4" {
 		t.Fatalf("weights.Int4 names itself %q", got)
 	}

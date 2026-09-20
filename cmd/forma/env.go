@@ -10,7 +10,7 @@ import (
 
 	"golang.design/x/accel"
 
-	tgo "github.com/latere-ai/tgo"
+	forma "latere.ai/x/forma"
 )
 
 // hardware is the machine a number was produced on.
@@ -33,7 +33,7 @@ type hardware struct {
 // target, and the accel revision that decided every device time in the report.
 //
 // The accel version is read from the build info rather than written down. A
-// regression check that compares two records has to be able to tell "tgo got
+// regression check that compares two records has to be able to tell "forma got
 // slower" from "accel changed", which is the whole reason 017-D1 splits the
 // step into four terms, and it cannot do that without knowing which accel each
 // record was produced against.
@@ -88,9 +88,9 @@ func stampHardware(dev *accel.Device) hardware {
 
 // openDevice opens the device a command describes itself against.
 //
-// It restates tgo's own device selection, which is unexported and reachable
-// only by opening a model. `tgo info` reports the machine without loading a
-// byte, and `tgo run` reads the device limit that decides the precision before
+// It restates forma's own device selection, which is unexported and reachable
+// only by opening a model. `forma info` reports the machine without loading a
+// byte, and `forma run` reads the device limit that decides the precision before
 // the engine exists, so the three cases exist here too; [engineOptions.Device]
 // carries the same choice into the engine so that the two open the same one.
 //
@@ -99,15 +99,15 @@ func stampHardware(dev *accel.Device) hardware {
 // backend name is in every report, so a CPU number is never mistaken for a GPU
 // one (017-D4). A named device is refused where there is none rather than
 // falling back, because a user who named one had a reason to.
-var openDevice = func(want tgo.Device) (*accel.Device, error) {
+var openDevice = func(want forma.Device) (*accel.Device, error) {
 	var (
 		dev *accel.Device
 		err error
 	)
 	switch want {
-	case tgo.CPU:
+	case forma.CPU:
 		dev, err = accel.OpenCPU(accel.CPUOptions{})
-	case tgo.Metal:
+	case forma.Metal:
 		dev, err = accel.OpenBest(accel.Policy{Prefer: []accel.Backend{accel.BackendMetal}})
 	default:
 		dev, err = accel.OpenBest(accel.Policy{AllowCPU: true})

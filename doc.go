@@ -2,14 +2,14 @@
 // SPDX-License-Identifier: Apache-2.0
 
 /*
-Package tgo runs a language model.
+Package forma runs a language model.
 
-It is the whole of tgo's public surface. Everything under it -- the plan cache,
+It is the whole of forma's public surface. Everything under it -- the plan cache,
 the KV layout, the graph builders and the scheduler -- is unexported, because
 every one of them is a place accel's shape will move
 (specs/000-decisions.md D10, specs/007-engine.md 007-D7).
 
-	m, err := tgo.Open("/path/to/qwen3-0.6b")
+	m, err := forma.Open("/path/to/qwen3-0.6b")
 	defer m.Close()
 
 	s, err := m.NewSession()
@@ -18,7 +18,7 @@ every one of them is a place accel's shape will move
 	st, err := s.Chat(ctx, []chat.Message{{
 		Role:   chat.User,
 		Blocks: []chat.Block{{Type: chat.BlockText, Text: "Why is the sky blue?"}},
-	}}, tgo.Policy{Temperature: 0.7, Seed: 1})
+	}}, forma.Policy{Temperature: 0.7, Seed: 1})
 	for st.Next() {
 		fmt.Print(st.Text())
 	}
@@ -88,7 +88,7 @@ the prompt, always -- the cache holds key/value state and not logits, and
 sampling needs a forward pass over the last prompt position (016-D10).
 
 Sharing across sessions ([CacheProcess]) is refused rather than approximated.
-It needs the cache addressed through a page table, and tgo's graph declares no
+It needs the cache addressed through a page table, and forma's graph declares no
 page-table port.
 
 # JSON that parses by construction
@@ -126,7 +126,7 @@ truncated, at the request and not partway through it (007 §7).
 Neither device this package can open runs a real model at a usable speed, and
 that is the state to know before reaching for it rather than after.
 
-accel's Metal backend cannot compile a tgo graph at all.
+accel's Metal backend cannot compile a forma graph at all.
 specs/004-model-graph.md §3.2 slices the last position out before the LM head
 and packs the result, because accel refuses a strided operand into a matrix
 multiply rather than copying behind the caller's back — and the packing kernel
@@ -147,6 +147,6 @@ finding, and closing it is upstream work.
 A decode step transfers a whole row of logits back to the host to sample it:
 608 KB for Qwen3, on a step whose useful output is four bytes. That readback is
 the floor v0 measures and reports upstream, because "how much of a decode step
-is the readback" is the question tgo exists to answer for accel (007-D4).
+is the readback" is the question forma exists to answer for accel (007-D4).
 */
-package tgo
+package forma

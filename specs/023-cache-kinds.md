@@ -159,7 +159,7 @@ which the host computes from the same extents it already builds for
 region, one `ReadState`, $K$ `GatherRows` at the $K$ index ports, $K$ broadcast
 taps, $K-1$ adds, and one `GatherRows` + `ScatterRows` for the carry.
 
-**No accel operator tgo does not have.** `ScatterRows` (`tensor/state.go:205`),
+**No accel operator Forma does not have.** `ScatterRows` (`tensor/state.go:205`),
 `GatherRows` (`tensor/ops.go:50`), `Mul`, `Add`, `Broadcast` and `Contiguous`
 all exist, and the carry path in `nn.DepthwiseCausalConv` already runs
 `GatherRows` over a state read. So [000-D1](000-decisions.md)'s sequence does
@@ -359,8 +359,8 @@ Summing all three into one number was rejected because the number stops
 dividing. `cacheWidth` recovers the stored width by dividing the reported bytes
 by $2 \cdot L \cdot C \cdot H_{kv} \cdot d_h$ and prints
 `unknown: ... is not 2 · L · C · ... elements of a whole number of bytes` when
-there is a remainder (`cmd/tgo/info.go:335-341`). A summed number lands in that
-branch every time, so `tgo info` would print a total and lose the label — which
+there is a remainder (`cmd/forma/info.go:335-341`). A summed number lands in that
+branch every time, so `forma info` would print a total and lose the label — which
 is the failure `cacheWidth`'s comment says is worse than printing nothing. It
 also conflates a per-position cost with a per-slot one, and a reader sizing a
 context needs the first.
@@ -370,7 +370,7 @@ Three changes follow:
 - `Info` gains `RecurrentBytesPerSlot` and `ConvWindowBytes`, both from §6's
   formulas, both independent of `Context`.
 - `modelFacts` gains the full-attention layer count, and `kvBytesPerPosition`
-  (`cmd/tgo/info.go:286`) and `cacheWidth` divide by it. Without that,
+  (`cmd/forma/info.go:286`) and `cacheWidth` divide by it. Without that,
   `cacheWidth` reports `unknown` for every hybrid — verifiable today by handing
   it a byte count computed over 16 layers and a `Layers` of 64.
 - The startup print (`model.go:208-215`) currently reads
@@ -530,9 +530,9 @@ check is [008](008-scheduler.md)'s slot count unchanged. §7 needs none either �
 | id | decision | rejected | consequence |
 | --- | --- | --- | --- |
 | 023-D1 | three states, one per layer kind, each with a leading axis over its own kind's layer count | one union carrying a tag and the widest shape; one state per layer | `tensor.LinearAttention` checks the state's shape and dtype exactly, so a union reshapes at every call site — and the kind is known when the graph is recorded, so the tag would be a branch nothing needs. One state per layer is [C12](010-conformance.md) again at 128 states |
-| 023-D2 | the convolution window is flat $[R, C_\text{conv}]$ and the slot is arithmetic in the u32 index ports; the tap read becomes `GatherRows` | a real `[slots, K-1+T, C]` axis; asking accel for a batched convolution kernel or a `Concat` | `ScatterRows` computes a row's width as `Elements()/shape[0]` (`tensor/state.go:238`), so a slots axis makes one row a whole slot and a token write inexpressible. The flat form needs no operator tgo lacks, so [C26](010-conformance.md) stands and nothing is filed |
+| 023-D2 | the convolution window is flat $[R, C_\text{conv}]$ and the slot is arithmetic in the u32 index ports; the tap read becomes `GatherRows` | a real `[slots, K-1+T, C]` axis; asking accel for a batched convolution kernel or a `Concat` | `ScatterRows` computes a row's width as `Elements()/shape[0]` (`tensor/state.go:238`), so a slots axis makes one row a whole slot and a token write inexpressible. The flat form needs no operator Forma lacks, so [C26](010-conformance.md) stands and nothing is filed |
 | 023-D3 | a block reserves KV for the 16 full-attention layers only; slot-shaped state is reserved at plan build | price a block over all 64 layers | a block is 2 MiB rather than 8 MiB, and the scarce resource moves from blocks to slots: §2.1 fixes the recurrent state's leading axis at $B$, so $B$ is a hybrid's concurrency ceiling |
 | 023-D4 | the recurrent state and the convolution window are f32; the KV pool stays f16 | f16 for both, on symmetry with [C5](010-conformance.md) | accel refuses a non-f32 recurrent state (`tensor/linear.go:144`), and the numeric reason is that K and V are operands while the recurrent state is an accumulator decayed and rewritten once per token — 262144 roundings at 11 significand bits. The window holds computed activations and an f16 store would round the layer input to save 45 MiB |
 | 023-D5 | eviction destroys the recurrent state, and [008-D5](008-scheduler.md)'s victim choice is unchanged | make recompute cost the eviction criterion for hybrid layers | a recurrent state has no prefix, so there is nothing partial to keep — but recompute is the same forward pass for both kinds, and last-arrived-first already picks the shortest prefix. What changes is the value of a warm prefix cache, which is 025's argument |
-| 023-D6 | `CacheBytesPerSession` keeps meaning $M_{kv}$ over $L_\text{full}$; the two per-slot states get their own fields | sum all three into one number | `cacheWidth` divides the reported bytes by $2 \cdot L \cdot C \cdot H_{kv} \cdot d_h$ and prints `unknown` on a remainder (`cmd/tgo/info.go:335-341`), so a summed number would lose the label every time — and a per-position cost and a per-slot cost do not add to anything a reader can size a context with |
+| 023-D6 | `CacheBytesPerSession` keeps meaning $M_{kv}$ over $L_\text{full}$; the two per-slot states get their own fields | sum all three into one number | `cacheWidth` divides the reported bytes by $2 \cdot L \cdot C \cdot H_{kv} \cdot d_h$ and prints `unknown` on a remainder (`cmd/forma/info.go:335-341`), so a summed number would lose the label every time — and a per-position cost and a per-slot cost do not add to anything a reader can size a context with |
 | 023-D7 | 16 key heads against 48 value heads are recorded as 16 heads of $d_v = 384$ | replicate $q$ and $k$ to 48 heads with `Reshape → Broadcast → Contiguous → Reshape` | the recurrence is row-separable in the value dimension, so the stacking is an identity and not an approximation. Same bytes either way; it saves three operators and a $[T, 6144]$ copy per layer across 48 layers |

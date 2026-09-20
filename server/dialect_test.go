@@ -9,8 +9,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/latere-ai/tgo"
-	"github.com/latere-ai/tgo/chat"
+	"latere.ai/x/forma"
+	"latere.ai/x/forma/chat"
 )
 
 // §1 and §2: three dialects reach one adapter, and the adapter is a
@@ -279,17 +279,17 @@ func TestToolsReachTheSession(t *testing.T) {
 
 // 009-D6: what comes back is what the model emitted, as text.
 //
-// Nothing has checked that the JSON is well formed, [tgo.Event] carries neither
+// Nothing has checked that the JSON is well formed, [forma.Event] carries neither
 // a call id nor a name, and every encoder needs both -- so a parsed tool_calls
 // array would assert a validity nothing verified. The under-promise is the
 // decision, and this is the test that keeps it.
 func TestAToolCallComesBackAsTextRatherThanAParsedCall(t *testing.T) {
 	t.Parallel()
-	eng := &fakeEngine{script: []tgo.Event{
-		{Kind: tgo.BlockStart, Block: chat.BlockToolUse},
-		{Kind: tgo.ToolArgsDelta, Block: chat.BlockToolUse, Text: `{"name":"weather"`},
-		{Kind: tgo.ToolArgsDelta, Block: chat.BlockToolUse, Text: `,"arguments":{}}`},
-		{Kind: tgo.BlockStop, Block: chat.BlockToolUse},
+	eng := &fakeEngine{script: []forma.Event{
+		{Kind: forma.BlockStart, Block: chat.BlockToolUse},
+		{Kind: forma.ToolArgsDelta, Block: chat.BlockToolUse, Text: `{"name":"weather"`},
+		{Kind: forma.ToolArgsDelta, Block: chat.BlockToolUse, Text: `,"arguments":{}}`},
+		{Kind: forma.BlockStop, Block: chat.BlockToolUse},
 	}}
 	s := newTestServer(t, eng)
 	w := post(t, s, "/v1/chat/completions", routes[0].body(""))
@@ -309,7 +309,7 @@ func TestAToolCallComesBackAsTextRatherThanAParsedCall(t *testing.T) {
 }
 
 // §4.1's thinking row: the request's reasoning flag reaches the session, and
-// tgo's default is on.
+// forma's default is on.
 func TestThinkingIsOnUnlessTheRequestTurnsItOff(t *testing.T) {
 	t.Parallel()
 	cases := []struct {

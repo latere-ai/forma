@@ -13,7 +13,7 @@ import (
 	"golang.design/x/accel"
 	"golang.design/x/accel/tensor"
 
-	"github.com/latere-ai/tgo/nn"
+	"latere.ai/x/forma/nn"
 )
 
 // The shapes one attention block is tested at. Small enough to compute by hand

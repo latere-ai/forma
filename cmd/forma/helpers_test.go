@@ -15,9 +15,9 @@ import (
 
 	"golang.design/x/accel"
 
-	tgo "github.com/latere-ai/tgo"
-	"github.com/latere-ai/tgo/bench"
-	"github.com/latere-ai/tgo/model"
+	forma "latere.ai/x/forma"
+	"latere.ai/x/forma/bench"
+	"latere.ai/x/forma/model"
 )
 
 // syntheticConfig is specs/004-model-graph.md §8's two-layer model, whose
@@ -84,11 +84,11 @@ func syntheticDir(t *testing.T) string {
 // The CPU backend rather than a stub: hardware facts are read from the device
 // and a stub would let the reading drift from what accel reports, which is the
 // field of a benchmark report that must not be typed by hand (017-D4).
-func useCPUDevice(t *testing.T) *[]tgo.Device {
+func useCPUDevice(t *testing.T) *[]forma.Device {
 	t.Helper()
-	var asked []tgo.Device
+	var asked []forma.Device
 	prev := openDevice
-	openDevice = func(want tgo.Device) (*accel.Device, error) {
+	openDevice = func(want forma.Device) (*accel.Device, error) {
 		asked = append(asked, want)
 		return accel.OpenCPU(accel.CPUOptions{})
 	}

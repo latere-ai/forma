@@ -20,7 +20,7 @@ puts a chunked prefill and the decodes beside it in one dispatch
 imports it. `grep -rl NewScheduler` finds `scheduler.go`, `scheduler_test.go`
 and `leak_test.go`.
 
-What `tgo serve` runs instead is [019](019-session-affinity.md)'s pool: one
+What `forma serve` runs instead is [019](019-session-affinity.md)'s pool: one
 `Session` per in-flight request, taken from N reserved sessions
 (`server/engine.go:225`, `pool.go:181`), each request running its own forward
 pass under the submission lock `Model.mu` (`session.go:639`, 007-D9). So B
@@ -29,7 +29,7 @@ arithmetic says what that costs: one step over B sequences moves
 $(W + B \cdot A)/\beta$ bytes for weight bytes $W$, per-sequence traffic $A$ and
 bandwidth $\beta$, so B separate steps move $B \cdot W$ where one step moves
 $W$. Throughput today is what one sequence gets, and
-`cmd/tgo/serve.go:534` prints that fact at startup as a note.
+`cmd/forma/serve.go:534` prints that fact at startup as a note.
 
 This spec replaces the pooled engine with a scheduler engine, and makes a
 batched step the default path a request takes.
@@ -141,7 +141,7 @@ That lifetime is exactly long enough. The driver goroutine, between
 mask, sample, decode the token to text, and send events on that slot's channel.
 The logits are read once, on the goroutine that received them, before the buffer
 can be reused. **Nothing per token is copied**: what crosses the channel is a
-`tgo.Event`, which is a kind, a block type and a string
+`forma.Event`, which is a kind, a block type and a string
 (`stream.go:62`) — the same value `Stream.Next` yields today.
 
 The driver owns the loop. It has to: `Scheduler.Step` serializes on the
@@ -253,11 +253,11 @@ batched path be the default.
 
 ## 8. `--sessions` means two things today and neither of them afterwards
 
-Today `--sessions N` is the pool size, and `cmd/tgo/serve.go:52` states it is
+Today `--sessions N` is the pool size, and `cmd/forma/serve.go:52` states it is
 two numbers at once: how many requests may generate at the same time, and how
 many conversations keep their key/value cache between turns. `kvAdmission`
-(`cmd/tgo/serve.go:329`) divides device memory by `CacheBytesPerSession` to
-bound it, and `openServable` (`cmd/tgo/serve.go:260`) sizes a process-scoped
+(`cmd/forma/serve.go:329`) divides device memory by `CacheBytesPerSession` to
+bound it, and `openServable` (`cmd/forma/serve.go:260`) sizes a process-scoped
 block pool at `sessions * context` positions when the scope asks for one.
 
 Under a scheduler the two numbers come apart, and neither of them is N.
@@ -282,8 +282,8 @@ Two flags, because they are two costs:
 `--sessions` is kept as a deprecated alias for `--slots` and prints one line
 saying so. Removing it would break every existing command line for a rename.
 
-The startup print changes with it. `cmd/tgo/serve.go:524` prints "N pooled,
-reserved now and held until this process exits" and `cmd/tgo/serve.go:534`
+The startup print changes with it. `cmd/forma/serve.go:524` prints "N pooled,
+reserved now and held until this process exits" and `cmd/forma/serve.go:534`
 prints "without batching, concurrent requests interleave rather than go faster,
 and a session's cache is not returned between requests". Both become false. The
 report says instead: the slot count, the pool's positions and bytes with the
@@ -307,12 +307,12 @@ it is unset (`stream.go:134`). So $R$ becomes an argument to `Scheduler.Admit`.
 where no batch can be built, and it is public API a library consumer may already
 hold.
 
-The default flips. `tgo serve` with no flags builds the scheduler engine, which
+The default flips. `forma serve` with no flags builds the scheduler engine, which
 means it opens the model with `CacheProcess` at `slots * context` positions.
 
 The memory profile is the argument against flipping a default, so state what
-moves. Today, with no flags, `tgo serve` reserves `adm.Sessions` sessions' cache
-at `CacheBytesPerSession` each (`cmd/tgo/serve.go:433`, 019-D2), held until the
+moves. Today, with no flags, `forma serve` reserves `adm.Sessions` sessions' cache
+at `CacheBytesPerSession` each (`cmd/forma/serve.go:433`, 019-D2), held until the
 process exits. After, it reserves one block pool of the same positions. The
 resident bytes are the same number arrived at once instead of $N$ times, and the
 `kv budget` line prints the same arithmetic. What changes is that the bytes are
@@ -335,9 +335,9 @@ Nothing in this list may change, and each has a test that says so today.
   four routes over one neutral `ir.Request`, and this spec touches neither the
   frontends nor `adapt.go`. The engine changes behind `server.Engine`
   (`server/engine.go:20`), which is an interface a fake already implements.
-- **`X-Tgo-Loss`.** Set before anything is written (`server/server.go:123`),
+- **`X-Forma-Loss`.** Set before anything is written (`server/server.go:123`),
   from `lossReport` (`server/loss.go:155`). `honoured`'s invariant is that its
-  keys are exactly `tgo.Policy`'s, checked by reflection, and
+  keys are exactly `forma.Policy`'s, checked by reflection, and
   `honouredSession` carries `cache_salt` (`server/loss.go:67`). §7's synthesized
   salt is a server-side value and does not change what a request is told: a
   request that sent `cache_salt` still has it subtracted, and one that sent none
@@ -455,7 +455,7 @@ into three, in this order.
    synthesized salt, `--slots` and `--kv`, the deprecated `--sessions`, the
    per-request reserve, and the startup print. `TestADisconnectFreesItsSlot` and
    `TestServeReportNamesTheSlotsAndThePool` are this pass's gates.
-3. **The default, and the device path.** Flip `tgo serve` to the scheduler
+3. **The default, and the device path.** Flip `forma serve` to the scheduler
    engine, with [020](020-device-sampling.md)'s measurement deciding what moves
    off the host. Last, because a default is the change that cannot be tested
    only by the person making it.
@@ -463,9 +463,9 @@ into three, in this order.
 ## Outcome
 
 Pass 1 of [§14](#14-this-is-not-one-pass) shipped 2026-08-28, opt-in behind
-`--batched` and off by default. `tgo.Runner` is the scheduler, the
+`--batched` and off by default. `forma.Runner` is the scheduler, the
 [021](021-admission-queue.md) queue in front of its admission, and the one
-goroutine that drives them; `tgo.SlotStream` is a request's completion read from
+goroutine that drives them; `forma.SlotStream` is a request's completion read from
 the batch that produced it; `server.WrapRunner` adapts it to `server.Engine`.
 
 **What shipped**, section by section. §2's unit is a scheduler slot and there is
@@ -491,12 +491,12 @@ routes and their streaming forms, the admission refusal, and `cache_salt`.
   `Stream` and `SlotStream` share one copy of it. Writing the batched decode
   loop beside the single one would have made a sampling bug and a batching bug
   indistinguishable, which is [008-D8](008-scheduler.md) one layer up.
-- **The runner is in package `tgo`, not in `server`.** §3's driver is drawn
+- **The runner is in package `forma`, not in `server`.** §3's driver is drawn
   inside the server and it cannot live there: the decode machinery is
   package-private, so a driver under `server/` would need a second copy of it,
   which is the thing the extraction above exists to prevent. `server` holds the
   adapter and nothing else.
-- **What crosses the channel is a step, not a `tgo.Event`.** §4 says an event.
+- **What crosses the channel is a step, not a `forma.Event`.** §4 says an event.
   A step can produce several, and the log probabilities belong to the step:
   [030-D1](030-logprobs.md) reuses the backing array across steps, so handing
   that slice to another goroutine is a race rather than a lifetime. One slice
@@ -532,7 +532,7 @@ routes and their streaming forms, the admission refusal, and `cache_salt`.
   startup report that stop being true under a batch — what the number counts,
   and what concurrency buys — change with it; the rest of §8's report is pass 2.
 - **The reserve is capped at half the context.** §3's $R$ is one deployment
-  number until 022-D7, and `tgo.DefaultReserve` of 512 exceeds a short context —
+  number until 022-D7, and `forma.DefaultReserve` of 512 exceeds a short context —
   a reserve larger than the context admits nobody, because
   $\lceil (T+R)/B \rceil$ is then more blocks than one sequence's share of the
   pool. `serveReserve` is the cap and it is stated where an operator can read
@@ -610,11 +610,11 @@ postcondition on the scheduler rather than on a grammar. §7's pair is written.
 | --- | --- | --- | --- |
 | 022-D1 | The engine is selected by the cache scope: `process` builds the scheduler engine, `session` and `off` build `WrapPool`. | One engine that batches in every scope. `NewBatch` refuses a model with no shared block pool (`batch.go:119`), so there is nothing to build. | The batched path and the process scope are one configuration, and §9's default flip is also a scope flip. |
 | 022-D2 | Affinity is not carried onto slots. Under `process` a request takes the first free slot; under `session` and `off` 019's routing is unchanged. | Porting `Pool.route` onto slots. `Batch.Evict` empties a slot's history (`batch.go:263`), so a freed slot holds nothing to match against, and the prefix is in the pool rather than in the slot (`batch.go:231`). | 019's `Pool` stays in the tree for the two scopes that need it, and is not extended. |
-| 022-D3 | One driver goroutine calls `Step`, samples every slot, and sends `tgo.Event` values on per-slot bounded channels. The request goroutine never sees logits. | A goroutine per slot calling `Step`. `Scheduler.Step` serializes on its own mutex and `Batch.Step` takes `Model.mu` (007-D9), so B goroutines would interleave rather than batch, which is the current behaviour with more machinery. | No per-token copy: `Produced.Logits` is read on the goroutine it arrived on, inside its "until that slot steps again" lifetime (`batch.go:290`). |
+| 022-D3 | One driver goroutine calls `Step`, samples every slot, and sends `forma.Event` values on per-slot bounded channels. The request goroutine never sees logits. | A goroutine per slot calling `Step`. `Scheduler.Step` serializes on its own mutex and `Batch.Step` takes `Model.mu` (007-D9), so B goroutines would interleave rather than batch, which is the current behaviour with more machinery. | No per-token copy: `Produced.Logits` is read on the goroutine it arrived on, inside its "until that slot steps again" lifetime (`batch.go:290`). |
 | 022-D4 | The seed, the penalties, the grammar mask, the stop strings and the draw stay on the host, per slot. Only the logit transform before the draw is a candidate for [020](020-device-sampling.md). | One device sampler drawing for the whole batch. [000 §9](000-decisions.md) and [006 §4](006-sampling.md) make reproducibility a stream property, and a shared generator makes a request's draws depend on which other requests were batched with it. | The $B \times V$ readback stays until 020 measures the alternative, which is what [008 §9](008-scheduler.md) asks for. |
 | 022-D5 | Cancellation is honoured at the step boundary: the slot is marked dead, the in-flight dispatch finishes, `Scheduler.Finish` releases it and its blocks return to the pool. | Aborting the dispatch. accel has no cancel on a submitted queue, and 007-D9 records that submitting against a queue mid-flight gets a failed fence rather than a race. | The worst-case hold on a slot is one step. The 499 is written by the handler immediately and independently (`server/generate.go:56`). |
-| 022-D6 | `--slots B` is the batch width and `--kv P` is the block pool in positions. `--sessions` becomes a deprecated alias for `--slots`. | Keeping `--sessions` with a third meaning. It is already two numbers (`cmd/tgo/serve.go:52`) and under a scheduler it is neither of them, so reusing the name would make the report unreadable. | The startup print loses the "without batching" note and the per-session `reserved` line, and gains the pool, the chunk and the reserve. |
+| 022-D6 | `--slots B` is the batch width and `--kv P` is the block pool in positions. `--sessions` becomes a deprecated alias for `--slots`. | Keeping `--sessions` with a third meaning. It is already two numbers (`cmd/forma/serve.go:52`) and under a scheduler it is neither of them, so reusing the name would make the report unreadable. | The startup print loses the "without batching" note and the per-session `reserved` line, and gains the pool, the chunk and the reserve. |
 | 022-D7 | The reserve $R$ becomes an argument to `Scheduler.Admit`, taken from the request's effective `max_tokens`. | A startup `--reserve` constant. One $R$ either over-admits, which is the deadlock §3 exists to prevent, or under-admits, which is a server that quietly runs fewer requests than the device holds. | `SchedulerOptions.Reserve` becomes a default rather than the value, and `Scheduler.Admit`'s signature changes. |
 | 022-D8 | A request with no `cache_salt` gets a per-request salt, so it shares with nothing. | Passing the empty string through. Under `ScopeProcess` the seed's domain is empty (`internal/prefix/prefix.go:290`), so every unsalted request hashes into one domain, which is the opposite of what 019-D3 and [016 §7.1](016-prefix-cache.md) promise. | Cross-request block reuse happens only where a caller asked for it, so batching can be the default without [016-D7](016-prefix-cache.md) becoming one. |
-| 022-D9 | `tgo serve` defaults to the scheduler engine. `WrapPool` survives behind `--prefix-cache session` and `off`. | Leaving the default at `WrapPool`. Throughput then stays at what one sequence gets, which is the gap this spec exists to close, and an opt-in flag is a feature most deployments never find. | The resident bytes do not move (one pool of `slots * context` instead of $N$ caches of `context`), and they become fungible. Answers stop being bit-for-bit stable across differing load ([016-D6](016-prefix-cache.md)), which `--prefix-cache off` restores. |
+| 022-D9 | `forma serve` defaults to the scheduler engine. `WrapPool` survives behind `--prefix-cache session` and `off`. | Leaving the default at `WrapPool`. Throughput then stays at what one sequence gets, which is the gap this spec exists to close, and an opt-in flag is a feature most deployments never find. | The resident bytes do not move (one pool of `slots * context` instead of $N$ caches of `context`), and they become fungible. Answers stop being bit-for-bit stable across differing load ([016-D6](016-prefix-cache.md)), which `--prefix-cache off` restores. |
 | 022-D10 | The work is built in three passes: engine opt-in, then cancellation and flags, then the default and the device path. | One pass. It changes the engine, the flags, the report, the streaming path and the default memory profile at once, and a review that cannot separate a batching bug from a flag bug is the failure 008-D8 names one layer down. | Each pass has a named gate test, and pass 1 changes no default and no public flag. |

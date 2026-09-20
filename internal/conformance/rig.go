@@ -11,7 +11,7 @@ import (
 	"golang.design/x/accel/quant"
 	"golang.design/x/accel/tensor"
 
-	"github.com/latere-ai/tgo/nn"
+	"latere.ai/x/forma/nn"
 )
 
 // Options are the per-model constants a recorded graph needs.

@@ -98,7 +98,7 @@ func TestACancelledFetchReportsTheCancellation(t *testing.T) {
 
 func TestTheRevisionLockKeepsASecondProcessOut(t *testing.T) {
 	// Section 3. A lock file per revision directory, taken with O_CREATE and
-	// O_EXCL, which is atomic on every GOOS tgo builds for.
+	// O_EXCL, which is atomic on every GOOS forma builds for.
 	x := newFixture(t, repoFiles())
 	if err := os.MkdirAll(filepath.Dir(x.dir), 0o755); err != nil {
 		t.Fatal(err)
@@ -129,7 +129,7 @@ func TestTheRevisionLockKeepsASecondProcessOut(t *testing.T) {
 }
 
 func TestTheLockIsHeldForTheWholeDownloadNotJustItsStart(t *testing.T) {
-	// Section 3's claim is that a lock keeps two tgo pull processes from
+	// Section 3's claim is that a lock keeps two forma pull processes from
 	// writing the same file, which needs the lock held WHILE the bytes land.
 	// A lock taken and given straight back is acquired, never held, and every
 	// other test here still passes: the second process is refused only if it

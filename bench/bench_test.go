@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/latere-ai/tgo/bench"
+	"latere.ai/x/forma/bench"
 )
 
 // shareTolerance bounds how far the four fractions of ShareOfStep may sum from
@@ -425,7 +425,7 @@ func TestRealisticSequence(t *testing.T) {
 	}
 
 	// The breakdown attributes this workload to the device, which is the
-	// attribution a regression has to survive to be tgo's fault.
+	// attribution a regression has to survive to be forma's fault.
 	m := rep.Decode.ShareOfStep
 	if math.Abs(sumShares(t, m)-1) > shareTolerance {
 		t.Errorf("decode shares sum to %v, want 1", sumShares(t, m))

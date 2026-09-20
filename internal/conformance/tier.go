@@ -17,11 +17,11 @@ const (
 	// EnvRequireMetal turns a missing Metal device from a skip into a
 	// failure. It is the mechanism accel uses and the reason is the same: a
 	// job that promises a backend and skips when it finds none rots green.
-	EnvRequireMetal = "TGO_REQUIRE_METAL"
+	EnvRequireMetal = "FORMA_REQUIRE_METAL"
 
 	// EnvModel is the directory a real checkpoint sits in. Unset in CI,
 	// always (000 D8, 010-D4).
-	EnvModel = "TGO_MODEL"
+	EnvModel = "FORMA_MODEL"
 )
 
 // Tier is which of specs/010-conformance.md §4's three tiers a test belongs to.

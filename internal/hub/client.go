@@ -180,7 +180,7 @@ func (c *Client) cacheRoot() (string, error) {
 	return CacheDir()
 }
 
-// Dir is where a resolved revision lives: $TGO_CACHE/models/{org}/{repo}/{sha}.
+// Dir is where a resolved revision lives: $FORMA_CACHE/models/{org}/{repo}/{sha}.
 func (c *Client) Dir(ref Ref, sha string) (string, error) {
 	root, err := c.cacheRoot()
 	if err != nil {
@@ -358,7 +358,7 @@ func (c *Client) resolveURL(ref Ref, rev, repoPath string) string {
 //
 // Top-level files only. A real repo carries onnx/, coreml/ and ggml variants
 // of the same weights, and downloading them multiplies an 8 GB fetch for
-// nothing tgo can read.
+// nothing forma can read.
 func Wanted(repoPath string) bool {
 	if strings.Contains(repoPath, "/") {
 		return false

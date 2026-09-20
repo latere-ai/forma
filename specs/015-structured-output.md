@@ -196,7 +196,7 @@ widens rather than narrows and therefore the one a caller has to know.
 
 Owned elsewhere: `json_object` mode. `response_format: {"type":"json_object"}`
 is accepted, reaches no grammar, and is reported as a subtraction through the
-`X-Tgo-Loss` header rather than refused (`server/adapt.go:87`,
+`X-Forma-Loss` header rather than refused (`server/adapt.go:87`,
 `server/schema_test.go:140`). It is the one `response_format` path §5 draws
 straight to a compiled grammar and that enforces nothing, and
 [029 §7](029-grammar-front-ends.md) owns the answer — which is that it keeps the

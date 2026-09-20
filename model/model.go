@@ -22,7 +22,7 @@
 // The forward pass is here too, as §6's fourth [Builder] method. It arrived
 // with the graph: [Declare] records §3's ports, scalars and cache states,
 // [Builder.Forward] records the nodes of §3's table, and [Record] is the two
-// in one call. Declaring the method makes this package import tgo/nn, and so
+// in one call. Declaring the method makes this package import forma/nn, and so
 // accel's tensor layer, which is the cost of having the registry and the graph
 // agree on one weight-port name (§4's Port column is what both read).
 package model
@@ -38,8 +38,8 @@ import (
 
 	"golang.design/x/accel/tensor"
 
-	"github.com/latere-ai/tgo/chat"
-	"github.com/latere-ai/tgo/nn"
+	"latere.ai/x/forma/chat"
+	"latere.ai/x/forma/nn"
 )
 
 // configName is the file Open reads. A checkpoint directory always has one; a

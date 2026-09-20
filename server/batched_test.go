@@ -13,9 +13,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/latere-ai/tgo"
-	"github.com/latere-ai/tgo/bench"
-	"github.com/latere-ai/tgo/server"
+	"latere.ai/x/forma"
+	"latere.ai/x/forma/bench"
+	"latere.ai/x/forma/server"
 )
 
 // specs/022-batched-serving.md §11, over the real handler and a real model.
@@ -26,12 +26,12 @@ import (
 
 // openShared opens the synthetic model with the shared block pool a batch needs
 // (022-D1).
-func openShared(t *testing.T) *tgo.Model {
+func openShared(t *testing.T) *forma.Model {
 	t.Helper()
-	m, err := tgo.Open(writeCheckpoint(t), tgo.WithDevice(tgo.CPU),
-		tgo.WithContext(96), tgo.WithPrefixCache(tgo.CacheProcess, 4*96))
+	m, err := forma.Open(writeCheckpoint(t), forma.WithDevice(forma.CPU),
+		forma.WithContext(96), forma.WithPrefixCache(forma.CacheProcess, 4*96))
 	if err != nil {
-		t.Fatalf("tgo.Open: %v", err)
+		t.Fatalf("forma.Open: %v", err)
 	}
 	t.Cleanup(func() {
 		if err := m.Close(); err != nil {
@@ -43,13 +43,13 @@ func openShared(t *testing.T) *tgo.Model {
 
 // batchedEngine builds a batched engine of n slots and closes it with the test.
 // A zero wait takes the queue's default.
-func batchedEngine(t *testing.T, m *tgo.Model, n int, rec *bench.Recorder,
+func batchedEngine(t *testing.T, m *forma.Model, n int, rec *bench.Recorder,
 	wait time.Duration) *server.RunnerEngine {
 
 	t.Helper()
-	e, err := server.WrapRunner(m, synthName, tgo.RunnerOptions{
-		Slots: n, Chunk: 16, Reserve: tgo.CacheBlock, Recorder: rec,
-		Queue: tgo.QueueOptions{Wait: wait},
+	e, err := server.WrapRunner(m, synthName, forma.RunnerOptions{
+		Slots: n, Chunk: 16, Reserve: forma.CacheBlock, Recorder: rec,
+		Queue: forma.QueueOptions{Wait: wait},
 	})
 	if err != nil {
 		t.Fatalf("server.WrapRunner: %v", err)
@@ -63,7 +63,7 @@ func batchedEngine(t *testing.T, m *tgo.Model, n int, rec *bench.Recorder,
 }
 
 // batchedServer builds a server over a batched engine of n slots.
-func batchedServer(t *testing.T, m *tgo.Model, n int, rec *bench.Recorder) *server.Server {
+func batchedServer(t *testing.T, m *forma.Model, n int, rec *bench.Recorder) *server.Server {
 	t.Helper()
 	s, err := server.New(batchedEngine(t, m, n, rec, 0),
 		server.WithNotice(&strings.Builder{}), server.WithConcurrency(n))
@@ -156,10 +156,10 @@ func TestTwoRequestsShareOneForwardPass(t *testing.T) {
 // process scope are one configuration, and the refusal names the option rather
 // than an allocator's error.
 func TestBatchedEngineRefusesWithoutABlockPool(t *testing.T) {
-	_, err := server.WrapRunner(openSynthetic(t), synthName, tgo.RunnerOptions{Slots: 2})
-	if !errors.Is(err, tgo.ErrNoBlockPool) {
+	_, err := server.WrapRunner(openSynthetic(t), synthName, forma.RunnerOptions{Slots: 2})
+	if !errors.Is(err, forma.ErrNoBlockPool) {
 		t.Fatalf("WrapRunner over a model with no shared pool = %v, want "+
-			"tgo.ErrNoBlockPool", err)
+			"forma.ErrNoBlockPool", err)
 	}
 }
 
@@ -218,8 +218,8 @@ func TestABatchedRequestReportsWhatItReused(t *testing.T) {
 	// and that the loss header did not claim cache_salt was dropped: the reuse
 	// itself is 016's, measured there.
 	w := do(t, s, http.MethodPost, "/v1/completions", body)
-	if got := w.Header().Get("X-Tgo-Loss"); strings.Contains(got, "cache_salt") {
-		t.Errorf("X-Tgo-Loss = %q, and the batched engine does honour cache_salt", got)
+	if got := w.Header().Get("X-Forma-Loss"); strings.Contains(got, "cache_salt") {
+		t.Errorf("X-Forma-Loss = %q, and the batched engine does honour cache_salt", got)
 	}
 }
 
@@ -242,7 +242,7 @@ func TestABatchedSessionReportsItsReuseAndItsQueue(t *testing.T) {
 		t.Errorf("Reused = %d before anything generated, want 0", got)
 	}
 	st, err := sess.Complete(context.Background(), "a prompt of several tokens",
-		tgo.Policy{MaxTokens: 2})
+		forma.Policy{MaxTokens: 2})
 	if err != nil {
 		t.Fatalf("Complete: %v", err)
 	}
@@ -264,7 +264,7 @@ func TestABatchedSessionReportsItsReuseAndItsQueue(t *testing.T) {
 	if q == nil {
 		t.Fatal("the engine does not expose its admission queue")
 	}
-	if got, want := q.MaxDepth(), tgo.DefaultQueueDepth*e.Sessions(); got != want {
+	if got, want := q.MaxDepth(), forma.DefaultQueueDepth*e.Sessions(); got != want {
 		t.Errorf("the queue holds %d waiters, want %d", got, want)
 	}
 	if s := q.Stats(); s.Depth != 0 {

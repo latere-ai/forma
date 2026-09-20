@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Latere AI
 // SPDX-License-Identifier: Apache-2.0
 
-package tgo
+package forma
 
 import (
 	"context"
@@ -14,7 +14,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/latere-ai/tgo/internal/grammar"
+	"latere.ai/x/forma/internal/grammar"
 )
 
 // specs/015-structured-output.md wired to a real vocabulary. internal/grammar
@@ -470,7 +470,7 @@ func TestTwoConstrainedStreamsShareOneGrammar(t *testing.T) {
 // The mask composes with the rest of specs/006-sampling.md's order, which is
 // 015-D2 and the reason it is applied where it is.
 //
-// It goes on before [github.com/latere-ai/tgo/sample.Sampler.Next], and the
+// It goes on before [latere.ai/x/forma/sample.Sampler.Next], and the
 // penalties and the temperature are inside that call. Both are monotone in the
 // logit and negative infinity is a fixed point of both, so a masked token
 // cannot be brought back by a penalty that raises it or a temperature that

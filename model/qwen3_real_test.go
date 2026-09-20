@@ -10,21 +10,21 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/latere-ai/tgo/safetensors"
+	"latere.ai/x/forma/safetensors"
 )
 
 // TestQwen3RealCheckpoint reads a checkpoint on disk.
 //
-// It is skipped unless TGO_MODEL names a model directory
+// It is skipped unless FORMA_MODEL names a model directory
 // (specs/000-decisions.md decision 8): the smallest Qwen3 is over a gigabyte,
 // and a CI that downloads one is a CI nobody runs locally. It stays in the tree
 // because the synthetic configs above are written by the same hand that wrote
 // the map, and this is the one test where the map meets a file it did not
 // choose.
 func TestQwen3RealCheckpoint(t *testing.T) {
-	dir := os.Getenv("TGO_MODEL")
+	dir := os.Getenv("FORMA_MODEL")
 	if dir == "" {
-		t.Skip("TGO_MODEL is not set; this test reads a real checkpoint")
+		t.Skip("FORMA_MODEL is not set; this test reads a real checkpoint")
 	}
 
 	b, err := Open(dir)

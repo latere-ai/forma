@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Latere AI
 // SPDX-License-Identifier: Apache-2.0
 
-package tgo
+package forma
 
 import (
 	"context"
@@ -17,8 +17,8 @@ import (
 	"golang.design/x/accel"
 	"golang.design/x/accel/tensor"
 
-	"github.com/latere-ai/tgo/bench"
-	"github.com/latere-ai/tgo/chat"
+	"latere.ai/x/forma/bench"
+	"latere.ai/x/forma/chat"
 )
 
 // argmax is the greedy choice, which is what sample.Policy's zero value makes.
@@ -1149,7 +1149,7 @@ func TestAStopStringStraddlingAUTF8Boundary(t *testing.T) {
 	// The chunks are whole runes because that is what reaches this code:
 	// tokenizer.Decoder holds back a valid-but-incomplete prefix, so a partial
 	// rune never becomes pending text. Feeding raw bytes here would test a
-	// pipeline tgo does not have and would fail on the decoder's own guarantee.
+	// pipeline forma does not have and would fail on the decoder's own guarantee.
 	for _, tc := range []struct{ text, stop, want string }{
 		{sigma + "x" + arrow + "tail", arrow, sigma + "x"},
 		{"plain " + sigma + " text", arrow, "plain " + sigma + " text"},

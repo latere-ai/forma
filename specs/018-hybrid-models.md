@@ -10,7 +10,7 @@ depends_on:
 
 # Hybrid attention
 
-One of tgo's two named target models is not a dense transformer. This spec says
+One of Forma's two named target models is not a dense transformer. This spec says
 what it actually is, what it needs, and why [004-D2](004-model-graph.md)'s
 "a new architecture is additive" does not hold for it.
 
@@ -37,11 +37,11 @@ Read from its `config.json`, not from its name:
 "image_token_id": 248056, "video_token_id": 248057
 ```
 
-Four things follow, in descending order of how much they cost tgo:
+Four things follow, in descending order of how much they cost Forma:
 
 1. **Three of every four layers are linear attention.** `full_attention_interval:
    4` over 64 layers means 16 softmax-attention layers and **48 gated-delta
-   layers**. The operator tgo has spent its design on covers a quarter of the
+   layers**. The operator Forma has spent its design on covers a quarter of the
    model.
 2. **It is multimodal.** Vision and video token ids, and a
    `ForConditionalGeneration` head. Text-only inference is a coherent subset,
@@ -97,7 +97,7 @@ $$u = S k, \qquad S \leftarrow \alpha S + \beta\,k\,(v-u)^\top$$
 which is the expansion of the equation below. Qwen3.5's published form places
 $\alpha$ outside the whole bracket, $S_{t-1}\alpha_t(I - \beta_t k k^\top)$,
 and the two differ in whether the correction term is decayed. Both are "the
-gated delta rule" in the literature. tgo's oracle was written from accel's
+gated delta rule" in the literature. Forma's oracle was written from accel's
 equation and agreed with accel's kernel — which proves the kernel implements the
 equation it documents and proves nothing about which equation Qwen3.8 uses.
 [010 §5](010-conformance.md)'s rule applies: the checkpoint decides, and the
@@ -139,12 +139,12 @@ So [005](005-kv-cache.md)'s design covers a quarter of the model and
 [016](016-prefix-cache.md)'s prefix cache covers the same quarter. **Prefix
 reuse over a recurrent layer means restoring a state snapshot, not sharing
 blocks** — which is precisely the design ollama uses
-([016 §10.1](016-prefix-cache.md)) and which tgo rejected for the dense case
+([016 §10.1](016-prefix-cache.md)) and which Forma rejected for the dense case
 because a block pool is better *when positions exist*.
 
 That is the finding worth recording now: **ollama's snapshot-and-restore design,
 which looked like a workload difference, is the shape a hybrid model forces.**
-tgo would need both, chosen per layer.
+Forma would need both, chosen per layer.
 
 ## 4. What already works, checked rather than assumed
 
@@ -156,7 +156,7 @@ field in `nn` to reach them through:
   bullet here that is.
 - `partial_rotary_factor: 0.25` → `RoPE(b, x, 64, base, positions)`. `rotaryDim`
   is a parameter of accel's `tensor.RoPE` rather than the full width, and an ad
-  hoc probe rotated 64 of 256. tgo cannot ask for it: `nn/attention.go:207`
+  hoc probe rotated 64 of 256. Forma cannot ask for it: `nn/attention.go:207`
   passes `cfg.HeadDim` as the rotary width and `AttentionConfig` carries no
   rotary-dim field, so a partial rotation is **inexpressible today** and no test
   in the tree would catch one breaking.
@@ -244,7 +244,7 @@ distinction should be made first. **It was not**: `tensor.LinearAttention`
 shipped over the undifferentiated `State`, which the KV path and
 `nn.LinearAttention` both use, and the distinction is still owed.
 
-What tgo needs from a recurrent state, in order:
+What Forma needs from a recurrent state, in order:
 
 | operation | analogue today |
 | --- | --- |
@@ -257,11 +257,11 @@ Snapshot and restore are **copy-shaped**; everything a KV cache does is
 **address-shaped**. That is the cleanest statement of why they are two types.
 
 It also settles [016 §10.1](016-prefix-cache.md)'s open question: prefix reuse
-over a recurrent layer *is* ollama's snapshot-and-restore, and tgo would need
+over a recurrent layer *is* ollama's snapshot-and-restore, and Forma would need
 both mechanisms, chosen per layer — 16 paged KV layers beside 48 snapshotted
 recurrent ones **in one forward pass**, not two models.
 
-## 5. What tgo does now
+## 5. What Forma does now
 
 Two blocks, both in `nn/linear.go`, both landed 2026-08-27:
 
@@ -288,7 +288,7 @@ gate have no producer.
 
 **The position on the target list, corrected.** accel closed
 [#17](https://github.com/golang-design/accel/issues/17) and nothing upstream
-blocks this spec ([011](011-sequencing.md)). What Qwen3.8-27B waits on is tgo's
+blocks this spec ([011](011-sequencing.md)). What Qwen3.8-27B waits on is Forma's
 own hybrid graph, and §6 says who owns each part of it.
 
 ## 6. The four children
@@ -407,7 +407,7 @@ case refuses — the graph builds and the numbers are wrong.
 | id | decision | rejected | consequence |
 | --- | --- | --- | --- |
 | 018-D1 | Qwen3.8-27B is out of v0, and said so publicly | list it as a target and hope | the hybrid graph, the per-layer cache and the `qwen3_5` registry entry are unbuilt (§6). The 48 gated-delta layers themselves are expressible — `nn.LinearAttention` and `nn.DepthwiseCausalConv` express them — so the overclaiming this decision avoids is about the *model*, not about the layers |
-| 018-D2 | file the operator as a question, not a proposal | propose a kernel shape | tgo does not know accel's kernel constraints; #17 asked whether it is in scope first. **Outcome:** accel answered *in scope, recorded, not scheduled*, and found a deeper problem tgo could not see — that `State` conflates two types ([§4.2](#42-what-a-recurrent-state-needs-which-is-not-what-a-cache-needs)) |
+| 018-D2 | file the operator as a question, not a proposal | propose a kernel shape | Forma does not know accel's kernel constraints; #17 asked whether it is in scope first. **Outcome:** accel answered *in scope, recorded, not scheduled*, and found a deeper problem Forma could not see — that `State` conflates two types ([§4.2](#42-what-a-recurrent-state-needs-which-is-not-what-a-cache-needs)) |
 | 018-D5 | check what composes before asking for a kernel | ask for the convolution too | the depthwise causal convolution composes over a **rolling state** ([§4.1](#41-the-depthwise-convolution-composes-over-a-port-and-not-over-a-projection)), which is a cache row rather than a kernel, so the ask stayed one kernel rather than two |
 | 018-D3 | a hybrid cache is per layer *type*, not one shape | force the recurrent state into `State`'s per-position model | a recurrent state has one value per sequence and no positions to index |
 | 018-D4 | record that ollama's snapshot design is forced here | keep treating it as a workload difference | [016 §10.1](016-prefix-cache.md) read it as a choice about concurrency; for a recurrent layer it is the only option |

@@ -24,7 +24,7 @@ engine.
 
 It also owns one thing 015 does not answer. `response_format: {"type":
 "json_object"}` is accepted, reaches no grammar, and is reported through
-`X-Tgo-Loss` (`server/schema_test.go:137`). That is a third front end with no
+`X-Forma-Loss` (`server/schema_test.go:137`). That is a third front end with no
 grammar behind it. §7 gives it one or refuses it.
 
 ## 1. What is already there
@@ -69,7 +69,7 @@ definition are all unexpected tokens, reported with line, column, and what was
 expected. 015-D4's discipline is that a construct not consumed is refused rather
 than dropped, and a dialect is the same rule one level up.
 
-The subset this front end reads is **tgo's**, defined in this spec and in the
+The subset this front end reads is **Forma's**, defined in this spec and in the
 parser's tests, rather than "whatever llama.cpp accepts today". A grammar file
 is caller input, and a definition that tracks another project's parser is a
 definition nobody can check.
@@ -267,7 +267,7 @@ the machine is over bytes while a regex author thinks in runes.
 ## 7. `json_object`
 
 Today: `{"type": "json_object"}` sets no `Policy.Schema`, the request runs, and
-`response_format.json_object` appears in `X-Tgo-Loss`
+`response_format.json_object` appears in `X-Forma-Loss`
 (`server/schema_test.go:144`).
 
 **029-D7: it keeps the loss entry and gets no grammar.**
@@ -277,7 +277,7 @@ says twice — a boolean schema and a schema with no `"type"` are both refused
 with "it admits any JSON value, which may nest without bound and is therefore
 not a regular language" (internal/grammar/schema.go:197, :248). The only regular
 approximation is JSON nested at most $k$ deep, for a $k$ the caller never wrote
-and cannot see. A document that stops at depth $k$ because tgo chose $k$ is a
+and cannot see. A document that stops at depth $k$ because Forma chose $k$ is a
 wrong answer returned with a nil error, which is the failure 015 exists to make
 impossible.
 
@@ -288,21 +288,21 @@ advisory row to the refuse row without the caller asking, and a caller who sent
 the older spelling of "please emit JSON" did not ask to be refused.
 
 Refusing it outright is the other rejected option and it is worse: it is a field
-OpenAI clients send constantly, tgo would 400 a request it can serve, and 009 §4
+OpenAI clients send constantly, Forma would 400 a request it can serve, and 009 §4
 puts a refusal in the "changes the answer" row, which this does not.
 
 What the caller gets instead is the tool to say what they meant. With §2's front
-end, "JSON to depth 8" is a grammar they can write and tgo can bound, rather
-than a depth tgo guesses. The `X-Tgo-Loss` entry stays exactly as it is, and
+end, "JSON to depth 8" is a grammar they can write and Forma can bound, rather
+than a depth Forma guesses. The `X-Forma-Loss` entry stays exactly as it is, and
 `TestJSONObjectModeRunsAndIsReported` stays green unchanged.
 
 ## 8. The wire surface
 
-None of the three dialects tgo serves defines a grammar member. `schemaField`
+None of the three dialects Forma serves defines a grammar member. `schemaField`
 (`server/adapt.go:114`) enumerates what each one calls its schema —
 `response_format`, `output_format`, `text.format` — and `honouredHere`
 (`server/loss.go:104`) enumerates every wire name any route applies. Neither
-list has a grammar in it, so any spelling tgo picks would be tgo's own.
+list has a grammar in it, so any spelling Forma picks would be Forma's own.
 
 **029-D8: library-only. `Policy.Grammar` and `Model.CheckGrammar`, no wire
 field.** The shape mirrors 015-D5 exactly: one `Policy` field carrying the
@@ -314,8 +314,8 @@ bytes, so the map is bounded.
 
 Rejected: a `response_format: {"type": "grammar", ...}` extension, and a
 top-level `grammar` member of the kind other servers have added.
-[009 §4](009-server.md)'s contract is that a field tgo does not honour is
-reported, and tgo cannot report on a field it invented and no caller sent. A spelling
+[009 §4](009-server.md)'s contract is that a field Forma does not honour is
+reported, and Forma cannot report on a field it invented and no caller sent. A spelling
 chosen now is a compatibility promise made before one grammar has been compiled
 from a request. 000-D10 keeps the surface small, and a wire field is the easy
 half to add later.
@@ -404,11 +404,11 @@ fails the independent matcher.
 
 | id | decision | rejected | consequence |
 | --- | --- | --- | --- |
-| 029-D1 | GBNF is the dialect; another EBNF is a parse error with line and column | ISO 14977 / W3C EBNF | ISO has no character-class syntax and this machine's alphabet is the byte, so `[a-z]` is 26 quoted literals and one UTF-8 code point is several hundred. The subset read is tgo's own and is defined here, not by another project's parser |
+| 029-D1 | GBNF is the dialect; another EBNF is a parse error with line and column | ISO 14977 / W3C EBNF | ISO has no character-class syntax and this machine's alphabet is the byte, so `[a-z]` is 26 quoted literals and one UTF-8 code point is several hundred. The subset read is Forma's own and is defined here, not by another project's parser |
 | 029-D2 | four small refactors put a second parser on the existing machine | a second engine; a copy of nfa.go per front end | nfa.go and dfa.go are untouched, `Compile` keeps its signature, and `TestSchemaFrontEndIsUnchanged` fails if the machine moved |
 | 029-D3 | `maxStates` moves onto `nfa.state()` as a hard sink plus a sticky flag; `maxRepeat` stays in whichever parser reads the count | a bound per front end; a byte-length bound on the grammar text | every front end is bounded whether or not it knows the bound exists. A length bound cannot see fan-out — 315,333 states from a few hundred bytes, measured (internal/grammar/schema.go:26) — and each reachable state costs one 152k-token vocabulary walk on the request path (internal/grammar/dfa.go:109), so this is a CPU bound as much as a memory one |
 | 029-D4 | every rule cycle is refused, naming the cycle as a rule path | a right-linear recursion detector; a pushdown machine | conservative and stated as such: `list ::= item "," list` is regular and refused anyway. The cost is real and bounded: arbitrarily-nested JSON is not regular, so every grammar for it needs recursion and every one is refused. That is the same no-stack fact §7 turns on for `json_object`, reached from the grammar side |
 | 029-D5 | regex is its own parser over the same machine | a regex-to-GBNF translation; regex as GBNF sugar | `\d`, `\w` and a negated class are byte-range sets GBNF cannot spell over well-formed UTF-8, and a translation would report constructs the caller never wrote |
 | 029-D6 | a regex is fully anchored, `.` is one UTF-8 code point, and `{m,n}` counts runes | ECMA-262's unanchored `pattern` semantics; a byte-wise `.` | an unanchored pattern admits every output, because every string is a prefix of one containing a match, so it would constrain nothing while appearing to. Rune counting comes free from the UTF-8 builder, which internal/grammar/json.go:58 already relies on |
-| 029-D7 | `json_object` keeps its `X-Tgo-Loss` entry and gets no grammar | a depth-bounded permissive JSON grammar; a 400 | "any JSON" is not regular, and a document cut at a depth tgo chose is a wrong answer with a nil error. By 009 §4's own criterion the mode is advisory today, and any grammar moves it to the refuse row without the caller asking. §2's front end is how a caller says "JSON to depth 8" themselves |
-| 029-D8 | library-only: `Policy.Grammar` plus `Model.CheckGrammar`, no wire field | a `response_format: {"type": "grammar"}` extension; a top-level `grammar` member | neither `schemaField` (server/adapt.go:114) nor `honouredHere` (server/loss.go:104) has a grammar in it, so any spelling is tgo's own, and 009 §4 requires an unhonoured field to be reported — tgo cannot report a field it invented. 000-D10 keeps the surface small. The cost is checkable: `honoured` (server/loss.go:40) needs a library-only entry, and `Policy.check` refuses `Grammar` with `Stop` and with `Schema` |
+| 029-D7 | `json_object` keeps its `X-Forma-Loss` entry and gets no grammar | a depth-bounded permissive JSON grammar; a 400 | "any JSON" is not regular, and a document cut at a depth Forma chose is a wrong answer with a nil error. By 009 §4's own criterion the mode is advisory today, and any grammar moves it to the refuse row without the caller asking. §2's front end is how a caller says "JSON to depth 8" themselves |
+| 029-D8 | library-only: `Policy.Grammar` plus `Model.CheckGrammar`, no wire field | a `response_format: {"type": "grammar"}` extension; a top-level `grammar` member | neither `schemaField` (server/adapt.go:114) nor `honouredHere` (server/loss.go:104) has a grammar in it, so any spelling is Forma's own, and 009 §4 requires an unhonoured field to be reported — Forma cannot report a field it invented. 000-D10 keeps the surface small. The cost is checkable: `honoured` (server/loss.go:40) needs a library-only entry, and `Policy.check` refuses `Grammar` with `Stop` and with `Schema` |

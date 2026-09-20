@@ -146,7 +146,7 @@ func (g *Graph) fail(op, format string, args ...any) *tensor.Tensor {
 	if where == "" {
 		where = "<no prefix>"
 	}
-	g.errs = append(g.errs, fmt.Errorf("tgo/nn: %s: %s: %s", op, where,
+	g.errs = append(g.errs, fmt.Errorf("forma/nn: %s: %s: %s", op, where,
 		fmt.Sprintf(format, args...)))
 	return nil
 }

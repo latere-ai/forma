@@ -29,7 +29,7 @@ different reasons, and only one of them is upstream.
 ## 2. Why this needs nothing from accel
 
 `CacheProcess` was refused when this was written, because it needs a page table
-and tgo had no port for one. The port exists now, and the scope with it
+and Forma had no port for one. The port exists now, and the scope with it
 (`WithPrefixCache`). So the obstruction this section argued around is gone, and
 what survives is the distinction it drew. **Block-level** sharing — arbitrary
 requests sharing arbitrary physical blocks, which is
@@ -122,7 +122,7 @@ never returned, so:
 - $N$ is chosen at startup from `CacheBytesPerSession` and the device budget,
   and it is the concurrency limit as well as the reuse depth — under the process
   scope it is the concurrency limit alone
-  ([§8.4](#84-what-tgo-serve-does-with-it));
+  ([§8.4](#84-what-Forma-serve-does-with-it));
 - a process that served one request now holds $N$ sessions' KV for its life.
   For a 32B model at f16 that is the dominant resident cost, and it is paid
   whether or not a second request ever arrives.
@@ -141,9 +141,9 @@ that conversation exists. The pool, not the block, is what a scope has to bound.
 request's session.** The key is whatever the layer in front supplies. 016 §7.1
 decided `cache_salt` for exactly this but did not put it on the request;
 `server` parses it and carries it in as the affinity key, which
-[§8.5](#85-cache_salt-was-not-on-the-request-and-is-now) records. tgo takes the
-key and does not derive one: [009 §7](009-server.md) says tgo has no notion of a
-tenant, so tgo must not invent one. Concretely:
+[§8.5](#85-cache_salt-was-not-on-the-request-and-is-now) records. Forma takes the
+key and does not derive one: [009 §7](009-server.md) says Forma has no notion of a
+tenant, so Forma must not invent one. Concretely:
 
 | the request carries | it may match |
 | --- | --- |
@@ -191,19 +191,19 @@ is what let [016 §9](016-prefix-cache.md) be confidently wrong.
 
 ## Outcome
 
-Shipped 2026-08-26. `tgo.Pool` holds N sessions; `Pool.Acquire` returns a
+Shipped 2026-08-26. `forma.Pool` holds N sessions; `Pool.Acquire` returns a
 `Lease`; `Lease.Chat` and `Lease.Complete` render, tokenize, route and generate;
 `Lease.Release` returns the session with its history. `server.WrapPool` is
-`server.Wrap` with that pool behind it, and `tgo serve` builds one.
+`server.Wrap` with that pool behind it, and `forma serve` builds one.
 
 **What shipped**, section by section: the win this spec exists for, measured
 against the recorder rather than a clock
-([§8.1](#81-the-win-measured)); the pool in package `tgo` and why the server
+([§8.1](#81-the-win-measured)); the pool in package `forma` and why the server
 cannot hold it ([§8.2](#82-where-the-pool-lives-and-why-it-is-not-in-server));
 what [§6](#6-correctness)'s early-end truncation turned out to cost
 ([§8.3](#83-the-truncation-is-a-no-op-for-a-cancellation-and-not-for-a-failure));
-the two flags `tgo serve` exposes
-([§8.4](#84-what-tgo-serve-does-with-it)); the affinity key over the wire
+the two flags `forma serve` exposes
+([§8.4](#84-what-Forma-serve-does-with-it)); the affinity key over the wire
 ([§8.5](#85-cache_salt-was-not-on-the-request-and-is-now)); and the startup
 refusal that keeps the two semaphores in step
 ([§8.6](#86-the-pool-is-a-second-semaphore-and-two-of-them-must-agree)).
@@ -211,7 +211,7 @@ refusal that keeps the two semaphores in step
 **What diverged** from the design, and why the code is right:
 [§1](#1-the-gap-this-closes) reads as though the win were automatic, and what
 shipped puts it one flag away, because turning reuse on changes what an answer
-says ([§8.4](#84-what-tgo-serve-does-with-it));
+says ([§8.4](#84-what-Forma-serve-does-with-it));
 [§5](#5-isolation-the-pool-is-now-the-boundary) assumed 016 §7.1 had already put
 `cache_salt` on the request, and it had not, so `server` had to carry it
 ([§8.5](#85-cache_salt-was-not-on-the-request-and-is-now));
@@ -259,7 +259,7 @@ property a caller checks rather than as a tolerance.
 
 ### 8.2 Where the pool lives, and why it is not in `server`
 
-In package `tgo`, next to the session and the tokenizer. Routing compares
+In package `forma`, next to the session and the tokenizer. Routing compares
 rendered token ids, and the server cannot produce them: `Session.Chat` renders
 the chat template and tokenizes inside the session, and the route has to be
 chosen *before* a session exists. `Session.encode` therefore moved to
@@ -309,7 +309,7 @@ which is what a refactor of `Stream.advance` would do by accident -- and asserts
 that `Lease.Release` puts them back. Without it, dropping the truncation and
 keeping the clearing of the failure leaves the whole suite green.
 
-### 8.4 What `tgo serve` does with it
+### 8.4 What `forma serve` does with it
 
 `--sessions N` is the pool, and `--prefix-cache` is what may share with what.
 Two flags rather than one, because they are two costs. `--prefix-cache` is not a
@@ -335,7 +335,7 @@ hold. An explicit `--sessions` above that is refused at startup, naming both
 numbers.
 
 `--prefix-cache` is off because turning it on changes what an answer says, and
-`tgo serve` should not change its answers on an upgrade. This is a deviation
+`forma serve` should not change its answers on an upgrade. This is a deviation
 from the framing of [§1](#1-the-gap-this-closes), which reads as though the win
 should be automatic: what shipped makes it reachable and one flag away rather
 than default. The pool itself is not optional, because it is also the admission
@@ -352,7 +352,7 @@ raw body beside the other members `ir.Request` has no room for, and it becomes
 
 It is honoured without being a `Policy` field, so it is subtracted from the loss
 report by a second table, `honouredSession`, rather than by `honoured` — whose
-invariant is that its keys are exactly `tgo.Policy`'s, checked by reflection.
+invariant is that its keys are exactly `forma.Policy`'s, checked by reflection.
 Without the subtraction a caller who isolated their cache would be told the
 field was dropped, which is the 009-D12 failure from the quiet side.
 
@@ -391,14 +391,14 @@ So `server.New` refuses a concurrency above the engine's pool size, naming both
 numbers. It is a startup check on a number that is knowable at startup rather
 than a correctness fix: nothing is lost or corrupted, and what is prevented is a
 deployment whose queue metrics and `Retry-After` no longer mean what they say.
-`tgo serve` cannot reach it, because it passes `WithConcurrency(adm.Sessions)` —
+`forma serve` cannot reach it, because it passes `WithConcurrency(adm.Sessions)` —
 but `WrapPool` is public and `WithKVBudget` divides device memory without
 knowing what the pool reserved. Below the pool size is allowed: that is a
 deployment asking for a reuse depth larger than its concurrency, which
 [§3.1](#31-when-a-conversation-keeps-its-session) makes a real thing to want.
 `TestAdmissionAboveThePoolIsRefused` covers both directions and both ways of
 arriving at the number, and `TestServePoolSizeIsTheAdmissionLimit` reads the
-size `tgo serve` actually built the pool with rather than trusting the one call
+size `forma serve` actually built the pool with rather than trusting the one call
 to `kvAdmission`: a pool built wider than the limit is memory the report never
 named, and neither size shows in the report.
 
@@ -421,7 +421,7 @@ model's pool and is told how many positions were already computed, matched by
 hash on the same key this spec routes on. So `--prefix-cache process` gets block
 sharing and a coldest-session round robin, not affinity as well, and the session
 pool there is admission and eviction only. It hands the block pool nothing — the
-block pool is the model's, sized by `tgo serve` as `--sessions` × `--context`.
+block pool is the model's, sized by `forma serve` as `--sessions` × `--context`.
 
 It is also not a scheduler. [008](008-scheduler.md) runs many conversations in
 one step; this runs one conversation per session and only changes when the
@@ -430,7 +430,7 @@ session dies.
 ## Decision record
 
 **019-D1. The pool is sessions, not blocks.** The block is the better unit and
-needed a page-table port tgo did not have when this was decided. A session is
+needed a page-table port Forma did not have when this was decided. A session is
 the unit the kernels already address, so it shipped first. The port landed
 afterwards, and [§9](#9-what-this-is-not) records that the two did not compose
 the way this spec predicted. See [§2](#2-why-this-needs-nothing-from-accel).
@@ -460,7 +460,7 @@ See [§6](#6-correctness) and [§8.3](#83-the-truncation-is-a-no-op-for-a-cancel
 which records what it turned out to cost: nothing for a cancellation, and a
 session back in service after a device failure.
 
-**019-D6. The pool is in package `tgo`, not in `server`.** Routing compares
+**019-D6. The pool is in package `forma`, not in `server`.** Routing compares
 rendered token ids and the server cannot produce them: rendering and tokenizing
 happen inside `Session.Chat`, and the route must be chosen before a session
 exists. The alternative — exporting the renderer and the tokenizer so the server
@@ -474,7 +474,7 @@ per-request value, which [000-D10](000-decisions.md) closed the surface against.
 It is sound only because routing compares rendered ids, so a changed tool set
 shortens its own match; the tests assert both halves rather than the claim.
 
-**019-D8. `tgo serve` pools by default and reuses only when asked.** The pool is
+**019-D8. `forma serve` pools by default and reuses only when asked.** The pool is
 not optional, because it is the admission semaphore; the reuse is, because
 turning it on changes what an answer says
 ([016-D6](016-prefix-cache.md)). The rejected alternative is reuse on by
@@ -482,4 +482,4 @@ default, which would change every answer a deployment gets on an upgrade with no
 line in the release notes that an operator could act on. The pool's default size
 is 4 rather than the device's capacity for the same reason from the other side:
 `N_max` used to bound sessions that might exist and now bounds memory that is
-allocated. See [§8.4](#84-what-tgo-serve-does-with-it).
+allocated. See [§8.4](#84-what-Forma-serve-does-with-it).

@@ -8,9 +8,9 @@
 //
 //	t_step = t_host + t_submit + t_device + t_readback
 //
-// and tgo's claim is that a compiled language wins t_host while accel decides
+// and forma's claim is that a compiled language wins t_host while accel decides
 // t_device. One throughput number cannot tell those apart, so it cannot say
-// whether a regression belongs to tgo or to accel. Every measurement this
+// whether a regression belongs to forma or to accel. Every measurement this
 // package produces is therefore a four-way breakdown, reported as percentiles
 // (specs/017-benchmarks.md 017-D1, 017-D2).
 //
@@ -20,7 +20,7 @@
 // a regression check diffs its bytes (017-D6).
 //
 // The package takes durations and returns statistics. It depends on nothing
-// else in tgo.
+// else in forma.
 package bench
 
 import (

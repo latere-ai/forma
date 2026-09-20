@@ -18,10 +18,10 @@ import (
 
 	"latere.ai/x/pkg/llmdialect/ir"
 
-	"github.com/latere-ai/tgo"
-	"github.com/latere-ai/tgo/bench"
-	"github.com/latere-ai/tgo/chat"
-	"github.com/latere-ai/tgo/internal/grammar"
+	"latere.ai/x/forma"
+	"latere.ai/x/forma/bench"
+	"latere.ai/x/forma/chat"
+	"latere.ai/x/forma/internal/grammar"
 )
 
 // The fake engine: a scripted event stream, so every handler test runs with no
@@ -46,7 +46,7 @@ const (
 // fakeEngine is an [Engine] whose sessions replay a script.
 type fakeEngine struct {
 	// script is what every stream yields, in order.
-	script []tgo.Event
+	script []forma.Event
 
 	// prompt is the prompt token count the stream reports.
 	prompt int
@@ -61,12 +61,12 @@ type fakeEngine struct {
 	//
 	// A shorter slice than the deltas is a stream that reported none past its
 	// end, which is what a request with Policy.LogProbs unset does.
-	probs [][]tgo.TokenProb
+	probs [][]forma.TokenProb
 
 	// stopReason and stopSequence are what the engine says ended the stream.
-	// The zero value is tgo.StopRunning, which is a stream that ended on the
+	// The zero value is forma.StopRunning, which is a stream that ended on the
 	// end-of-turn token as far as stopReason is concerned.
-	stopReason   tgo.StopReason
+	stopReason   forma.StopReason
 	stopSequence string
 
 	// sessionErr fails NewSession, as an exhausted device does.
@@ -128,7 +128,7 @@ func (e *fakeEngine) CheckSchema(schema []byte) error {
 	}
 	_, err := grammar.Compile(schema, pieces, grammar.Options{Stop: []int{fakeStop}})
 	if err != nil {
-		return fmt.Errorf("tgo: %w", err)
+		return fmt.Errorf("forma: %w", err)
 	}
 	return nil
 }
@@ -180,14 +180,14 @@ type fakeSession struct {
 	spec SessionSpec
 
 	mu     sync.Mutex
-	policy tgo.Policy
+	policy forma.Policy
 	msgs   []chat.Message
 	prompt string
 	closed bool
 	stream *fakeStream
 }
 
-func (s *fakeSession) Chat(ctx context.Context, msgs []chat.Message, p tgo.Policy) (Stream, error) {
+func (s *fakeSession) Chat(ctx context.Context, msgs []chat.Message, p forma.Policy) (Stream, error) {
 	s.mu.Lock()
 	s.msgs = msgs
 	s.policy = p
@@ -195,7 +195,7 @@ func (s *fakeSession) Chat(ctx context.Context, msgs []chat.Message, p tgo.Polic
 	return s.begin(ctx)
 }
 
-func (s *fakeSession) Complete(ctx context.Context, prompt string, p tgo.Policy) (Stream, error) {
+func (s *fakeSession) Complete(ctx context.Context, prompt string, p forma.Policy) (Stream, error) {
 	s.mu.Lock()
 	s.prompt = prompt
 	s.policy = p
@@ -219,7 +219,7 @@ func (s *fakeSession) begin(ctx context.Context) (Stream, error) {
 	}
 	st := &fakeStream{
 		ctx: ctx, eng: s.eng,
-		usage:   tgo.Usage{PromptTokens: s.eng.prompt},
+		usage:   forma.Usage{PromptTokens: s.eng.prompt},
 		stopped: make(chan struct{}),
 	}
 	s.mu.Lock()
@@ -235,7 +235,7 @@ func (s *fakeSession) Close() error {
 	return nil
 }
 
-func (s *fakeSession) sawPolicy() tgo.Policy {
+func (s *fakeSession) sawPolicy() forma.Policy {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return s.policy
@@ -274,8 +274,8 @@ type fakeStream struct {
 	// deltas counts the events that carried text, which is what a step
 	// producing a token looks like from out here.
 	deltas int
-	cur    tgo.Event
-	usage  tgo.Usage
+	cur    forma.Event
+	usage  forma.Usage
 	err    error
 
 	// stopped closes when Next has returned false, whatever the reason. The
@@ -288,18 +288,18 @@ type fakeStream struct {
 	cancelled bool
 
 	// reason and seq are what the engine says ended the stream. The zero value
-	// is tgo.StopRunning, so a test that sets neither exercises the fallback
+	// is forma.StopRunning, so a test that sets neither exercises the fallback
 	// path in stopReason rather than the stream's own answer.
-	reason tgo.StopReason
+	reason forma.StopReason
 	seq    string
 }
 
-func (st *fakeStream) StopReason() tgo.StopReason { return st.reason }
-func (st *fakeStream) StopSequence() string       { return st.seq }
+func (st *fakeStream) StopReason() forma.StopReason { return st.reason }
+func (st *fakeStream) StopSequence() string         { return st.seq }
 
 // LogProbs returns the entry scripted for the delta just yielded, so a fake
 // stream can drive the encoder without a model.
-func (st *fakeStream) LogProbs() []tgo.TokenProb {
+func (st *fakeStream) LogProbs() []forma.TokenProb {
 	if st.cur.Text == "" || st.deltas == 0 || st.deltas > len(st.eng.probs) {
 		return nil
 	}
@@ -361,30 +361,30 @@ func (st *fakeStream) stop(cancelled bool) bool {
 	return false
 }
 
-func (st *fakeStream) Event() tgo.Event { return st.cur }
-func (st *fakeStream) Usage() tgo.Usage { return st.usage }
-func (st *fakeStream) Err() error       { return st.err }
+func (st *fakeStream) Event() forma.Event { return st.cur }
+func (st *fakeStream) Usage() forma.Usage { return st.usage }
+func (st *fakeStream) Err() error         { return st.err }
 
 // text is a script that says one word in one text block, which is the smallest
 // well-formed generation.
-func text(words ...string) []tgo.Event {
-	out := []tgo.Event{{Kind: tgo.BlockStart, Block: chat.BlockText}}
+func text(words ...string) []forma.Event {
+	out := []forma.Event{{Kind: forma.BlockStart, Block: chat.BlockText}}
 	for _, w := range words {
-		out = append(out, tgo.Event{Kind: tgo.TextDelta, Block: chat.BlockText, Text: w})
+		out = append(out, forma.Event{Kind: forma.TextDelta, Block: chat.BlockText, Text: w})
 	}
-	return append(out, tgo.Event{Kind: tgo.BlockStop, Block: chat.BlockText})
+	return append(out, forma.Event{Kind: forma.BlockStop, Block: chat.BlockText})
 }
 
 // thinkThenSay is a script that thinks and then answers, which is the shape
 // §3.2 exists for.
-func thinkThenSay(thought, answer string) []tgo.Event {
-	return []tgo.Event{
-		{Kind: tgo.BlockStart, Block: chat.BlockThinking},
-		{Kind: tgo.ThinkingDelta, Block: chat.BlockThinking, Text: thought},
-		{Kind: tgo.BlockStop, Block: chat.BlockThinking},
-		{Kind: tgo.BlockStart, Block: chat.BlockText},
-		{Kind: tgo.TextDelta, Block: chat.BlockText, Text: answer},
-		{Kind: tgo.BlockStop, Block: chat.BlockText},
+func thinkThenSay(thought, answer string) []forma.Event {
+	return []forma.Event{
+		{Kind: forma.BlockStart, Block: chat.BlockThinking},
+		{Kind: forma.ThinkingDelta, Block: chat.BlockThinking, Text: thought},
+		{Kind: forma.BlockStop, Block: chat.BlockThinking},
+		{Kind: forma.BlockStart, Block: chat.BlockText},
+		{Kind: forma.TextDelta, Block: chat.BlockText, Text: answer},
+		{Kind: forma.BlockStop, Block: chat.BlockText},
 	}
 }
 

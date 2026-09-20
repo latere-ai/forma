@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Latere AI
 // SPDX-License-Identifier: Apache-2.0
 
-package tgo
+package forma
 
 import (
 	"strings"
@@ -10,8 +10,8 @@ import (
 	"golang.design/x/accel"
 	"golang.design/x/accel/quant"
 
-	"github.com/latere-ai/tgo/nn"
-	"github.com/latere-ai/tgo/weights"
+	"latere.ai/x/forma/nn"
+	"latere.ai/x/forma/weights"
 )
 
 // TestInt4WeightsRunTheSameLoop is 004-D6 at the third width: precision is a

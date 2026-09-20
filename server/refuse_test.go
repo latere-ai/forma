@@ -94,7 +94,7 @@ func TestARefusalNamesItsField(t *testing.T) {
 				t.Errorf("sessions built = %d on a refused request, want 0", len(got))
 			}
 			if body := get(t, s, "/metrics").Body.String(); !strings.Contains(body,
-				`tgo_sessions_rejected_total{reason="refused_field"} 1`) {
+				`forma_sessions_rejected_total{reason="refused_field"} 1`) {
 				t.Errorf("the refusal was not counted:\n%s", body)
 			}
 		})
@@ -126,7 +126,7 @@ func TestARefusalIsShapedByTheDialect(t *testing.T) {
 
 // A member the dialect does not define is a stray key, not a refusal.
 //
-// tgo ignores n on either surface, so §4's own test -- a request with it and a
+// forma ignores n on either surface, so §4's own test -- a request with it and a
 // request without it produce the same tokens -- makes it advisory there. It
 // gets the same answer as every other unrecognized member: the request runs and
 // the loss report names it.
@@ -139,8 +139,8 @@ func TestAMemberADialectDoesNotDefineIsReportedRatherThanRefused(t *testing.T) {
 			s := newTestServer(t, &fakeEngine{script: text("ok")})
 			w := post(t, s, r.path, r.body(`,"n":3`))
 			wantStatus(t, w, http.StatusOK)
-			if loss := w.Header().Get("X-Tgo-Loss"); !strings.Contains(loss, "n") {
-				t.Errorf("X-Tgo-Loss = %q, want it to name the stray member", loss)
+			if loss := w.Header().Get("X-Forma-Loss"); !strings.Contains(loss, "n") {
+				t.Errorf("X-Forma-Loss = %q, want it to name the stray member", loss)
 			}
 		})
 	}

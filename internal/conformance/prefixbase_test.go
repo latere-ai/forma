@@ -10,8 +10,8 @@ import (
 	"golang.design/x/accel"
 	"golang.design/x/accel/tensor"
 
-	"github.com/latere-ai/tgo/internal/conformance"
-	"github.com/latere-ai/tgo/internal/oracle"
+	"latere.ai/x/forma/internal/conformance"
+	"latere.ai/x/forma/internal/oracle"
 )
 
 // The shape of a partial prefix hit: a prompt of prefixLen+suffixLen tokens

@@ -50,7 +50,7 @@ type BatchStep struct {
 // last segment counted every one of them and indexed one past the offsets
 // array -- another sequence's cache on a GPU, read back as a fluent answer.
 // The extents are device data, so [tensor.Attention] could not check the sum
-// at record time either. tgo reported it as accel#24 and argued for "a row
+// at record time either. forma reported it as accel#24 and argued for "a row
 // past the last extent contributes nothing" over clamping it into the last
 // sequence, because clamping makes the read in-range and the answer wrong.
 // accel took that shape.

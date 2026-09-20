@@ -80,7 +80,7 @@ const metadataKey = "__metadata__"
 // it rather than write a large file.
 var maxHeaderBytes int64 = 100 << 20
 
-// maxInt is the largest value an int holds on the building platform. tgo
+// maxInt is the largest value an int holds on the building platform. forma
 // cross-compiles to 32-bit targets, where a length that fits in an int64 does
 // not fit in a slice index.
 const maxInt = int64(^uint(0) >> 1)

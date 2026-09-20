@@ -11,27 +11,27 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/latere-ai/tgo"
+	"latere.ai/x/forma"
 )
 
 // §4 and §4.1. The loss report is llmdialect's, corrected in both directions,
 // and each direction has a way of being wrong that the other's test does not
 // catch.
 
-// honourCase is one wire member tgo implements, and what it must do.
+// honourCase is one wire member forma implements, and what it must do.
 type honourCase struct {
-	// field is the [tgo.Policy] field it sets, which is the key into
+	// field is the [forma.Policy] field it sets, which is the key into
 	// [honoured].
 	field string
 
-	// wire is the member name, which must not appear in X-Tgo-Loss.
+	// wire is the member name, which must not appear in X-Forma-Loss.
 	wire string
 
 	route int
 	extra string
 
 	// got reads the field back out of the policy the session received.
-	got func(tgo.Policy) any
+	got func(forma.Policy) any
 
 	// want is what got must return.
 	want any
@@ -43,66 +43,66 @@ type honourCase struct {
 // max_tokens.
 var honourCases = []honourCase{
 	// specs/030-logprobs.md §4: two routes serve logprobs, /v1/chat/completions
-	// through llmdialect's ir and /v1/completions through tgo's own codec. The
+	// through llmdialect's ir and /v1/completions through forma's own codec. The
 	// bool `logprobs` and the `top_logprobs` count parse on every route, which
 	// is what lets the matrix below send them everywhere; the legacy count
 	// spelled as a number in `logprobs` is that route's own and is exercised
 	// in legacy_test.go.
 	{field: "LogProbs", wire: "logprobs", route: 0, extra: `,"logprobs":true`,
-		got: func(p tgo.Policy) any { return p.LogProbs }, want: true},
+		got: func(p forma.Policy) any { return p.LogProbs }, want: true},
 	{field: "TopLogProbs", wire: "top_logprobs", route: 0, extra: `,"top_logprobs":3`,
-		got: func(p tgo.Policy) any { return p.TopLogProbs }, want: 3},
+		got: func(p forma.Policy) any { return p.TopLogProbs }, want: 3},
 	{field: "LogProbs", wire: "logprobs", route: 3, extra: `,"logprobs":true`,
-		got: func(p tgo.Policy) any { return p.LogProbs }, want: true},
+		got: func(p forma.Policy) any { return p.LogProbs }, want: true},
 	{field: "TopLogProbs", wire: "top_logprobs", route: 3, extra: `,"top_logprobs":3`,
-		got: func(p tgo.Policy) any { return p.TopLogProbs }, want: 3},
+		got: func(p forma.Policy) any { return p.TopLogProbs }, want: 3},
 	{field: "Temperature", wire: "temperature", route: 0, extra: `,"temperature":0.25`,
-		got: func(p tgo.Policy) any { return p.Temperature }, want: float32(0.25)},
+		got: func(p forma.Policy) any { return p.Temperature }, want: float32(0.25)},
 	{field: "TopP", wire: "top_p", route: 0, extra: `,"top_p":0.9`,
-		got: func(p tgo.Policy) any { return p.TopP }, want: float32(0.9)},
+		got: func(p forma.Policy) any { return p.TopP }, want: float32(0.9)},
 	{field: "TopK", wire: "top_k", route: 0, extra: `,"top_k":40`,
-		got: func(p tgo.Policy) any { return p.TopK }, want: 40},
+		got: func(p forma.Policy) any { return p.TopK }, want: 40},
 	{field: "TopK", wire: "top_k", route: 1, extra: `,"top_k":40`,
-		got: func(p tgo.Policy) any { return p.TopK }, want: 40},
+		got: func(p forma.Policy) any { return p.TopK }, want: 40},
 	{field: "Seed", wire: "seed", route: 0, extra: `,"seed":7`,
-		got: func(p tgo.Policy) any { return p.Seed }, want: uint64(7)},
+		got: func(p forma.Policy) any { return p.Seed }, want: uint64(7)},
 	{field: "LogitBias", wire: "logit_bias", route: 0, extra: `,"logit_bias":{"12":-3.5}`,
-		got: func(p tgo.Policy) any { return p.LogitBias[12] }, want: float32(-3.5)},
+		got: func(p forma.Policy) any { return p.LogitBias[12] }, want: float32(-3.5)},
 	{field: "PresencePenalty", wire: "presence_penalty", route: 0, extra: `,"presence_penalty":0.5`,
-		got: func(p tgo.Policy) any { return p.PresencePenalty }, want: float32(0.5)},
+		got: func(p forma.Policy) any { return p.PresencePenalty }, want: float32(0.5)},
 	{field: "FrequencyPenalty", wire: "frequency_penalty", route: 0,
 		extra: `,"frequency_penalty":0.75`,
-		got:   func(p tgo.Policy) any { return p.FrequencyPenalty }, want: float32(0.75)},
+		got:   func(p forma.Policy) any { return p.FrequencyPenalty }, want: float32(0.75)},
 	{field: "RepetitionPenalty", wire: "repetition_penalty", route: 0,
 		extra: `,"repetition_penalty":1.125`,
-		got:   func(p tgo.Policy) any { return p.RepetitionPenalty }, want: float32(1.125)},
+		got:   func(p forma.Policy) any { return p.RepetitionPenalty }, want: float32(1.125)},
 	{field: "PenaltyWindow", wire: "penalty_window", route: 0, extra: `,"penalty_window":64`,
-		got: func(p tgo.Policy) any { return p.PenaltyWindow }, want: 64},
+		got: func(p forma.Policy) any { return p.PenaltyWindow }, want: 64},
 	{field: "MaxTokens", wire: "max_tokens", route: 0, extra: `,"max_tokens":13`,
-		got: func(p tgo.Policy) any { return p.MaxTokens }, want: 13},
+		got: func(p forma.Policy) any { return p.MaxTokens }, want: 13},
 	{field: "MaxTokens", wire: "max_completion_tokens", route: 0,
 		extra: `,"max_completion_tokens":13`,
-		got:   func(p tgo.Policy) any { return p.MaxTokens }, want: 13},
+		got:   func(p forma.Policy) any { return p.MaxTokens }, want: 13},
 	{field: "MaxTokens", wire: "max_output_tokens", route: 2, extra: `,"max_output_tokens":13`,
-		got: func(p tgo.Policy) any { return p.MaxTokens }, want: 13},
+		got: func(p forma.Policy) any { return p.MaxTokens }, want: 13},
 	{field: "Stop", wire: "stop", route: 0, extra: `,"stop":["END"]`,
-		got: func(p tgo.Policy) any { return strings.Join(p.Stop, ",") }, want: "END"},
+		got: func(p forma.Policy) any { return strings.Join(p.Stop, ",") }, want: "END"},
 	{field: "Stop", wire: "stop_sequences", route: 1, extra: `,"stop_sequences":["END"]`,
-		got: func(p tgo.Policy) any { return strings.Join(p.Stop, ",") }, want: "END"},
+		got: func(p forma.Policy) any { return strings.Join(p.Stop, ",") }, want: "END"},
 	// One per dialect spelling of the same field. A schema sent under another
 	// surface's name enforces nothing, and this is the only field where three
 	// names compete for one Policy member.
 	{field: "Schema", wire: "response_format", route: 0,
 		extra: `,"response_format":{"type":"json_schema","json_schema":{"name":"out",` +
 			`"schema":` + wireSchema + `}}`,
-		got: func(p tgo.Policy) any { return string(p.Schema) }, want: wireSchema},
+		got: func(p forma.Policy) any { return string(p.Schema) }, want: wireSchema},
 	{field: "Schema", wire: "output_format", route: 1,
 		extra: `,"output_format":{"type":"json_schema","schema":` + wireSchema + `}`,
-		got:   func(p tgo.Policy) any { return string(p.Schema) }, want: wireSchema},
+		got:   func(p forma.Policy) any { return string(p.Schema) }, want: wireSchema},
 	{field: "Schema", wire: "text", route: 2,
 		extra: `,"text":{"format":{"type":"json_schema","name":"out","schema":` +
 			wireSchema + `}}`,
-		got: func(p tgo.Policy) any { return string(p.Schema) }, want: wireSchema},
+		got: func(p forma.Policy) any { return string(p.Schema) }, want: wireSchema},
 }
 
 // wireSchema is the schema those cases send. An empty closed object, which
@@ -130,11 +130,11 @@ func TestAnHonouredFieldIsAppliedAndNotReportedAsLost(t *testing.T) {
 			if got := c.got(eng.only(t).sawPolicy()); got != c.want {
 				t.Errorf("%s reached Policy.%s as %v, want %v", c.wire, c.field, got, c.want)
 			}
-			if loss := w.Header().Get("X-Tgo-Loss"); strings.Contains(loss, c.wire) {
-				t.Errorf("X-Tgo-Loss reports %q as lost, and it was honoured: %q", c.wire, loss)
+			if loss := w.Header().Get("X-Forma-Loss"); strings.Contains(loss, c.wire) {
+				t.Errorf("X-Forma-Loss reports %q as lost, and it was honoured: %q", c.wire, loss)
 			}
 			if body := get(t, s, "/metrics").Body.String(); strings.Contains(body,
-				`tgo_request_loss_total{field="`+c.wire+`"}`) {
+				`forma_request_loss_total{field="`+c.wire+`"}`) {
 				t.Errorf("the loss counter names %q, and it was honoured", c.wire)
 			}
 		})
@@ -149,17 +149,17 @@ func TestAnHonouredFieldIsAppliedAndNotReportedAsLost(t *testing.T) {
 // test.
 func TestEveryPolicyFieldIsHonoured(t *testing.T) {
 	t.Parallel()
-	typ := reflect.TypeFor[tgo.Policy]()
+	typ := reflect.TypeFor[forma.Policy]()
 	for field := range typ.Fields() {
 		name := field.Name
 		if _, ok := honoured[name]; !ok {
-			t.Errorf("tgo.Policy.%s is not in the honoured table, so a request that sets it "+
+			t.Errorf("forma.Policy.%s is not in the honoured table, so a request that sets it "+
 				"would be told the field was dropped", name)
 		}
 	}
 	for name := range honoured {
 		if _, ok := typ.FieldByName(name); !ok {
-			t.Errorf("the honoured table names %q, which tgo.Policy does not have: the "+
+			t.Errorf("the honoured table names %q, which forma.Policy does not have: the "+
 				"subtraction would hide a field nothing applies", name)
 		}
 	}
@@ -217,7 +217,7 @@ func TestAWireNameIsSubtractedExactlyWhereItIsApplied(t *testing.T) {
 
 				applied := c.got(eng.only(t).sawPolicy()) == c.want
 				reported := slices.Contains(
-					strings.Split(w.Header().Get("X-Tgo-Loss"), ", "), wire)
+					strings.Split(w.Header().Get("X-Forma-Loss"), ", "), wire)
 
 				if want := honouredOn[r.dialect][wire]; applied != want {
 					t.Errorf("%s reached Policy.%s = %v on %s, and the table says %v: the "+
@@ -226,12 +226,12 @@ func TestAWireNameIsSubtractedExactlyWhereItIsApplied(t *testing.T) {
 				}
 				if applied == reported {
 					if applied {
-						t.Errorf("X-Tgo-Loss = %q on %s reports %q, which was applied",
-							w.Header().Get("X-Tgo-Loss"), r.name, wire)
+						t.Errorf("X-Forma-Loss = %q on %s reports %q, which was applied",
+							w.Header().Get("X-Forma-Loss"), r.name, wire)
 					} else {
-						t.Errorf("%s on %s set nothing and X-Tgo-Loss = %q says nothing: the "+
+						t.Errorf("%s on %s set nothing and X-Forma-Loss = %q says nothing: the "+
 							"knob was dropped and the caller was told it was honoured",
-							wire, r.name, w.Header().Get("X-Tgo-Loss"))
+							wire, r.name, w.Header().Get("X-Forma-Loss"))
 					}
 				}
 			})
@@ -250,7 +250,7 @@ func TestTheDialectTablesAgreeWithThePolicyTable(t *testing.T) {
 	for d, names := range honouredOn {
 		for n := range names {
 			if !honouredWire[n] {
-				t.Errorf("%s claims to honour %q, which no tgo.Policy field is mapped to", d, n)
+				t.Errorf("%s claims to honour %q, which no forma.Policy field is mapped to", d, n)
 			}
 			union[n] = true
 		}
@@ -308,12 +308,12 @@ func TestAnAdvisoryFieldRunsAndIsReported(t *testing.T) {
 			// It ran. That is the half 009-D2 amended: an advisory field is
 			// not a reason to refuse a request that would answer correctly.
 			wantStatus(t, w, http.StatusOK)
-			loss := w.Header().Get("X-Tgo-Loss")
+			loss := w.Header().Get("X-Forma-Loss")
 			if !strings.Contains(loss, c.want) {
-				t.Errorf("X-Tgo-Loss = %q, want it to name %q", loss, c.want)
+				t.Errorf("X-Forma-Loss = %q, want it to name %q", loss, c.want)
 			}
 			if body := get(t, s, "/metrics").Body.String(); !strings.Contains(body,
-				`tgo_request_loss_total{field="`+c.want+`"} 1`) {
+				`forma_request_loss_total{field="`+c.want+`"} 1`) {
 				t.Errorf("the loss counter does not name %q:\n%s", c.want, body)
 			}
 		})
@@ -330,8 +330,8 @@ func TestCacheControlRunsAndIsReported(t *testing.T) {
 		"content":[{"type":"text","text":"hi","cache_control":{"type":"ephemeral"}}]}]}`
 	w := post(t, s, "/v1/messages", body)
 	wantStatus(t, w, http.StatusOK)
-	if loss := w.Header().Get("X-Tgo-Loss"); !strings.Contains(loss, "cache_control") {
-		t.Errorf("X-Tgo-Loss = %q, want it to name cache_control", loss)
+	if loss := w.Header().Get("X-Forma-Loss"); !strings.Contains(loss, "cache_control") {
+		t.Errorf("X-Forma-Loss = %q, want it to name cache_control", loss)
 	}
 }
 
@@ -342,7 +342,7 @@ func TestCacheControlRunsAndIsReported(t *testing.T) {
 // sampler, this is where it would show.
 func TestAnAdvisoryFieldDoesNotChangeTheTokens(t *testing.T) {
 	t.Parallel()
-	run := func(extra string) (string, tgo.Policy) {
+	run := func(extra string) (string, forma.Policy) {
 		eng := &fakeEngine{script: text("deterministic", " words")}
 		s := newTestServer(t, eng)
 		w := post(t, s, "/v1/chat/completions", routes[0].body(`,"seed":42,"temperature":0.7`+extra))
@@ -385,8 +385,8 @@ func TestACleanRequestCarriesNoLossHeader(t *testing.T) {
 	s := newTestServer(t, &fakeEngine{script: text("ok")})
 	w := post(t, s, "/v1/chat/completions", routes[0].body(""))
 	wantStatus(t, w, http.StatusOK)
-	if _, ok := w.Header()["X-Tgo-Loss"]; ok {
-		t.Errorf("X-Tgo-Loss = %q on a request that lost nothing", w.Header().Get("X-Tgo-Loss"))
+	if _, ok := w.Header()["X-Forma-Loss"]; ok {
+		t.Errorf("X-Forma-Loss = %q on a request that lost nothing", w.Header().Get("X-Forma-Loss"))
 	}
 }
 
@@ -398,8 +398,8 @@ func TestTheLossHeaderIsSetOnAStreamingAnswerToo(t *testing.T) {
 	s := newTestServer(t, &fakeEngine{script: text("ok")})
 	w := post(t, s, "/v1/chat/completions", routes[0].body(`,"stream":true,"user":"u-1"`))
 	wantStatus(t, w, http.StatusOK)
-	if got := w.Header().Get("X-Tgo-Loss"); got != "user" {
-		t.Errorf("X-Tgo-Loss = %q, want %q", got, "user")
+	if got := w.Header().Get("X-Forma-Loss"); got != "user" {
+		t.Errorf("X-Forma-Loss = %q, want %q", got, "user")
 	}
 }
 

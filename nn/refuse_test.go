@@ -12,7 +12,7 @@ import (
 	"golang.design/x/accel"
 	"golang.design/x/accel/tensor"
 
-	"github.com/latere-ai/tgo/nn"
+	"latere.ai/x/forma/nn"
 )
 
 // parts is one attention block's arguments, ready to be spoiled one at a time.

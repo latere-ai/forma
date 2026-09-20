@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Latere AI
 // SPDX-License-Identifier: Apache-2.0
 
-package tgo
+package forma
 
 import (
 	"crypto/sha256"
@@ -15,14 +15,14 @@ import (
 	"golang.design/x/accel"
 	"golang.design/x/accel/tensor"
 
-	"github.com/latere-ai/tgo/chat"
-	"github.com/latere-ai/tgo/internal/grammar"
-	"github.com/latere-ai/tgo/internal/prefix"
-	"github.com/latere-ai/tgo/model"
-	"github.com/latere-ai/tgo/nn"
-	"github.com/latere-ai/tgo/safetensors"
-	"github.com/latere-ai/tgo/tokenizer"
-	"github.com/latere-ai/tgo/weights"
+	"latere.ai/x/forma/chat"
+	"latere.ai/x/forma/internal/grammar"
+	"latere.ai/x/forma/internal/prefix"
+	"latere.ai/x/forma/model"
+	"latere.ai/x/forma/nn"
+	"latere.ai/x/forma/safetensors"
+	"latere.ai/x/forma/tokenizer"
+	"latere.ai/x/forma/weights"
 )
 
 // Info describes an open model: what it is, how big it is, and what [Open]
@@ -71,7 +71,7 @@ type Info struct {
 	// (specs/023-cache-kinds.md §8).
 	//
 	// It keeps that meaning rather than becoming a total, and [023-D6] is why:
-	// `tgo info` recovers the stored width by dividing it by
+	// `forma info` recovers the stored width by dividing it by
 	// 2·L·C·H_kv·d_h and prints `unknown` when there is a remainder, so a
 	// summed number would land in that branch every time and lose the label.
 	// It also conflates a per-position cost with a per-slot one, and a reader
@@ -202,7 +202,7 @@ func Open(dir string, opts ...Option) (*Model, error) {
 		fn(&o)
 	}
 	if o.context <= 0 {
-		return nil, fmt.Errorf("tgo: WithContext is %d; a cache holds at least one position",
+		return nil, fmt.Errorf("forma: WithContext is %d; a cache holds at least one position",
 			o.context)
 	}
 	if err := o.checkCache(); err != nil {
@@ -217,7 +217,7 @@ func Open(dir string, opts ...Option) (*Model, error) {
 
 	tok, err := tokenizer.Load(filepath.Join(dir, "tokenizer.json"))
 	if err != nil {
-		return nil, fmt.Errorf("tgo: %w", err)
+		return nil, fmt.Errorf("forma: %w", err)
 	}
 
 	repo, err := safetensors.OpenRepo(dir)
@@ -256,7 +256,7 @@ func Open(dir string, opts ...Option) (*Model, error) {
 		// its own width. Every term of a single line is wrong for a hybrid, and
 		// [023-D6] is the rule the three share: a breakdown that does not
 		// multiply out to the number beside it is worse than no breakdown.
-		fmt.Fprintf(os.Stderr, "tgo: a %d-position context costs %s of key/value cache "+
+		fmt.Fprintf(os.Stderr, "forma: a %d-position context costs %s of key/value cache "+
 			"per session (%d layers x %d positions x %d kv heads x %d head dim x 2 states "+
 			"x %d bytes)\n", o.context, bytesText(perSession), cachedLayers(cfg), o.context,
 			cfg.NumKVHeads, cfg.HeadDim, cacheWidth.Size())
@@ -265,7 +265,7 @@ func Open(dir string, opts ...Option) (*Model, error) {
 			// Per slot and not per position: the recurrent state has no
 			// positions at all (018 §2.1), so it does not move with the
 			// context and a reader sizing one must not read it as if it did.
-			fmt.Fprintf(os.Stderr, "tgo: and %s of recurrent state per slot "+
+			fmt.Fprintf(os.Stderr, "forma: and %s of recurrent state per slot "+
 				"(%d layers x %d key heads x %d value dim x %d key dim x 4 bytes)\n",
 				bytesText(int64(lin)*r.StateBytes()), lin, r.Heads, r.ValueDim,
 				r.KeyDim)
@@ -286,7 +286,7 @@ func Open(dir string, opts ...Option) (*Model, error) {
 	rt, err := tensor.NewRuntime(dev)
 	if err != nil {
 		_ = m.Close()
-		return nil, fmt.Errorf("tgo: %w", err)
+		return nil, fmt.Errorf("forma: %w", err)
 	}
 	m.rt = rt
 	m.cache = tensor.NewPlanCache(rt)
@@ -383,14 +383,14 @@ func openDevice(want Device) (*accel.Device, Device, error) {
 		}
 		return d, Metal, nil
 	}
-	return nil, want, fmt.Errorf("tgo: WithDevice is %v; it is one of auto, cpu or metal", want)
+	return nil, want, fmt.Errorf("forma: WithDevice is %v; it is one of auto, cpu or metal", want)
 }
 
 func wrapOpen(err error, d Device) error {
 	if err == nil {
 		return nil
 	}
-	return fmt.Errorf("tgo: opening the %v device: %w", d, err)
+	return fmt.Errorf("forma: opening the %v device: %w", d, err)
 }
 
 // checkAgainst holds specs/004-model-graph.md §4's map against the
@@ -405,7 +405,7 @@ func checkAgainst(repo *safetensors.Repo, specs []model.WeightSpec) error {
 	for _, name := range repo.Names() {
 		e, _, ok := repo.Tensor(name)
 		if !ok {
-			return fmt.Errorf("tgo: %q is named by the checkpoint index and is in no shard",
+			return fmt.Errorf("forma: %q is named by the checkpoint index and is in no shard",
 				name)
 		}
 		have[name] = e.Shape
@@ -429,11 +429,11 @@ func checkAgainst(repo *safetensors.Repo, specs []model.WeightSpec) error {
 func planeDigest(repo *safetensors.Repo, name string) ([32]byte, error) {
 	_, file, ok := repo.Tensor(name)
 	if !ok {
-		return [32]byte{}, fmt.Errorf("tgo: the checkpoint has no %q", name)
+		return [32]byte{}, fmt.Errorf("forma: the checkpoint has no %q", name)
 	}
 	raw, err := file.Bytes(name)
 	if err != nil {
-		return [32]byte{}, fmt.Errorf("tgo: %q: %w", name, err)
+		return [32]byte{}, fmt.Errorf("forma: %q: %w", name, err)
 	}
 	return sha256.Sum256(raw), nil
 }
@@ -545,7 +545,7 @@ func (m *Model) load(repo *safetensors.Repo, specs []model.WeightSpec, p Precisi
 	// finish here, before the first plan reads them and before anything can
 	// close a buffer that still has one outstanding.
 	if err := m.dev.Queue().Flush().Wait(); err != nil {
-		return fmt.Errorf("tgo: completing the weight uploads: %w", err)
+		return fmt.Errorf("forma: completing the weight uploads: %w", err)
 	}
 	return nil
 }
@@ -555,7 +555,7 @@ func bindBuffer(into map[string]accel.BufferView, name string, buf *accel.Buffer
 
 	v, err := buf.View(0, count)
 	if err != nil {
-		return fmt.Errorf("tgo: binding %q: %w", name, err)
+		return fmt.Errorf("forma: binding %q: %w", name, err)
 	}
 	v.DType = dt
 	into[name] = v

@@ -12,12 +12,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/latere-ai/tgo/bench"
-	"github.com/latere-ai/tgo/sample"
-	"github.com/latere-ai/tgo/weights"
+	"latere.ai/x/forma/bench"
+	"latere.ai/x/forma/sample"
+	"latere.ai/x/forma/weights"
 )
 
-// benchOptions is `tgo bench`'s command line, parsed.
+// benchOptions is `forma bench`'s command line, parsed.
 type benchOptions struct {
 	Dir          string
 	Tokens       int
@@ -31,7 +31,7 @@ type benchOptions struct {
 	Engine       engineOptions
 }
 
-// benchFlagSet declares what `tgo bench` accepts. See [runFlagSet] for why
+// benchFlagSet declares what `forma bench` accepts. See [runFlagSet] for why
 // declaring is separate from parsing.
 func benchFlagSet() (*flag.FlagSet, *benchFlags) {
 	fs := flag.NewFlagSet("bench", flag.ContinueOnError)
@@ -49,7 +49,7 @@ func benchFlagSet() (*flag.FlagSet, *benchFlags) {
 	}
 }
 
-// benchFlags holds `tgo bench`'s flag values.
+// benchFlags holds `forma bench`'s flag values.
 type benchFlags struct {
 	tokens, promptTokens, batch, warmup, context *int
 	jsonPath, precision, device                  *string
@@ -57,7 +57,7 @@ type benchFlags struct {
 	seed                                         *uint64
 }
 
-// parseBench parses and checks `tgo bench`'s arguments.
+// parseBench parses and checks `forma bench`'s arguments.
 func parseBench(args []string) (benchOptions, error) {
 	fs, f := benchFlagSet()
 	dir, err := modelDir(fs, args)
@@ -81,11 +81,11 @@ func parseBench(args []string) (benchOptions, error) {
 		return benchOptions{}, err
 	}
 	// The batch flag exists so that asking for a batch is answered rather than
-	// ignored. tgo runs one sequence at a time until specs/008-scheduler.md is
+	// ignored. forma runs one sequence at a time until specs/008-scheduler.md is
 	// built, and a run that silently measured batch 1 while the record said 8
 	// would be the dishonest table 017-D4 is about.
 	if *f.batch != 1 {
-		return benchOptions{}, fmt.Errorf("%w: --batch %d, and tgo runs one sequence at a time: "+
+		return benchOptions{}, fmt.Errorf("%w: --batch %d, and forma runs one sequence at a time: "+
 			"specs/008-scheduler.md is drafted and unbuilt, so there is no batched path to measure. "+
 			"The report states the axis and its one point rather than pretending to a curve (017-D5)",
 			errUsage, *f.batch)

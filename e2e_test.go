@@ -1,21 +1,21 @@
 // SPDX-FileCopyrightText: 2026 Latere AI
 // SPDX-License-Identifier: Apache-2.0
 
-package tgo
+package forma
 
 import (
 	"testing"
 	"time"
 
-	"github.com/latere-ai/tgo/chat"
-	"github.com/latere-ai/tgo/internal/conformance"
-	"github.com/latere-ai/tgo/model"
+	"latere.ai/x/forma/chat"
+	"latere.ai/x/forma/internal/conformance"
+	"latere.ai/x/forma/model"
 )
 
 // TestRealCheckpointEndToEnd is the one gated test in this package: a real
 // Qwen3-0.6B, opened, prompted, and generated from.
 //
-// Tier 3, so it is skipped unless TGO_MODEL names a checkpoint directory and it
+// Tier 3, so it is skipped unless FORMA_MODEL names a checkpoint directory and it
 // is never in CI (specs/010-conformance.md 010-D4). It stays in the tree
 // because everything else here runs on a fixture this package wrote, and the
 // three things a fixture cannot check are all here: that the weight map meets a
@@ -33,7 +33,7 @@ import (
 //
 // The device that would run this in milliseconds cannot compile the graph:
 // specs/004-model-graph.md §3.2's Slice-then-Contiguous puts a packing kernel in
-// every forward pass and that kernel carries no MSL artifact, so no tgo graph
+// every forward pass and that kernel carries no MSL artifact, so no forma graph
 // compiles on Metal at all. [TestMetalCannotYetRunTheForwardPass] pins it.
 //
 // So this test is sized to the device that works. A one-token prompt in a

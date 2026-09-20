@@ -37,7 +37,7 @@ const (
 	// errOverloaded is a full queue. It carries Retry-After.
 	errOverloaded
 
-	// errInternal is a failure on tgo's side, including a device failure
+	// errInternal is a failure on forma's side, including a device failure
 	// mid-generation (specs/007-engine.md §7).
 	errInternal
 
@@ -100,7 +100,7 @@ type apiError struct {
 
 	msg string
 
-	// reason is the tgo_sessions_rejected_total label. It is on the error
+	// reason is the forma_sessions_rejected_total label. It is on the error
 	// rather than at the call site so that a new refusal cannot be added
 	// without deciding what it is counted as.
 	reason string
@@ -143,7 +143,7 @@ func (e *apiError) body(d ir.Dialect) []byte {
 	if err != nil {
 		// The map holds strings and nils; this cannot fail, and a panic here
 		// would be a worse answer than a plain body.
-		return []byte(`{"error":{"message":"tgo: the error could not be encoded"}}`)
+		return []byte(`{"error":{"message":"forma: the error could not be encoded"}}`)
 	}
 	return raw
 }
@@ -193,7 +193,7 @@ func writeStreamError(w http.ResponseWriter, d ir.Dialect, e *apiError) {
 		if err != nil {
 			// As in body: the map holds strings and nils, so this cannot
 			// fail, and a frame the client can parse beats a panic.
-			raw = []byte(`{"type":"error","message":"tgo: the error could not be encoded"}`)
+			raw = []byte(`{"type":"error","message":"forma: the error could not be encoded"}`)
 		}
 		writeFrame(w, "error", raw)
 	default:

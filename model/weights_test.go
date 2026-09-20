@@ -384,7 +384,7 @@ func TestCheckVocabSizeIsOrderIndependent(t *testing.T) {
 // TestTiedHeadRedundancyIsAccepted is 004-D10, and the target checkpoint is why
 // it exists: Qwen3-0.6B sets tie_word_embeddings, ships lm_head.weight anyway,
 // and its two planes are byte-identical. The first version of this rule refused
-// any tied checkpoint that shipped a head, which refused the model tgo exists
+// any tied checkpoint that shipped a head, which refused the model forma exists
 // to run. A header carries shapes and shapes cannot tell redundancy from
 // contradiction, so the decision needs the bytes.
 func TestTiedHeadRedundancyIsAccepted(t *testing.T) {

@@ -6,7 +6,7 @@ GO ?= go
 # CGO_ENABLED=0 is the default for every target here. specs/000-decisions.md
 # decision 2 makes cgo-free the point rather than an optimization, so the build
 # that must pass is the one without it. test-race turns it back on, because the
-# race detector needs cgo on most platforms and the guarantee is about what tgo
+# race detector needs cgo on most platforms and the guarantee is about what forma
 # compiles to, not about what its test harness may use to find a race.
 export CGO_ENABLED = 0
 
@@ -63,7 +63,7 @@ lint:
 spec-lint:
 	@$(GO) tool lateregate spec-lint
 
-# The three gates that defend a promise tgo makes and most repos do not. Run
+# The three gates that defend a promise forma makes and most repos do not. Run
 # as one job; each target keeps its own name, so a failure says which promise
 # broke.
 validate: deps cgo-free fuzz

@@ -19,7 +19,7 @@ routinely ship customised templates; or a template feature that a Go renderer
 cannot reasonably mirror. Until then a renderer is 60 lines and an interpreter
 is a language.
 
-Condition 2 became detectable on 2026-08-27. `tgo.Open` reads the checkpoint's
+Condition 2 became detectable on 2026-08-27. `forma.Open` reads the checkpoint's
 `chat_template` out of `tokenizer_config.json`, hashes it with `chat.Checksum`,
 and warns naming both checksums when it differs from the renderer's
 (`template.go`, 003-D2). Until then the pieces existed and nothing called them,

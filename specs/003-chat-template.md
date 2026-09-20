@@ -442,7 +442,7 @@ Seven of the eight decisions below are implemented and each is pinned by a test.
   the reason: a renderer that consulted the checksum would have two behaviours
   to test and would refuse work a human can verify by reading the prompt.
   003-D2 stands, and the caller that owns the comparison arrived on 2026-08-27:
-  `tgo.Open` reads `chat_template` out of `tokenizer_config.json` and warns
+  `forma.Open` reads `chat_template` out of `tokenizer_config.json` and warns
   naming both checksums (`template.go`). Two shapes are honoured because
   checkpoints use both — a string, and the named list transformers added for
   models with a separate tool-calling template, read for its `default` entry.
@@ -463,7 +463,7 @@ Seven of the eight decisions below are implemented and each is pinned by a test.
   is the failure 003-D7 exists to prevent one field over.
 
 **Not built.** Nothing. The checkpoint half of 003-D2 shipped on 2026-08-27:
-`tgo.Open` reads `chat_template` out of `tokenizer_config.json`, hashes it, and
+`forma.Open` reads `chat_template` out of `tokenizer_config.json`, hashes it, and
 warns naming both checksums (`template.go`), which also makes
 [014 §1](014-jinja.md)'s second trigger detectable.
 
@@ -490,6 +490,6 @@ The seven rules the code followed and this spec did not state were written on
 | 003-D4 | control tokens come from the renderer; content encodes with specials off | a denylist over user text; one `Encode` over the whole prompt | forged turns are structurally impossible rather than unlikely |
 | 003-D5 | never inject a default system message | supply a helpful one | the model's tuned behaviour is what the caller asked for |
 | 003-D7 | tool arguments pass through verbatim | re-marshal from a parsed object | re-marshalling reorders keys and changes the bytes the model was trained on |
-| 003-D8 | tgo decides "is a tool result" structurally, from the `Tool` role | text-match `<tool_response>` on user content, as the reference does | the structural rule is the conformance target; the text rule misfires on a user who quotes the tag |
+| 003-D8 | Forma decides "is a tool result" structurally, from the `Tool` role | text-match `<tool_response>` on user content, as the reference does | the structural rule is the conformance target; the text rule misfires on a user who quotes the tag |
 | 003-D9 | **refuse where the alternative is silence**; warn where a human can check the output | validate leniently and drop what cannot render | a block the format cannot carry never reaches the model unnoticed, and a contributor adding a block type has the rule rather than six precedents ([§3.6](#36-what-rendering-refuses-and-why-refusing-is-the-asymmetry)) |
 | 003-D6 | a turn is typed blocks, not a string | `Content string`, with the thinking found by matching text | forced by 003-D4's own principle: stripping prior thinking from a string is a textual boundary, and a user who types `<think>` would lose their text ([§3.1](#31-why-a-turn-is-blocks-and-not-a-string)) |

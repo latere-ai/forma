@@ -6,7 +6,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/latere-ai/tgo"
+	"latere.ai/x/forma"
 )
 
 // scopeFlag is --prefix-cache: off, session or process.
@@ -22,7 +22,7 @@ import (
 // alone still means the session scope and does not swallow the model directory
 // that follows it.
 type scopeFlag struct {
-	scope tgo.CacheScope
+	scope forma.CacheScope
 	set   bool
 }
 
@@ -40,11 +40,11 @@ func (s *scopeFlag) Set(v string) error {
 	s.set = true
 	switch v {
 	case "true", "session":
-		s.scope = tgo.CacheSession
+		s.scope = forma.CacheSession
 	case "false", "off":
-		s.scope = tgo.CacheOff
+		s.scope = forma.CacheOff
 	case "process":
-		s.scope = tgo.CacheProcess
+		s.scope = forma.CacheProcess
 	default:
 		return fmt.Errorf("%q is not a prefix-cache scope; it is off, session or process "+
 			"(bare --prefix-cache is session)", v)

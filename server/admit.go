@@ -79,7 +79,7 @@ func (a *admitter) acquire(ctx context.Context) (func(), *apiError) {
 	select {
 	case a.queue <- struct{}{}:
 	default:
-		return nil, a.overloaded("queue_full", "tgo: the queue is full: %d requests are generating and %d "+
+		return nil, a.overloaded("queue_full", "forma: the queue is full: %d requests are generating and %d "+
 			"are waiting", cap(a.slots), cap(a.queue))
 	}
 	a.m.queue(1)
@@ -97,11 +97,11 @@ func (a *admitter) acquire(ctx context.Context) (func(), *apiError) {
 		a.m.waited(time.Since(start))
 		return a.release, nil
 	case <-timer.C:
-		return nil, a.overloaded("queue_timeout", "tgo: waited %s for a session and did not get one: %d "+
+		return nil, a.overloaded("queue_timeout", "forma: waited %s for a session and did not get one: %d "+
 			"requests are generating", a.wait, cap(a.slots))
 	case <-ctx.Done():
 		return nil, &apiError{kind: errClientGone, reason: "client_gone",
-			msg: "tgo: the client hung up while queued"}
+			msg: "forma: the client hung up while queued"}
 	}
 }
 

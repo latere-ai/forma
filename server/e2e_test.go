@@ -15,19 +15,19 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/latere-ai/tgo"
-	"github.com/latere-ai/tgo/model"
-	"github.com/latere-ai/tgo/server"
-	"github.com/latere-ai/tgo/tokenizer"
+	"latere.ai/x/forma"
+	"latere.ai/x/forma/model"
+	"latere.ai/x/forma/server"
+	"latere.ai/x/forma/tokenizer"
 )
 
-// The end-to-end test 009-D4 asks for: a real [tgo.Model], through the real
+// The end-to-end test 009-D4 asks for: a real [forma.Model], through the real
 // handler, over the real dialect codecs.
 //
 // It is what proves the fake engine's contract is the one the engine keeps.
 // Every other test in this package scripts a token stream; this one runs the
 // forward pass, which is the only way to find out that [server.Wrap] forwards
-// the session options, that a [tgo.Stream] satisfies [server.Stream], and that
+// the session options, that a [forma.Stream] satisfies [server.Stream], and that
 // the block events a real generation produces frame correctly.
 //
 // It needs no checkpoint and no network: the model is synthetic, written into a
@@ -82,7 +82,7 @@ func writeCheckpoint(t *testing.T) string {
 	if err := os.WriteFile(filepath.Join(dir, "config.json"), cfg, 0o600); err != nil {
 		t.Fatal(err)
 	}
-	// tgo/tokenizer's own synthetic vocabulary, read rather than copied: it
+	// forma/tokenizer's own synthetic vocabulary, read rather than copied: it
 	// carries Qwen's control tokens and the thinking markers, which is exactly
 	// what the stream's block state machine reads.
 	tok, err := os.ReadFile(filepath.Join("..", "tokenizer", "testdata", "synthetic.json"))
@@ -175,14 +175,14 @@ func writeSafetensors(t *testing.T, path string, order []string, shapes map[stri
 
 // openSynthetic opens the fixture on the CPU backend, which is the tier-1
 // device every test in this tree runs on.
-func openSynthetic(t *testing.T) *tgo.Model {
+func openSynthetic(t *testing.T) *forma.Model {
 	t.Helper()
 	// 96 rather than 64: a context equal to the hidden size is the identity for
 	// every confusion between a position and a channel, which is the fixture
 	// shape specs/011-sequencing.md's waves paid for.
-	m, err := tgo.Open(writeCheckpoint(t), tgo.WithDevice(tgo.CPU), tgo.WithContext(96))
+	m, err := forma.Open(writeCheckpoint(t), forma.WithDevice(forma.CPU), forma.WithContext(96))
 	if err != nil {
-		t.Fatalf("tgo.Open: %v", err)
+		t.Fatalf("forma.Open: %v", err)
 	}
 	t.Cleanup(func() {
 		if err := m.Close(); err != nil {
@@ -276,8 +276,8 @@ func TestTheSameSeedGivesTheSameAnswerThroughTheServer(t *testing.T) {
 	if got := answerOf(t, w); got != first {
 		t.Errorf("user changed the answer: %q vs %q", got, first)
 	}
-	if loss := w.Header().Get("X-Tgo-Loss"); loss != "user" {
-		t.Errorf("X-Tgo-Loss = %q, want %q", loss, "user")
+	if loss := w.Header().Get("X-Forma-Loss"); loss != "user" {
+		t.Errorf("X-Forma-Loss = %q, want %q", loss, "user")
 	}
 }
 
@@ -332,16 +332,16 @@ func answerOf(t *testing.T, w *httptest.ResponseRecorder) string {
 // comes back as a document that parses and that matches the schema.
 //
 // This is the whole of specs/015-structured-output.md reachable from a request:
-// `response_format` is mapped onto [tgo.Policy], the schema is compiled against
+// `response_format` is mapped onto [forma.Policy], the schema is compiled against
 // the model's own vocabulary, and the mask is applied on every step. Every
 // other test of the grammar runs against a vocabulary the test built; this one
 // runs against a byte-level BPE, which is where the bytes a token stands for
 // stop being the bytes a vocabulary file spells it with.
 func TestASchemaThroughTheServerProducesADocumentThatMatchesIt(t *testing.T) {
 	dir := writeCheckpoint(t)
-	m, err := tgo.Open(dir, tgo.WithDevice(tgo.CPU), tgo.WithContext(512))
+	m, err := forma.Open(dir, forma.WithDevice(forma.CPU), forma.WithContext(512))
 	if err != nil {
-		t.Fatalf("tgo.Open: %v", err)
+		t.Fatalf("forma.Open: %v", err)
 	}
 	t.Cleanup(func() {
 		if err := m.Close(); err != nil {
@@ -485,16 +485,16 @@ func finishOf(t *testing.T, w *httptest.ResponseRecorder) string {
 //
 // Every other refusal test in this package goes through fakeEngine, which does
 // its own compilation. That leaves [server.Wrap]'s one-line join to
-// [github.com/latere-ai/tgo.Model.CheckSchema] untested: an engine that
+// [latere.ai/x/forma.Model.CheckSchema] untested: an engine that
 // answered nil there would accept the request, allocate the session, and only
 // then fail inside the generation -- after taking the KV reservation this file
 // refuses in order to protect, and with the compiler's reason no longer on the
 // path a caller reads.
 func TestAnUncompilableSchemaIsRefusedByTheRealEngine(t *testing.T) {
 	dir := writeCheckpoint(t)
-	m, err := tgo.Open(dir, tgo.WithDevice(tgo.CPU), tgo.WithContext(512))
+	m, err := forma.Open(dir, forma.WithDevice(forma.CPU), forma.WithContext(512))
 	if err != nil {
-		t.Fatalf("tgo.Open: %v", err)
+		t.Fatalf("forma.Open: %v", err)
 	}
 	t.Cleanup(func() {
 		if err := m.Close(); err != nil {

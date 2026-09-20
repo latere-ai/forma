@@ -36,7 +36,7 @@ was discovered by reading its config rather than assuming.
 | named | actual | status |
 | --- | --- | --- |
 | "Qwen3 3B" | **Qwen3-4B**. There is no 3B; the dense line is 0.6B, 1.7B, 4B, 8B, 14B, 32B | **buildable now** |
-| "Qwen3.8 27B" | **Qwen3.8-27B**, Apache 2.0, released August 2026 | **one thing left, and it is the graph.** Both upstream blockers closed on 2026-08-27 and one of the two tgo halves shipped the same day: int4 storage, so the footprint is 13.4 GiB. What remains is [018](018-hybrid-models.md)'s hybrid graph — 48 gated-delta layers beside 16 softmax ones |
+| "Qwen3.8 27B" | **Qwen3.8-27B**, Apache 2.0, released August 2026 | **one thing left, and it is the graph.** Both upstream blockers closed on 2026-08-27 and one of the two Forma halves shipped the same day: int4 storage, so the footprint is 13.4 GiB. What remains is [018](018-hybrid-models.md)'s hybrid graph — 48 gated-delta layers beside 16 softmax ones |
 
 ### 2.1.1 What "well tested" means for each, and what it cannot mean
 
@@ -45,11 +45,11 @@ than restating the goal.
 
 | | Qwen3 dense | Qwen3.8-27B |
 | --- | --- | --- |
-| architecture expressible | **yes** — the graph compiles at 36 layers and $V=151936$ | **the layer, yes; the graph, not yet.** `nn.LinearAttention` and `nn.DepthwiseCausalConv` are tgo's own blocks over accel's scan, each verified against a float64 reference (Wave 11). Nothing in `model/` reads `layer_types` or `full_attention_interval`, so there is no model-level graph to run them from ([024](024-qwen3-5-architecture.md)) |
+| architecture expressible | **yes** — the graph compiles at 36 layers and $V=151936$ | **the layer, yes; the graph, not yet.** `nn.LinearAttention` and `nn.DepthwiseCausalConv` are Forma's own blocks over accel's scan, each verified against a float64 reference (Wave 11). Nothing in `model/` reads `layer_types` or `full_attention_interval`, so there is no model-level graph to run them from ([024](024-qwen3-5-architecture.md)) |
 | numerics verified | **yes** — against the f64 oracle, per block and end to end | not yet: no graph to check |
 | real weights loaded | **yes** — Qwen3-0.6B, 311 tensors, 1.40 GiB at f16 | not yet, and no longer for want of a stored form: `weights.Precision` names `Int4` since Wave 10, so a 27B resolves to **13.4 GiB** |
 | generation verified | **Wave 4** | not yet |
-| blocked by | nothing | **nothing upstream, and nothing unowned.** [018](018-hybrid-models.md)'s remaining rows are [023](023-cache-kinds.md), [024](024-qwen3-5-architecture.md), [025](025-recurrent-snapshot.md) and [026](026-image-tokens.md), all tgo's |
+| blocked by | nothing | **nothing upstream, and nothing unowned.** [018](018-hybrid-models.md)'s remaining rows are [023](023-cache-kinds.md), [024](024-qwen3-5-architecture.md), [025](025-recurrent-snapshot.md) and [026](026-image-tokens.md), all Forma's |
 
 **Two honest qualifications on the dense side.** The checkpoint on hand is
 **0.6B**, not 4B — same architecture, same code path, one twelfth the
@@ -58,13 +58,13 @@ does not prove is behaviour at 4B's memory footprint. And the 4B graph is
 verified to *compile and to agree with the oracle*, not to have generated text,
 until Wave 4 lands.
 
-**On the 27B, the position is now "not yet" rather than "not by tgo".** It read
+**On the 27B, the position is now "not yet" rather than "not by Forma".** It read
 the other way while the operator was only scoped, and
 [accel#17](https://github.com/golang-design/accel/issues/17) closed: accel
 scheduled the kernel and shipped it, which [018-D2](018-hybrid-models.md)'s
-outcome note records. [000 D1](000-decisions.md) still forbids tgo from writing
+outcome note records. [000 D1](000-decisions.md) still forbids Forma from writing
 a kernel, and it no longer decides anything here. Every remaining piece is
-tgo's, and each has a spec — [023](023-cache-kinds.md) for the per-layer cache
+Forma's, and each has a spec — [023](023-cache-kinds.md) for the per-layer cache
 kinds, [024](024-qwen3-5-architecture.md) for the `qwen3_5` registry entry,
 [025](025-recurrent-snapshot.md) for snapshot and restore, and
 [026](026-image-tokens.md) for image-token tolerance.
@@ -103,7 +103,7 @@ a parameter, and `attn_output_gate` is an elementwise multiply.
 > path was fully specified and unblocked; the hybrid path waited on a kernel
 > nobody had written. Building the dense path is what produced the evidence that
 > made the hybrid ask concrete, and the ask was answered: the kernel shipped, so
-> the hybrid path is now tgo's own work rather than an upstream decision.
+> the hybrid path is now Forma's own work rather than an upstream decision.
 
 ### 2.2 Waves
 
@@ -148,7 +148,7 @@ inference framework has that this tree has never written down. It exists because
 a spec tree makes its own gaps invisible — everything in `specs/` is accounted
 for, so the absent things are absent from the accounting too.
 
-**Ranked by what decides whether tgo is usable, not by effort.**
+**Ranked by what decides whether Forma is usable, not by effort.**
 
 ### 1. Four-bit weights — closed, except for the one plane that cannot pack
 
@@ -161,7 +161,7 @@ the idealised one this section used to quote:
 | stored as | bytes/weight | 27B resident | fits |
 | --- | ---: | ---: | --- |
 | bf16 | 2.0 | 50.3 GiB | a large workstation |
-| **int8, what tgo stores** | 1.0625 | **26.7 GiB** | not a 24 GiB card |
+| **int8, what Forma stores** | 1.0625 | **26.7 GiB** | not a 24 GiB card |
 | int4, scale + zero per 128 | 0.53125 | **13.4 GiB** | hardware people own |
 
 **Built on 2026-08-27, so this row is no longer a gap.** `weights.Int4` is the
@@ -173,7 +173,7 @@ int4` reaches it from the command line.
 One thing does not pack: the embedding table is gathered rather than contracted
 against, and accel registers no int4 gather, so it is capped at int8 — declared
 per tensor in the loader rather than discovered as a refusal at record time,
-because the footprint `tgo info` prints and the load itself are computed by two
+because the footprint `forma info` prints and the load itself are computed by two
 different pieces of code ([001 §5.3](001-weights.md)).
 
 The download is the other half and is unchanged: [001](001-weights.md) reads
@@ -184,7 +184,7 @@ was.
 
 ### 2. Reading pre-quantized checkpoints — AWQ, GPTQ, GGUF
 
-Distinct from the above: even with 4-bit kernels, tgo still quantizes from full
+Distinct from the above: even with 4-bit kernels, Forma still quantizes from full
 precision at load. AWQ and GPTQ dominate what is published for open weights, and
 both use a group size of **128 with a zero point**.
 
@@ -202,15 +202,15 @@ minimum each, which is a different shape and not a smaller one
 [#15](https://github.com/golang-design/accel/issues/15) as not planned. **AWQ
 and GPTQ have no spec on disk.** They are a deferral rather than an omission,
 and the trigger is stated so it can be met: write the reader when a checkpoint
-tgo is asked to serve is published only in one of those layouts, since the
+Forma is asked to serve is published only in one of those layouts, since the
 representation problem is already solved and what is left is a file format.
 
 ### 3. `rope_scaling` — decides context length
 
 [004 §7](004-model-graph.md) **refuses** any `rope_scaling` it does not
-implement, which is the right refusal and means tgo is capped at a checkpoint's
+implement, which is the right refusal and means Forma is capped at a checkpoint's
 trained context. Qwen3 reaches its long-context modes through YaRN. Refusing is
-correct; not having it is a gap, and it is entirely tgo's rather than accel's —
+correct; not having it is a gap, and it is entirely Forma's rather than accel's —
 YaRN is a change to how $\theta_i$ is computed, and [004 §2.5](004-model-graph.md)
 already binds the base as a scalar.
 
@@ -223,14 +223,14 @@ preventing a wrong one.
 ### 4. Multi-device — a permanent ceiling on model size
 
 accel opens one device. There is no tensor or pipeline parallelism anywhere in
-either project, so **the largest model tgo can ever run is the largest that fits
+either project, so **the largest model Forma can ever run is the largest that fits
 one accelerator**. That is a legitimate scope decision and it should be a stated
 one rather than an omission.
 
 **Owner, recommended.** This is a permanent scope boundary rather than work
 somebody will do, so it belongs in [000](000-decisions.md) as a decision with
 its rejected alternative — sharding a model across devices, rejected because
-tgo would be routing around accel's device model, which [000 D1](000-decisions.md)
+Forma would be routing around accel's device model, which [000 D1](000-decisions.md)
 forbids — and not as a spec that would never be built. Recorded here as a
 recommendation; 000 is edited by whoever takes it.
 
@@ -282,7 +282,7 @@ Where the work goes now is three groups, and each has a spec:
 | | specs |
 | --- | --- |
 | the batched path the scheduler does not reach | [020](020-device-sampling.md) sampling on the device, [021](021-admission-queue.md) a queue in front of admission, [022](022-batched-serving.md) the server driving a scheduler — [008 §9](008-scheduler.md)'s three, which it has handed on |
-| the hybrid graph, which is the last thing between tgo and the 27B | [023](023-cache-kinds.md) a cache per layer kind, [024](024-qwen3-5-architecture.md) the `qwen3_5` registry entry, [025](025-recurrent-snapshot.md) snapshot and restore, [026](026-image-tokens.md) image-token tolerance |
+| the hybrid graph, which is the last thing between Forma and the 27B | [023](023-cache-kinds.md) a cache per layer kind, [024](024-qwen3-5-architecture.md) the `qwen3_5` registry entry, [025](025-recurrent-snapshot.md) snapshot and restore, [026](026-image-tokens.md) image-token tolerance |
 | the measurements M13 rests on | [027](027-batched-benchmarks.md) the throughput curve at batch, [028](028-performance-gate.md) a gate that fails a build which loses throughput |
 
 [029](029-grammar-front-ends.md) is beside all three: the EBNF and regex front
@@ -305,7 +305,7 @@ it — measured at 8 prompt tokens and 2 decodes in one step (Wave 9). What
 remains open is narrower — GGUF's super-blocks ([C17](010-conformance.md)) —
 and it blocks no milestone.
 
-### 2026-08-29 — Wave 17: tgo knows `qwen3_5` and says what it cannot run
+### 2026-08-29 — Wave 17: Forma knows `qwen3_5` and says what it cannot run
 
 [024](024-qwen3-5-architecture.md)'s sub-scope B. The config, the layer
 schedule, the refusals, the weight map and the registry entry are built; the
@@ -454,10 +454,10 @@ nothing read is the shape of a deployment that thinks it configured something.
 ### 2026-08-28 — Wave 14: several conversations in one forward pass, opt-in
 
 [022](022-batched-serving.md)'s first pass is built, which is the third and last
-of [008 §9](008-scheduler.md)'s items to have a caller. `tgo.Runner` is a
+of [008 §9](008-scheduler.md)'s items to have a caller. `forma.Runner` is a
 scheduler, [021](021-admission-queue.md)'s queue in front of its admission, and
 one goroutine that drives them; `server.WrapRunner` puts it behind the `Engine`
-interface, and `tgo serve --batched` selects it. The default does not move: that
+interface, and `forma serve --batched` selects it. The default does not move: that
 is pass 3, and a default is the change that cannot be tested only by the person
 making it (022-D10).
 
@@ -524,9 +524,9 @@ that is the change that will move [021](021-admission-queue.md)'s `Admitter`.
 live or when the block pool cannot hold the prompt and its reserve. A refusal is
 the right answer to a caller who can retry and the wrong answer to an HTTP
 request, so `server` grew its own semaphore and its own queue in front of a pool
-it does not share with the scheduler. `tgo.Queue` is the one queue in front of
+it does not share with the scheduler. `forma.Queue` is the one queue in front of
 admission: a request that cannot be admitted now waits, and
-`tgo_queue_wait_seconds` will report a number that includes both reasons a
+`forma_queue_wait_seconds` will report a number that includes both reasons a
 request waits rather than one of them.
 
 **Two decisions did the work.**
@@ -584,7 +584,7 @@ the register's numbering and citation checks, the rule that 011 must link
 every `complete` spec, and the `**Not built.**` paragraph that tells
 `implemented` from `complete`. They were found by reading a comment in
 `internal/conformance/register.go` that named a linter which no longer
-existed, and they went back in as configurable rules rather than as tgo code.
+existed, and they went back in as configurable rules rather than as Forma code.
 The lesson is the one this file keeps recording: a check whose rationale
 survives is a check someone can notice is missing.
 
@@ -592,11 +592,11 @@ survives is a check someone can notice is missing.
 it. Windows moved to its own workflow, because the runner image ships GNU make
 on ubuntu and not on windows and the contract is make targets. And `deps`,
 `cgo-free` and `fuzz` keep their own targets under one `validate` job, because
-each defends a promise tgo makes and most repositories do not, and a failure
+each defends a promise Forma makes and most repositories do not, and a failure
 should still name which one broke. `ci-metal.yml` is untouched: a job that
 promises a Metal device and finds none is a failure rather than a skip.
 
-tgo also gained `make test-hermetic`, which it never had — the suite with
+Forma also gained `make test-hermetic`, which it never had — the suite with
 nothing on `PATH` but the toolchain — and it passes at the strictest setting.
 
 ### 2026-08-28 — Wave 12: the specs say what the code does
@@ -626,10 +626,10 @@ than by narrowing what was open:
 was wrong before a line of code was.** The draft said logprobs would be served
 on the two OpenAI completion surfaces. `latere.ai/x/pkg/llmdialect`'s `ir`
 carries no logprobs shape at all — not on `ir.Response`, not on `ir.Event` — so
-the three dialects it encodes cannot express one whatever tgo computes.
-`/v1/completions` is the only `Frontend` tgo wrote and the only route that can.
+the three dialects it encodes cannot express one whatever Forma computes.
+`/v1/completions` is the only `Frontend` Forma wrote and the only route that can.
 030-D5 reports that upstream rather than reaching past the codec to append a
-member to a body tgo did not write, which is 000 D1's sequence with
+member to a body Forma did not write, which is 000 D1's sequence with
 `latere.ai/x/pkg` in accel's place —
 [latere-ai/pkg#7](https://github.com/latere-ai/pkg/issues/7), filed the same
 day. It is the first gap this project has filed against an upstream other than
@@ -664,7 +664,7 @@ the mask reports a chance for a token that cannot be drawn.
   `stop_sequence` and names the string.
 - [009](009-server.md) got its six missing sections and stayed `implemented`,
   because `logprobs` turned out **not to be 009's**. A logprob is per token and
-  a `tgo.Event` carries decoded text — the tokenizer holds back an incomplete
+  a `forma.Event` carries decoded text — the tokenizer holds back an incomplete
   UTF-8 prefix, so one delta can be zero tokens or several — so serving them
   needs a 007 change first. That is the same shape `json_object` had: an item
   that reads as a spec's own debt and belongs to the layer below it.
@@ -722,7 +722,7 @@ would have said so.
 ### 2026-08-26 — Wave 7: the server reuses a conversation's prefix
 
 [019](019-session-affinity.md), and it closes what Wave 6 opened: the prefix
-cache worked and `tgo serve` could not reach it, because `generate.go` opened
+cache worked and `forma serve` could not reach it, because `generate.go` opened
 one session per request and closed it on the way out.
 
 `Model.NewPool(n)` holds N sessions' key/value cache for the process's life and
@@ -785,7 +785,7 @@ binding real buffers rather than by reading `tensor/attention.go`:
 | probe | what it asserts |
 | --- | --- |
 | [C16](010-conformance.md) | a mixed step — a 3-token chunk, a decode, and a sequence contributing nothing — matches a float64 reference that walks the page table itself, selects `AttentionRagged`, is **bit-identical** to the same tokens run as separate dispatches, and changes its output when the extents are re-split 2/1/1 |
-| the gated delta scan ([018](018-hybrid-models.md)) | it matches a float64 reference, halving every $\alpha$ moves the output, and a state with `valueDim` and `keyDim` transposed is refused. Not a register row: the register is what tgo *cannot* do, and this it can |
+| the gated delta scan ([018](018-hybrid-models.md)) | it matches a float64 reference, halving every $\alpha$ moves the output, and a state with `valueDim` and `keyDim` transposed is refused. Not a register row: the register is what Forma *cannot* do, and this it can |
 
 Both closed. [008](008-scheduler.md) and [018](018-hybrid-models.md) are
 therefore unblocked upstream, and **no spec in this tree is blocked upstream any
@@ -800,7 +800,7 @@ halves both the batch size worth reaching and the throughput ceiling. Filed as
 [C22](010-conformance.md). A consumer that reports the capability it wanted and
 not the one it lost is reporting half.
 
-**Then the port.** [016 §9](016-prefix-cache.md)'s third constraint was tgo's
+**Then the port.** [016 §9](016-prefix-cache.md)'s third constraint was Forma's
 own: the kernels honoured a page table and
 [004 §3](004-model-graph.md)'s port table had none, so nothing here could pass
 one. `GraphSpec.Block` declares `PortPages` and `NewPagedStep` maps a logical
@@ -900,7 +900,7 @@ everything downstream trusted its extent.**
 **None of them had a symptom a value test could see.** In every one the logits
 of the step that caused the damage are correct, and the wrong answer goes to a
 *later* request whose own caller did nothing unusual. That is the shape this
-tree exists to catch in accel, found in tgo, and it is the argument for the
+tree exists to catch in accel, found in Forma, and it is the argument for the
 review rather than for more of the same tests.
 
 The fix is one rule: **a lease grows before a step and records after it**, and
@@ -918,7 +918,7 @@ halving [C5](010-conformance.md) closed for — and
 [C23](010-conformance.md), where accel took the shape the report argued for: a
 query row past the last extent contributes nothing, rather than being clamped
 into the last sequence, which would have turned an out-of-bounds read into a
-wrong answer. That closure simplified tgo's padding back to what a single
+wrong answer. That closure simplified Forma's padding back to what a single
 sequence does.
 
 **Remaining**: [008 §9](008-scheduler.md)'s three — sampling on the batched
@@ -928,7 +928,7 @@ of [018 §6](018-hybrid-models.md)'s rows, and
 
 ### 2026-08-27 — Wave 10: four-bit weights
 
-[C21](010-conformance.md)'s tgo half, built the day the re-audit named it.
+[C21](010-conformance.md)'s Forma half, built the day the re-audit named it.
 `weights.Int4` stores eight codes to a u32 word with an f16 scale and an f16
 zero per 128, and a 27B checkpoint resolves to 13.4 GiB rather than 26.7.
 
@@ -947,7 +947,7 @@ children, on a test about something else. And the weight binding used
 a factor of eight.
 
 **And one thing that was blocked for six hours.** [005 §3](005-kv-cache.md)
-wants a narrow key/value cache, and the first refusal was tgo's own:
+wants a narrow key/value cache, and the first refusal was Forma's own:
 `nn.Attention` recorded no `Cast` on the scattered rows, so an f16 state could
 not be written. It records one now and `model.GraphSpec` stopped refusing f16 —
 and the pool still could not be narrow, because
@@ -1064,7 +1064,7 @@ narrowing is the package's, documented, not the mask failing.
 
 **The other half of this wave was [016](016-prefix-cache.md), and it landed
 short of the product.** `WithPrefixCache(CacheSession, n)` reuses a session's
-own prefix and is tested at the library surface. It reuses nothing from `tgo
+own prefix and is tested at the library surface. It reuses nothing from `forma
 serve`, because the server opens one session per request and closes it on the
 way out, so a session never sees a second turn. `CacheProcess` is refused: it
 needs a page table, and [004 §3](004-model-graph.md) declares no port for one.
@@ -1084,12 +1084,12 @@ packages at or above 90%" is true of code no request can run.
 [008](008-scheduler.md) continuous batching, and
 [§2.3](#23-what-is-missing-that-no-spec-covers)'s unspecced gaps.
 
-### 2026-08-26 — Wave 5 shipped: tgo serves
+### 2026-08-26 — Wave 5 shipped: Forma serves
 
-`server`, `internal/prefix`, `internal/hub`, and `serve`/`pull` in `cmd/tgo`.
+`server`, `internal/prefix`, `internal/hub`, and `serve`/`pull` in `cmd/forma`.
 **Seventeen packages**, every gate green, the coverage floor measuring fourteen.
 
-**Verified against the real model, not against a fake.** `tgo serve` on
+**Verified against the real model, not against a fake.** `forma serve` on
 Qwen3-0.6B, Metal, 217 admitted sessions at 256 positions:
 
 | | |
@@ -1098,7 +1098,7 @@ Qwen3-0.6B, Metal, 217 admitted sessions at 256 positions:
 | Anthropic Messages | answers, thinking typed as a `thinking` block |
 | OpenAI Responses | answers, reasoning as a `summary_text` |
 | SSE | streams token by token, `reasoning_content` deltas |
-| `X-Tgo-Loss` | `service_tier, user` — advisory fields ran and were reported |
+| `X-Forma-Loss` | `service_tier, user` — advisory fields ran and were reported |
 | `n=4` | refused by name, with the reason and a remedy |
 | `/metrics` | in-flight per dialect, queue depth, wait histogram |
 | SIGINT | graceful, in-flight requests given 30s |
@@ -1123,7 +1123,7 @@ this wave was a *test* that appeared to cover a property and did not:
   the first's physical block. 016 §8 now names publish.
 - **`server`**: [009-D12](009-server.md) was dialect-blind and shipped the
   defect it caused. Amended.
-- **`cmd/tgo`**: the exactly-one-session admission boundary, where a machine
+- **`cmd/forma`**: the exactly-one-session admission boundary, where a machine
   that can *just* run the model would be turned away by a message telling it to
   lower a context that already fits.
 
@@ -1144,11 +1144,11 @@ was the identity, so `Row` could be replaced by `return t` and everything passed
 
 ### 2026-08-25 — Wave 4 shipped: the framework runs, and measures itself
 
-`tgo` (the public API and decode loop), `cmd/tgo`, and the conformance
+`forma` (the public API and decode loop), `cmd/forma`, and the conformance
 register. Twelve packages, every gate green, the coverage floor measuring
 eleven.
 
-**`tgo run`, `tgo bench` and `tgo info` work against the real 596M-parameter
+**`forma run`, `forma bench` and `forma info` work against the real 596M-parameter
 Qwen3-0.6B checkpoint.** The first benchmark, and the reason
 [017-D1](017-benchmarks.md) exists:
 
@@ -1157,7 +1157,7 @@ Qwen3-0.6B checkpoint.** The first benchmark, and the reason
 | 1 | 0.00 | 1 | 3560.8s | 0.00% | 0.01% | **99.99%** | 0.00% |
 
 **99.99% device.** A throughput number alone could not have said that; the
-breakdown attributes the cost to accel's kernels rather than to tgo's loop,
+breakdown attributes the cost to accel's kernels rather than to Forma's loop,
 which is the question [010 §1](010-conformance.md) says this project exists to
 answer. The JSON record carries [017-D4](017-benchmarks.md)'s full conditions
 and **names what it cannot measure as missing rather than printing zeros** —
@@ -1177,7 +1177,7 @@ one.** This is the second time that method has beaten inspection:
   is simply now on the critical path of a real workload.
 
 **One gap closed by hand.** The engine recorded all four terms and exported no
-way to set or read a recorder, so `tgo bench` printed the breakdown as *missing*.
+way to set or read a recorder, so `forma bench` printed the breakdown as *missing*.
 The implementer reported that rather than printing zeros, which was right;
 `WithRecorder` now threads it through, and the table above is the result.
 
@@ -1187,11 +1187,11 @@ both 2 — the identity for every confusion between them. That exact shape cost
 [Wave 2](#2026-08-24--wave-2-shipped-and-the-target-checkpoint-corrected-a-spec)
 twelve surviving mutants and Wave 3 its whole f16 permutation path.
 
-**tgo generates coherent text on Metal.** After
+**Forma generates coherent text on Metal.** After
 [accel#19](https://github.com/golang-design/accel/issues/19) closed:
 
 ```
-$ tgo run --prompt "The capital of France is" --max-tokens 12 --temp 0
+$ forma run --prompt "The capital of France is" --max-tokens 12 --temp 0
 Okay, the user is asking about the capital of
 13 prompt tokens, 12 generated, 4.17 tokens/second
 ```
@@ -1201,7 +1201,7 @@ determinism holding on a real model. Measured properly at 64 prompt tokens and
 32 decode steps: **12.57 tokens/s decode, 379 tokens/s prefill**, 169ms warm
 time to first token. [017 §4.1](017-benchmarks.md) has the breakdown and the
 three findings it produced — the sharpest being that **submit is 15.61% of a
-decode step**, read at the time as the largest non-kernel cost tgo has and the
+decode step**, read at the time as the largest non-kernel cost Forma has and the
 first one that is not upstream.
 
 **It was upstream after all, and that is the third finding this wave earned.**
@@ -1219,7 +1219,7 @@ prompt and the same 32 decode steps:
 **+43% throughput from one upstream change, and the p99 fell 84%** — the tail
 collapsed by more than the median moved, because a per-call frame rebuild
 produces occasional very slow calls rather than a uniform tax. It is the largest
-single performance change this project has made and the second one tgo's
+single performance change this project has made and the second one Forma's
 instrumentation earned rather than its code. A decode step is now 94.62% device,
 which is the shape a decode step should have.
 
@@ -1256,7 +1256,7 @@ developed on.
 
 **Wave 5 next**: the OpenAI/Anthropic/Responses server ([009](009-server.md))
 and prefix caching ([016](016-prefix-cache.md)). Host overhead per decode token
-stays the axis [000 §11](000-decisions.md) says tgo should win: after accel#21
+stays the axis [000 §11](000-decisions.md) says Forma should win: after accel#21
 the `host` term is 0.64% of a step and submit 3.34%, so submit remains the
 largest of the non-device terms.
 
@@ -1325,7 +1325,7 @@ green including `-race`, and the coverage floor measures all nine: `bench`,
 [004 §4](004-model-graph.md) said a checkpoint that is tied *and* ships an
 `lm_head.weight` is a contradiction to refuse. Qwen3-0.6B does exactly that —
 and both planes hash to `8f29acf5…` over their full 311 MB. The rule refused the
-model tgo exists to run.
+model Forma exists to run.
 
 Corrected as [004-D10](004-model-graph.md): **redundancy is not a
 contradiction.** Identical planes load; differing planes are the real
@@ -1361,7 +1361,7 @@ reading:
 
 **Verdict at the start of the wave: build.** [§2](#2-readiness-build-now-and-what-the-targets-actually-are)
 has the evidence. Re-checked before Wave 2: accel has moved on to graphics work
-so the tensor layer is stable, tgo builds and tests clean against it, and the
+so the tensor layer is stable, Forma builds and tests clean against it, and the
 four open upstream issues
 ([#6](https://github.com/golang-design/accel/issues/6),
 [#16](https://github.com/golang-design/accel/issues/16),
@@ -1401,7 +1401,7 @@ pay for itself:
 1.5 GB of bf16 safetensors. It carries `head_dim: 128` against
 `hidden_size/num_attention_heads` of 64 — exactly the case
 [004 §5](004-model-graph.md) says never to infer, now testable rather than
-argued. Tests that read it are gated behind `TGO_MODEL` and never run in CI
+argued. Tests that read it are gated behind `FORMA_MODEL` and never run in CI
 ([000 D8](000-decisions.md)).
 
 **Wave 2 started**: `weights`, `nn`, `internal/oracle`, `model`.
@@ -1432,11 +1432,11 @@ Two things the numbers show that the specs only argued:
   Prefill transients are 62 MB. Running the LM head over all 512 positions would
   add $512 \times 151936 \times 4 = 311$ MB of logits alone.
 - **The cast cost was real and is now zero**, which is the first upstream change
-  tgo can price exactly rather than estimate.
+  Forma can price exactly rather than estimate.
 
 **What this does not show** is that the numbers are *correct* — that needs
 [010 §5](010-conformance.md)'s oracle, which needs implementation. Compiling
-proves the graph is expressible, not that tgo would build it right. The
+proves the graph is expressible, not that Forma would build it right. The
 [§2.5.1](004-model-graph.md) rotary permutation is exactly the kind of error
 that compiles cleanly.
 
@@ -1453,13 +1453,13 @@ record, and that the index cannot go stale.
 first written against accel's signatures as they stood, and then reconciled
 against accel
 [043](https://github.com/golang-design/accel/blob/main/specs/043-per-row-values.md),
-which landed mid-drafting in answer to seven reports tgo filed. Five register
+which landed mid-drafting in answer to seven reports Forma filed. Five register
 rows changed state in one commit.
 
 **Findings, which are the actual output of M0:** nine issues on accel. Seven
 before the reconciliation, two after — and the two found last are the ones that
 matter most. [accel#8](https://github.com/golang-design/accel/issues/8) caps the
-KV cache at 128 positions — since closed by accel 044, which tgo also designed.
+KV cache at 128 positions — since closed by accel 044, which Forma also designed.
 [accel#9](https://github.com/golang-design/accel/issues/9) refuses a
 `LayerState` view, which corrected a decision this tree had already recorded
 ([005-D1](005-kv-cache.md)).
@@ -1492,7 +1492,7 @@ on Apple silicon.
 ## 4. The release-gate record
 
 [000 D8](000-decisions.md) keeps real weights out of CI and calls the
-`TGO_MODEL` run the release gate instead: run by hand, before a release, and
+`FORMA_MODEL` run the release gate instead: run by hand, before a release, and
 recorded here. This section is that record. [010 §4](010-conformance.md) points
 at it for the same reason and adds the shape of an entry.
 

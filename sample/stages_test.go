@@ -9,7 +9,7 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/latere-ai/tgo/internal/oracle"
+	"latere.ai/x/forma/internal/oracle"
 )
 
 // softmaxTol is the tolerance on a probability checked against the float64
@@ -459,7 +459,7 @@ func collapsingPair() (hi, lo float32, ok bool) {
 // the same reading of §3.1 — so it checks that penalize does what its author
 // thought the rules said, not that it does what they say. 010 §5 draws that
 // line: a reference is an independent implementation, and internal/oracle is
-// where tgo keeps them.
+// where forma keeps them.
 //
 // The inputs are randomised over the shapes that make the rules differ from
 // each other: a token seen once against one seen many times separates presence

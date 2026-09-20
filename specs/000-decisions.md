@@ -17,37 +17,37 @@ description.
 
 ---
 
-## 1. tgo is a client of accel, not a layer that routes around it
+## 1. Forma is a client of accel, not a layer that routes around it
 
 Every operation that touches a device goes through
-[`golang.design/x/accel`](https://pkg.go.dev/golang.design/x/accel). tgo
+[`golang.design/x/accel`](https://pkg.go.dev/golang.design/x/accel). Forma
 contains **no kernels, no backend code, and no device-conditional numerics.**
 
 **Rejected:** a small private kernel package for the operations accel does not
-have yet. It would work, and it would destroy the reason tgo exists.
+have yet. It would work, and it would destroy the reason Forma exists.
 
-tgo is accel's validating consumer. A framework that quietly writes its own
+Forma is accel's validating consumer. A framework that quietly writes its own
 kernel each time accel is missing one stops reporting anything: accel's gaps
-become tgo's private assets, and nobody learns which of accel's abstractions
+become Forma's private assets, and nobody learns which of accel's abstractions
 survive contact with a real model. So when accel cannot express something, the
 sequence is fixed:
 
-1. tgo writes the test that fails, or the operation it cannot record.
+1. Forma writes the test that fails, or the operation it cannot record.
 2. The gap is filed against the owning accel spec, by number.
-3. tgo's [conformance suite](010-conformance.md) keeps a named, skipping test
+3. Forma's [conformance suite](010-conformance.md) keeps a named, skipping test
    that says which accel spec owns the gap.
-4. tgo waits.
+4. Forma waits.
 
-`specs/010-conformance.md` is the register of what tgo currently cannot do and
+`specs/010-conformance.md` is the register of what Forma currently cannot do and
 why. It is the primary output of this project, alongside the running model.
 
-> A consequence worth stating plainly: tgo will sometimes be slower than it
+> A consequence worth stating plainly: Forma will sometimes be slower than it
 > could be, and the correct response is to make accel faster.
 
 ## 2. cgo-free, all the way down
 
 `CGO_ENABLED=0` builds and runs everything, on every supported GOOS. Inherited
-from accel decision 2 and re-gated here, because a dependency added to tgo can
+from accel decision 2 and re-gated here, because a dependency added to Forma can
 break it independently.
 
 **Rejected:** a cgo fast path for tokenization or GGUF dequantization. Both are
@@ -84,7 +84,7 @@ corpus registers a super-block kernel.
 > scale and an f16 zero per `quant.Int4Group` of 128 — consumed by
 > `tensor.Int4MatMul` (accel
 > [048](https://github.com/golang-design/accel/blob/main/specs/048-int4.md),
-> [010 C21](010-conformance.md)), and tgo stores them. Neither registered form
+> [010 C21](010-conformance.md)), and Forma stores them. Neither registered form
 > reads a K-quant super-block, so the decision and its two consequences are
 > unchanged and [012](012-gguf.md) waits on the same missing kernel.
 
@@ -124,7 +124,7 @@ tensor operator reads it. Qwen3 ships bf16. The loader therefore converts, and
 
 > **Amended twice, and closed.** The table above once read "both f16" for
 > `MatMul`, which forced a `Cast` before every projection — 4 per layer, because
-> a transformer's activations are f32 and its weights are f16 or int8. tgo
+> a transformer's activations are f32 and its weights are f16 or int8. Forma
 > reported it as an f32 GEMM request, which accel shipped and which did **not**
 > remove the casts, because the rule was that the two operands *share* a dtype.
 > Refiled naming the shape rather than the symptom — a **mixed** GEMM — and accel
@@ -177,7 +177,7 @@ $B = \texttt{quant.Int8Block}$.
 | Qwen3-4B | 4.0e9 | 8.0 GB | 4.0 GB |
 | 27B class | 27e9 | 54 GB | 27 GB |
 
-Above roughly 8 GB of weights, f16 stops being an option on the machines tgo
+Above roughly 8 GB of weights, f16 stops being an option on the machines Forma
 targets, so int8 is not an optimisation there — it is the only way the model
 loads. Both paths are first class and both are tested. The default is chosen at
 load time from available device memory, and it is always overridable, because a
@@ -187,7 +187,7 @@ silently-quantized model is a silently-different model.
 requires it to be measured on the real weight blocks, not on synthetic ones.
 
 > **Amended 2026-08-27.** The section read "f16 or int8" and "both paths", and
-> three widths ship. int4 landed in tgo on 2026-08-27 against accel
+> three widths ship. int4 landed in Forma on 2026-08-27 against accel
 > [048](https://github.com/golang-design/accel/blob/main/specs/048-int4.md)
 > ([010 C21](010-conformance.md)). The two-width prose above is the position it
 > replaced and is kept; the heading is the one thing corrected in place, because
@@ -220,7 +220,7 @@ requires it to be measured on the real weight blocks, not on synthetic ones.
 
 ## 6. A model is a config plus a graph builder, resolved by name
 
-`config.json` carries `architectures: ["Qwen3ForCausalLM"]`. tgo resolves that
+`config.json` carries `architectures: ["Qwen3ForCausalLM"]`. Forma resolves that
 string in a registry to a builder function, which records the forward pass with
 [`nn`](004-model-graph.md) blocks over `tensor.Builder`.
 
@@ -230,7 +230,7 @@ engine, the KV cache and the server sit on top of it, because the refactor then
 crosses every one of them.
 
 **Also rejected:** a serialised graph format (ONNX-shaped). It buys portability
-tgo does not need and costs a second type system.
+Forma does not need and costs a second type system.
 
 Adding a model is one file and one `init`. Nothing else changes. A model that
 the registry does not know is refused at load with the list of what it does
@@ -266,7 +266,7 @@ code waits.
 **Paged KV is not used in v0 either, and not by choice.** accel's block pool
 lives at `tensor/internal/pagetable` and is unexported, because no exported
 `tensor` operator accepts a page table — accel 030 says so in the package
-comment. So the cache tgo can build is one contiguous `tensor.State` per layer,
+comment. So the cache Forma can build is one contiguous `tensor.State` per layer,
 sized for the longest sequence it will ever serve. That is a fourth gap, it is
 the one that costs the most memory, and [005](005-kv-cache.md) states what it
 costs.
@@ -280,7 +280,7 @@ costs.
 > already changed. The rest is designed and unbuilt.
 >
 > **Amended again, later the same day.** 043 landed. `RoPE` takes positions,
-> `Attention` takes `Lengths`, `Pages` and an f16 cache. tgo can now build a
+> `Attention` takes `Lengths`, `Pages` and an f16 cache. Forma can now build a
 > paged, narrow KV cache, which is exactly what this decision said it could not.
 >
 > **v0 is still not batched, for a different reason.** `q`'s rank is the *phase*
@@ -306,7 +306,7 @@ costs.
 > `Scheduler.Admit/Step/Feed/Evict/Finish` are built, exported and tested, and
 > [008](008-scheduler.md) reads `status: implemented`.
 >
-> **What is still true is narrower, and it is tgo's.** The *served* path does
+> **What is still true is narrower, and it is Forma's.** The *served* path does
 > not batch: nothing under `server/` or `cmd/` calls `NewScheduler` or
 > `NewBatch`, and `server/admit.go` says so where the queue is — concurrent
 > requests interleave at submission granularity and the total is what one
@@ -321,7 +321,7 @@ configurations** — 2 layers, hidden size 64, vocab 640 — built by a fixture
 helper, with weights generated from a fixed seed. Every layer of the stack is
 covered this way, including the full forward pass and a decode loop.
 
-Real weights run behind `TGO_MODEL`, pointing at a local directory. That job is
+Real weights run behind `FORMA_MODEL`, pointing at a local directory. That job is
 not part of CI and never will be. It is the release gate, run by hand, and
 [011 §4](011-sequencing.md) is the release-gate record that holds its result
 each time.
@@ -339,14 +339,14 @@ printed rather than hidden.
 > extent is deliberately distinct from every other, so that a shape taken from
 > the wrong one reads as wrong rather than as correct. The section also cited a
 > §4 of [011](011-sequencing.md) that did not exist when it was written. That
-> section is the release-gate record — one entry per `TGO_MODEL` run — and the
+> section is the release-gate record — one entry per `FORMA_MODEL` run — and the
 > citation above points at it.
 
 ## 9. Sampling is reproducible as a stream, not as a token
 
 accel 028 makes the random draw an input, so one token is reproducible. That is
 not the same promise as *the same prompt and seed give the same completion*,
-which is what a user checks. tgo owns the stream: a seed produces a
+which is what a user checks. Forma owns the stream: a seed produces a
 deterministic sequence of draws, and the whole completion is reproducible.
 
 **Greedy decoding is bit-exact across runs on one device.** It is not promised
@@ -355,19 +355,19 @@ measures the divergence rather than asserting a bound nobody verified.
 
 ## 10. The public surface is small and the engine is not the API
 
-tgo exports: a `Model`, a `Session`, a `Generate` call that streams tokens, and
+Forma exports: a `Model`, a `Session`, a `Generate` call that streams tokens, and
 a sampling policy. The plan cache, the KV block pool, the graph builders and the
 scheduler are internal, because every one of them is a place where accel's
 shape will move under us.
 
 The HTTP surface speaks three wire dialects — OpenAI Chat Completions, Anthropic
 Messages, and OpenAI Responses — through one neutral request shape, and says so
-where a dialect asks for something tgo does not do. **Compatibility is a
+where a dialect asks for something Forma does not do. **Compatibility is a
 serialisation decision, not an architectural one, and it does not reach into the
 engine.** That is what makes three cost one adapter rather than three parsers;
 [009 §2](009-server.md) has the boundary.
 
-> **Amended 2026-08-27.** Two claims above are false against what package `tgo`
+> **Amended 2026-08-27.** Two claims above are false against what package `forma`
 > exports. There is no `Generate`: the call is `Session.Chat` or
 > `Session.Complete`, and it returns a `*Stream`. And the scheduler is not
 > internal. The paragraph is kept because the principle in it is the one still
@@ -383,8 +383,8 @@ engine.** That is what makes three cost one adapter rather than three parsers;
 >
 > **Decided: `Scheduler` is public API, and `Batch` under it.** A deployment
 > chooses `Chunk` and `Reserve`, and admission and eviction are where a serving
-> policy lives, so they belong to the caller and not to tgo. A scheduler
-> reachable only through tgo's own HTTP server would make tgo the sole consumer
+> policy lives, so they belong to the caller and not to Forma. A scheduler
+> reachable only through Forma's own HTTP server would make Forma the sole consumer
 > of [008](008-scheduler.md), which is the shape decision 1 objects to one level
 > up. **Rejected: moving it back behind the engine**, exposed only as a server
 > flag. That keeps the surface smaller and it makes the batching layer
@@ -398,7 +398,7 @@ engine.** That is what makes three cost one adapter rather than three parsers;
 >
 > The dialect boundary holds and its shape moved. There are four wire formats,
 > not three — `/v1/completions` is the fourth. Parsing and serialisation for
-> three of them live in an external module, `latere.ai/x/pkg/llmdialect`, tgo
+> three of them live in an external module, `latere.ai/x/pkg/llmdialect`, Forma
 > owns one mapping file (`server/adapt.go`) and codecs the fourth itself
 > (`server/legacy.go`), and all four travel the same neutral request shape. No
 > dialect reaches the engine, which is the thing this decision defends. The
@@ -409,7 +409,7 @@ engine.** That is what makes three cost one adapter rather than three parsers;
 
 ## 11. Faster than vLLM is the goal, and it is measured per axis
 
-tgo is not a convenience trade. **The goal is to be faster than vLLM**, and
+Forma is not a convenience trade. **The goal is to be faster than vLLM**, and
 [010 §3.1](010-conformance.md) says on which axes and how it is measured.
 
 **Rejected: "fast enough, and easier to deploy."** It sounds humble and it
@@ -420,25 +420,25 @@ on every token, and together they are the part of a serving stack a compiled
 language should win outright.
 
 **Also rejected: claiming it before measuring it.** Today vLLM is faster,
-because tgo does not run. What is stated here is a target with a table attached
-and a commitment to publish the rows tgo loses.
+because Forma does not run. What is stated here is a target with a table attached
+and a commitment to publish the rows Forma loses.
 
-The axis tgo will lose longest is raw GEMM and attention throughput on NVIDIA,
+The axis Forma will lose longest is raw GEMM and attention throughput on NVIDIA,
 against years of hand-tuned CUDA. That is accel's to close, and decision 1 makes
-tgo's contribution to it the same as everywhere else: a kernel slower than it
+Forma's contribution to it the same as everywhere else: a kernel slower than it
 should be is a report, exactly like a kernel that is missing.
 
-> **Amended 2026-08-27.** The premise "tgo does not run" is no longer true. tgo
+> **Amended 2026-08-27.** The premise "Forma does not run" is no longer true. Forma
 > runs and serves ([011](011-sequencing.md), Waves 4 and 5), and a decode step's
 > host, submit, device and readback shares are measured per axis. What has never
 > been measured is a single row against vLLM, on any axis.
 > [017 §4](017-benchmarks.md) rule 1 gives the reason it is not worth running
 > yet: 12.57 tokens/s on a 0.6B model against years of hand-tuned CUDA would
-> report a fact about kernel maturity dressed as a fact about tgo. The row waits
+> report a fact about kernel maturity dressed as a fact about Forma. The row waits
 > for [011](011-sequencing.md) M13, and the axis that would make it meaningful
-> first is submit overhead — the one this section says tgo should win. The
+> first is submit overhead — the one this section says Forma should win. The
 > target, the axes and the commitment to publish the
-> rows tgo loses are unchanged. The claim stays unmade until there is a row.
+> rows Forma loses are unchanged. The claim stays unmade until there is a row.
 
 ## 12. Sampling runs on the host, and that is a decision rather than unfinished work
 
@@ -448,9 +448,9 @@ temperature, top-k, top-p, the schema mask and the categorical draw in Go
 
 **Rejected: sampling on the device.** accel registers it. `tensor.Sample`
 composes the same policy in one dispatch and returns a token id, and both rows
-that asked for it closed against tgo's own reports
+that asked for it closed against Forma's own reports
 ([010 C3](010-conformance.md), [C6](010-conformance.md)). So this is a
-capability tgo has and does not use, which is the case decision 1 does not
+capability Forma has and does not use, which is the case decision 1 does not
 otherwise cover.
 
 The constraint is decision 8's corollary and decision 9's promise. A host
@@ -464,7 +464,7 @@ divergence measurement mean anything.
 **The cost is reported, not absorbed.** A decode step carries 608 KB of logits
 back for four bytes of output, and `internal/conformance/measure.go` keeps
 measuring that share, because "how much of a decode step is the readback" is the
-question tgo exists to answer for accel. The consequence is that this decision
+question Forma exists to answer for accel. The consequence is that this decision
 is deliberate today and not permanent:
 [020](020-device-sampling.md) states what moving the policy onto the device
 costs, and what it has to keep is this section's testability rather than the
@@ -518,7 +518,7 @@ matching the reference byte for byte.
 > entirely in accel. accel
 > [044](https://github.com/golang-design/accel/blob/main/specs/044-unbounded-context.md)
 > shipped the tiling loop; a 4096-position cache is verified working, and
-> nothing in tgo is blocked on cache size.
+> nothing in Forma is blocked on cache size.
 >
 > **What is still blocked is narrower.** A paged *prefill* silently ignores its
 > page table ([010 C13](010-conformance.md)), so cross-request prefix sharing is
@@ -541,7 +541,7 @@ matching the reference byte for byte.
 > [C1](010-conformance.md) closed and a batched decode is exercised by
 > `batch_test.go`.
 >
-> **What is left is tgo's own wiring.** The served path still runs one sequence
+> **What is left is Forma's own wiring.** The served path still runs one sequence
 > at a time because nothing under `server/` drives the scheduler, which is
 > decision 7's amendment and [022](022-batched-serving.md)'s subject. Scope is
 > otherwise as stated: one Qwen3 dense family, safetensors, the CPU backend and

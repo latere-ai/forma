@@ -40,7 +40,7 @@ with a minimum each are a different shape, not a smaller one
 ([011 §2](011-sequencing.md)). accel states the same from its own
 side: a native int4 "would not read a published `Q4_K` file"
 (`010-kernel-corpus.md`). There is no kernel that reads a super-block, and
-[000 D1](000-decisions.md) forbids tgo from writing one.
+[000 D1](000-decisions.md) forbids Forma from writing one.
 
 Three ways around it exist.
 
@@ -64,7 +64,7 @@ work, and §3's second measurement decides whether it is worth doing.
 > draft overstated it: it said requantizing "gives a model measurably worse than
 > either format alone", which nobody had measured. That is the
 > assertion-where-a-measurement-belongs that [010 §3](010-conformance.md) exists
-> to catch, made here in tgo's own spec. accel's maintainer caught it while
+> to catch, made here in Forma's own spec. accel's maintainer caught it while
 > closing [accel#15](https://github.com/golang-design/accel/issues/15). Corrected
 > rather than quietly deleted, and §3 now names the measurement that settles it.
 
@@ -75,18 +75,18 @@ planned** and recorded the gap in its corpus instead: `010-kernel-corpus.md`
 carries a `quant_matmul_superblock` row with the layout, the formula, and why
 the two workarounds it considers are bad.
 
-**That closure was right and this spec accepts it.** Nothing in tgo is blocked by
+**That closure was right and this spec accepts it.** Nothing in Forma is blocked by
 it, so it competed against three issues that block work in progress. And a corpus
 row is a better record than an issue open with no plan: the corpus is what
 someone adding a kernel reads, whereas an issue is what someone opening the
 tracker reads.
 
-**Two measurements decide whether this is ever worth building**, and tgo can
+**Two measurements decide whether this is ever worth building**, and Forma can
 produce both where accel cannot:
 
 | measurement | why it decides the case |
 | --- | --- |
-| **which K-quant formats actually circulate** for the models tgo targets — a count over real checkpoints | the corpus should register the two that matter, not six. That `Q4_K` and `Q6_K` cover most of what circulates is a **guess**: this spec has never counted. Producing the count over real checkpoint listings is the work |
+| **which K-quant formats actually circulate** for the models Forma targets — a count over real checkpoints | the corpus should register the two that matter, not six. That `Q4_K` and `Q6_K` cover most of what circulates is a **guess**: this spec has never counted. Producing the count over real checkpoint listings is the work |
 | **int4-at-load against `Q4_K` on real weight blocks**, checked against `quant.Int4ErrorBound` | int4 is the deciding comparand, not int8: `Q4_K` is 4-bit with a per-sub-block minimum, so accel's asymmetric int4 is the near neighbour and carries its own bound ([001 §5.4](001-weights.md)). int8 stays the wider reference point. If the two are within noise on trained weights, **GGUF stops being a quality argument and becomes a download-size argument** — a much weaker case for a new kernel family, and worth knowing before anyone writes one |
 
 Both belong with [010 §3](010-conformance.md)'s numbers, and the second is a

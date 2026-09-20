@@ -8,10 +8,10 @@ import (
 	"encoding/binary"
 )
 
-// label separates this construction from any other use of SHA-256 in tgo, and
+// label separates this construction from any other use of SHA-256 in forma, and
 // versions it: a change to the encoding below changes the label, so blocks
 // hashed under the old one can never match under the new.
-const label = "tgo/prefix/v1"
+const label = "forma/prefix/v1"
 
 // seed is h_{-1}: the chain's starting value, carrying the isolation scope, the
 // scope's domain and the request's salt.

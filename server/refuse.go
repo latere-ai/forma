@@ -24,7 +24,7 @@ import (
 //
 // Anthropic Messages and OpenAI Responses have none, and a member a dialect
 // does not define is an unrecognized key rather than a field that changes the
-// answer: tgo ignores it either way, which is exactly §4's test for advisory.
+// answer: forma ignores it either way, which is exactly §4's test for advisory.
 // So it falls through to the loss report there, like every other stray key,
 // and only the two surfaces that define it refuse it.
 var definesN = map[ir.Dialect]bool{
@@ -44,10 +44,10 @@ func refuseRaw(d ir.Dialect, top map[string]json.RawMessage) *apiError {
 	}
 	var n int
 	if err := json.Unmarshal(raw, &n); err != nil {
-		return badRequest("tgo: n must be an integer: %v", err)
+		return badRequest("forma: n must be an integer: %v", err)
 	}
 	if n > 1 {
-		return refusal("n", "tgo: n=%d is not supported: more than one completion per "+
+		return refusal("n", "forma: n=%d is not supported: more than one completion per "+
 			"request needs batching (specs/008-scheduler.md). Send %d requests", n, n)
 	}
 	return nil

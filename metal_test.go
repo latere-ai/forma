@@ -1,12 +1,12 @@
 // SPDX-FileCopyrightText: 2026 Latere AI
 // SPDX-License-Identifier: Apache-2.0
 
-package tgo
+package forma
 
 import (
 	"testing"
 
-	"github.com/latere-ai/tgo/internal/conformance"
+	"latere.ai/x/forma/internal/conformance"
 )
 
 // TestMetalRunsTheForwardPass is the positive form of a test that used to
@@ -15,12 +15,12 @@ import (
 // specs/004-model-graph.md §3.2 slices the last row before the LM head and
 // packs it, because accel refuses a strided operand into MatMul rather than
 // copying behind the caller's back. That packing kernel was the only one in
-// accel's corpus with no MSL artifact, so **every** tgo graph — synthetic or
+// accel's corpus with no MSL artifact, so **every** forma graph — synthetic or
 // real, prefill or decode — was refused at compile time on Metal:
 //
 //	kernel Pack carries no MSL artifact, so it cannot run on Metal
 //
-// tgo filed it as accel#19 and accel lowered it the same day, so the device
+// forma filed it as accel#19 and accel lowered it the same day, so the device
 // this framework exists to be fast on runs it now. The test that pinned the
 // gap said to delete itself when that happened; this replaced it rather than
 // vanishing, because a backend that worked once and quietly stopped is exactly
@@ -28,7 +28,7 @@ import (
 func TestMetalRunsTheForwardPass(t *testing.T) {
 	// The tier rule decides whether this machine runs tier 2 at all
 	// (specs/010-conformance.md §4): a skip where no device is present, and a
-	// failure where TGO_REQUIRE_METAL promises one.
+	// failure where FORMA_REQUIRE_METAL promises one.
 	_ = conformance.Device(t, conformance.Tier2)
 
 	dir := checkpoint{tie: true}.write(t)

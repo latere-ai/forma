@@ -357,8 +357,8 @@ negative test proves the oracle disagrees with a splitter that mis-reads the
 lookahead, because an oracle that agrees with everything catches nothing.
 
 > The fixed vectors are the decisive test and the one that costs something
-> to produce: they must come from the reference implementation, not from tgo.
-> Generating them from tgo's own output would make the test assert that the code
+> to produce: they must come from the reference implementation, not from Forma.
+> Generating them from Forma's own output would make the test assert that the code
 > does what it does.
 
 ## Outcome

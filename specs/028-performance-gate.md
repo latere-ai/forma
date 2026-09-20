@@ -12,11 +12,11 @@ depends_on:
 [017-D6](017-benchmarks.md) says the JSON record gates regressions the way the
 coverage gate works, and records that nothing reads it. This spec is the reader.
 
-The residue is precise. `tgo bench` writes a versioned, byte-stable record
-(`cmd/tgo/record.go:22`, `cmd/tgo/record.go:260`) whose own comment says it was
+The residue is precise. `forma bench` writes a versioned, byte-stable record
+(`cmd/forma/record.go:22`, `cmd/forma/record.go:260`) whose own comment says it was
 shaped for a checker that does not exist yet
-(`cmd/tgo/record.go:206`). Neither `.github/workflows/ci.yml` nor
-`.github/workflows/ci-metal.yml` runs `tgo bench`. A number nobody enforces
+(`cmd/forma/record.go:206`). Neither `.github/workflows/ci.yml` nor
+`.github/workflows/ci-metal.yml` runs `forma bench`. A number nobody enforces
 drifts, and this one has drifted since Wave 4.
 
 ## 1. The gate cannot run in CI, and that is a fact about the checkpoint
@@ -29,16 +29,16 @@ device and no checkpoint. `ci.yml` has neither, and its CPU backend is
 **108.8 seconds per decode step** on Qwen3-0.6B ([017 §4.1](017-benchmarks.md)),
 so a 128-step run there is close to four hours.
 
-A synthetic checkpoint does not rescue it. `cmd/tgo`'s fixture is two layers
-over a vocabulary of 112 (`cmd/tgo/helpers_test.go:32`) and its bench test drives
-a fake engine (`cmd/tgo/bench_test.go:180`). A benchmark of that measures the
+A synthetic checkpoint does not rescue it. `cmd/forma`'s fixture is two layers
+over a vocabulary of 112 (`cmd/forma/helpers_test.go:32`) and its bench test drives
+a fake engine (`cmd/forma/bench_test.go:180`). A benchmark of that measures the
 harness.
 
 So the gate goes where the checkpoint already is:
 
 ```mermaid
 flowchart TD
-  A["tgo bench --json record.json<br/>tier 3, by hand, a device and TGO_MODEL"] --> B["benchcheck<br/>record.json vs bench/baseline/*.json"]
+  A["forma bench --json record.json<br/>tier 3, by hand, a device and FORMA_MODEL"] --> B["benchcheck<br/>record.json vs bench/baseline/*.json"]
   B -->|"loss past tolerance"| C["exit 1, blocks the release"]
   B -->|"within tolerance"| D["exit 0"]
   E["ci.yml, no device:<br/>go test ./internal/benchcheck/"] --> F["the checker and the committed<br/>baseline cannot rot"]
@@ -76,7 +76,7 @@ Those four are `ci-gate`'s
 D3 and D4, so `benchcheck` inherits them rather than restating them, and the
 thresholds and exemptions live in this repository's `.lateregate.yaml` the way
 every other gate's do. That is D2, and it is the reason the checker can be
-shared while the numbers stay tgo's.
+shared while the numbers stay Forma's.
 
 What does not carry over is the old note about `main`. The question it settled
 -- whether the checks live in `main` where a test cannot reach them, or in
@@ -85,7 +85,7 @@ subcommand already: the logic is in a package, `main` is flag parsing, and
 [`CONTRIBUTING.md`](../CONTRIBUTING.md)'s requirement that a checker be
 negative-tested is met there rather than argued for here.
 
-What is still tgo's, and is the reason this spec exists rather than an issue on
+What is still Forma's, and is the reason this spec exists rather than an issue on
 `ci-gate`: the axes, the baseline format, and the tolerances. A throughput
 regression is a claim about this engine on a stated device, and no shared tool
 can hold that.
@@ -107,8 +107,8 @@ ok   resident                  1.19 GiB -> 1.19 GiB  0.0%  (arithmetic, toleranc
 2 of 3 gated axes lost more than their tolerance
 ```
 
-The `accel` line is there because `cmd/tgo/env.go:35-39` stamps the accel
-revision precisely so a checker can tell "tgo got slower" from "accel changed",
+The `accel` line is there because `cmd/forma/env.go:35-39` stamps the accel
+revision precisely so a checker can tell "Forma got slower" from "accel changed",
 and that distinction decides whether the next step is a commit here or an issue
 upstream.
 
@@ -119,7 +119,7 @@ was taken under, for example `bench/baseline/qwen3-0.6b-f16-metal.json`.
 
 | where | failure mode |
 | --- | --- |
-| **a committed file** | it needs a deliberate update commit, and it drifts: the machine that produced it ages, and a baseline three months old measures a different macOS as much as a different tgo |
+| **a committed file** | it needs a deliberate update commit, and it drifts: the machine that produced it ages, and a baseline three months old measures a different macOS as much as a different Forma |
 | a CI artifact from the last green run on main | the gate depends on artifact retention, so it starts failing on an infrastructure fact rather than on a regression. It is also unavailable to the person running the tier-3 gate on a laptop, which is the only place the gate runs |
 | a released record | releases are cut rarely, so the baseline is a milestone old and the first run after one reports a wave of accumulated change as a single regression, with nothing to attribute it to |
 
@@ -144,7 +144,7 @@ sample (`bench/report.go:184-189`), so at small `n` the reported value moves a
 whole sample per observation added and is a property of the sample size.
 
 Today this rule does real work. `measure` runs one `Generate` for the measured
-window (`cmd/tgo/bench.go:221`), so the record holds one time to first token and
+window (`cmd/forma/bench.go:221`), so the record holds one time to first token and
 `report.ttft.n` is 1: its p50, p90 and p99 are the same single draw. At
 `--tokens 128` the decode terms have 128 samples each. The floor is stated at 20
 because it separates those two cases in code rather than in a reviewer's head,
@@ -159,11 +159,11 @@ gated axis because they are what attributes the change, which is
 [017-D1](017-benchmarks.md)'s whole purpose.
 
 **`resident_bytes` is the exception in the other direction.** It is
-`weightBytes + kv` (`cmd/tgo/info.go:154`), computed from the config and the
+`weightBytes + kv` (`cmd/forma/info.go:154`), computed from the config and the
 context, not measured. A tolerance on arithmetic would be a tolerance on
 nothing, so it gates at **zero**: any growth fails. This is the axis that catches
 a precision resolution or a cache dtype quietly widening, which
-`cmd/tgo/info.go:326-329` says is coming.
+`cmd/forma/info.go:326-329` says is coming.
 
 What that produces from today's record:
 
@@ -184,7 +184,7 @@ that rose 40% and a step time that fell 40% are both wins, and a gate that
 fired on either would be a check for equality with extra steps.
 
 The modelled step p50 is the sum of the four terms at that percentile, which is
-the definition `cmd/tgo/record.go:380` already renders and the reason it is a
+the definition `cmd/forma/record.go:380` already renders and the reason it is a
 modelled step rather than a step that happened. Gating it beside the wall-clock
 throughput is deliberate: the two are correlated by construction, and they
 disagree exactly when there is time in the run that the instrument does not
@@ -242,7 +242,7 @@ A trade recorded in a spec must not be blocked by a lint. The mechanism is
 the coverage gate's: a map keyed by axis and valued by the reason, printed on
 every run whether or not it fired. It lives in `.lateregate.yaml` rather than
 in the checker's source, for the reason `ci-gate`'s D2 gives -- the numbers are
-tgo's and the checker is shared.
+Forma's and the checker is shared.
 
 ```go
 // accepted maps a gated axis to the decision that traded it away.
@@ -274,16 +274,16 @@ at M0 and the shape a half-updated axis list produces.
 
 Two refusals, both stated by name rather than absorbed into a number.
 
-**A schema mismatch.** The record's version is `tgo.bench/1`
-(`cmd/tgo/record.go:22`), and its comment already states the requirement: a
+**A schema mismatch.** The record's version is `forma.bench/1`
+(`cmd/forma/record.go:22`), and its comment already states the requirement: a
 checker that meets a record it does not understand has to be able to say so
 rather than compare fields that moved. If either record's `schema` differs from
 the `recordSchema` this build was compiled against, the checker exits with both
 strings in the message and the command that regenerates the baseline:
 
 ```
-benchcheck: the baseline is schema "tgo.bench/1" and this build writes
-"tgo.bench/2". Fields moved between them, so a comparison would compare
+benchcheck: the baseline is schema "forma.bench/1" and this build writes
+"forma.bench/2". Fields moved between them, so a comparison would compare
 different things. Regenerate: see specs/028-performance-gate.md §8
 ```
 
@@ -313,13 +313,13 @@ comparing two runs that differed in exactly one accel revision.
 On a machine with a device and a checkpoint, five runs, then one commit.
 
 ```sh
-export TGO_MODEL=/path/to/Qwen3-0.6B
+export FORMA_MODEL=/path/to/Qwen3-0.6B
 for i in 1 2 3 4 5; do
-  go run ./cmd/tgo bench \
+  go run ./cmd/forma bench \
     --device metal --precision f16 --context 4096 \
     --prompt-tokens 128 --tokens 128 --warmup 8 \
     --temp 0 --seed 0 \
-    --json /tmp/bench-$i.json "$TGO_MODEL"
+    --json /tmp/bench-$i.json "$FORMA_MODEL"
 done
 go run ./internal/benchcheck -spread /tmp/bench-1.json /tmp/bench-2.json \
   /tmp/bench-3.json /tmp/bench-4.json /tmp/bench-5.json
@@ -332,7 +332,7 @@ transcribed from a measurement rather than guessed, and the baseline is a run
 that happened rather than an average of runs that did not.
 
 `--precision f16` is pinned rather than left at `auto`
-(`cmd/tgo/bench.go:43`), because `auto` resolves against the machine and
+(`cmd/forma/bench.go:43`), because `auto` resolves against the machine and
 `resident_bytes` gates at zero. `--temp 0` is greedy, which
 [006-D3](006-sampling.md) makes bit-exact across runs on one device, so the
 sampler contributes no variance to the five.
@@ -340,9 +340,9 @@ sampler contributes no variance to the five.
 Checking a candidate, which is the tier-3 gate itself:
 
 ```sh
-go run ./cmd/tgo bench --device metal --precision f16 --context 4096 \
+go run ./cmd/forma bench --device metal --precision f16 --context 4096 \
   --prompt-tokens 128 --tokens 128 --warmup 8 --temp 0 --seed 0 \
-  --json /tmp/candidate.json "$TGO_MODEL"
+  --json /tmp/candidate.json "$FORMA_MODEL"
 go run ./internal/benchcheck \
   -baseline bench/baseline/qwen3-0.6b-f16-metal.json /tmp/candidate.json
 ```
@@ -355,11 +355,11 @@ died before reaching the failing thing prints nothing and reads as green.
 record over the old one in the same commit as the change that produced it, say
 in the message which axis moved and by how much, and delete the `accepted` entry
 that covered it. The diff shows the numbers, because the record is indented for
-exactly that reason (`cmd/tgo/record.go:253-259`).
+exactly that reason (`cmd/forma/record.go:253-259`).
 
 ## 9. What CI runs, and what it cannot
 
-**No new workflow job, and no `tgo bench` step anywhere.** `ci-metal.yml` has the
+**No new workflow job, and no `forma bench` step anywhere.** `ci-metal.yml` has the
 device and cannot have the checkpoint, and `ci.yml` has neither, which is §1.
 
 What CI does run is `-check-baseline`, reached as a test rather than as a step.
@@ -375,7 +375,7 @@ separate job would run the same assertion a fourth time on a runner that adds
 nothing to it.
 
 It belongs to `ci.yml` and not to `ci-metal.yml`. `ci-metal.yml` sets
-`TGO_REQUIRE_METAL=1` so that a missing device is a failure rather than a skip
+`FORMA_REQUIRE_METAL=1` so that a missing device is a failure rather than a skip
 (`.github/workflows/ci-metal.yml:19`), and a check that opens no device would be
 promising a backend it does not use.
 
@@ -398,7 +398,7 @@ release day.
   for them.
 - **The vLLM and sglang comparison.** It stays in [017 §3](017-benchmarks.md)
   and [017 §4](017-benchmarks.md) rule 1, scheduled by
-  [011](011-sequencing.md). This gate compares tgo against tgo. A row against
+  [011](011-sequencing.md). This gate compares Forma against Forma. A row against
   another framework is a different claim, with a different set of conditions to
   hold equal.
 - **The performance history.** The Markdown table still goes to
@@ -408,7 +408,7 @@ release day.
   accel revision. Filing is [`CONTRIBUTING.md`](../CONTRIBUTING.md)'s sequence
   and a row in [010 §2](010-conformance.md).
 - **The record's shape.** No field of `benchRecord` moves. If one has to, that
-  is a `tgo.bench/2` and §7 is what happens next.
+  is a `forma.bench/2` and §7 is what happens next.
 
 ## 11. Scope
 
@@ -421,7 +421,7 @@ One person, one pass:
 | `internal/benchcheck/benchcheck_test.go` | the table in §12, over fixture records built in the test |
 | `bench/baseline/qwen3-0.6b-f16-metal.json` | produced by §8 on the release machine, in the commit after the checker |
 
-No workflow file changes, and nothing in `bench`, `cmd/tgo` or the record
+No workflow file changes, and nothing in `bench`, `cmd/forma` or the record
 changes. The record is already
 versioned, already byte-stable, and already carries its conditions, which is
 what [017-D6](017-benchmarks.md) shaped it for.
@@ -439,7 +439,7 @@ baseline.
 | `TestRegressionInsideTolerancePasses` | the same axis 4% below passes, so the gate is not a check for equality |
 | `TestGainOnAThroughputAxisPasses` | `tokens_per_second` 40% **above** the baseline exits zero |
 | `TestGainOnALatencyAxisPasses` | the decode step p50 40% **below** the baseline exits zero. The pair catches a sign error, which passes one of them and fails the other |
-| `TestIncompatibleBaselineVersionIsRefused` | a baseline whose `schema` is `tgo.bench/2` against a build writing `tgo.bench/1` exits non-zero with **both** version strings in the message and compares no field |
+| `TestIncompatibleBaselineVersionIsRefused` | a baseline whose `schema` is `forma.bench/2` against a build writing `forma.bench/1` exits non-zero with **both** version strings in the message and compares no field |
 | `TestConditionsMismatchIsRefusedByField` | a baseline taken on a different `hardware.device` is refused, naming the field and both values, rather than compared with a wider band |
 | `TestAccelVersionDifferenceIsPrintedNotRefused` | a record differing only in `environment.accel_version` is compared, and both revisions appear in the output |
 | `TestResidentGrowthFails` | one byte more of `resident_bytes` fails. Zero tolerance on arithmetic |
@@ -459,11 +459,11 @@ baseline.
 
 | id | decision | rejected | consequence |
 | --- | --- | --- | --- |
-| 028-D1 | `benchcheck` is a `ci-gate` subcommand whose comparisons are functions over a decoded record, which `main` only calls | a program in this repository, the way the coverage gate was before the gates moved out | the checker is measured by the 90% floor and negative-tested where it lives, and tgo's `.lateregate.yaml` holds the axes and tolerances. **Amended 2026-08-30:** the original said `internal/benchcheck`; that home no longer exists |
+| 028-D1 | `benchcheck` is a `ci-gate` subcommand whose comparisons are functions over a decoded record, which `main` only calls | a program in this repository, the way the coverage gate was before the gates moved out | the checker is measured by the 90% floor and negative-tested where it lives, and Forma's `.lateregate.yaml` holds the axes and tolerances. **Amended 2026-08-30:** the original said `internal/benchcheck`; that home no longer exists |
 | 028-D2 | the baseline is a committed JSON record under `bench/baseline/` | a CI artifact from the last green run on main; a released record | the gate needs a deliberate update commit and the baseline drifts with the machine, and both are visible in a diff. The artifact's failure mode is a red build caused by retention, and the release's is a wave of change reported as one regression |
-| 028-D3 | an axis gates only when its sample count clears `minSamples = 20`, and a share never gates | a hand-written list of gating axes | `report.ttft.n` is 1 today (`cmd/tgo/bench.go:221`), so a single draw cannot fail a build, and spec 027's batched path makes it gate with no code change |
+| 028-D3 | an axis gates only when its sample count clears `minSamples = 20`, and a share never gates | a hand-written list of gating axes | `report.ttft.n` is 1 today (`cmd/forma/bench.go:221`), so a single draw cannot fail a build, and spec 027's batched path makes it gate with no code change |
 | 028-D4 | the tolerance is the measured five-run spread on the release machine, clamped to [3%, 25%], and past the ceiling an axis loses its gate | a fixed number chosen so the current run passes; widening a band when a run fails | a tolerance is transcribed from `-spread` rather than argued, and the pressure when a gate fails goes to [011 §5](011-sequencing.md) as a finding, per [010-D3](010-conformance.md) |
-| 028-D5 | the gate is tier 3, run by hand before a release, and CI runs only the checker's own tests, one of which parses the committed baseline | a `tgo bench` step on `ci-metal.yml`; benchmarking the synthetic fixture in CI; a dedicated CI job for the baseline parse | [000 §8](000-decisions.md) keeps the checkpoint out of CI and the runner has none, so a gate there would measure a two-layer fixture or nothing. What CI does gate is the part that rots silently: the checker and the committed baseline's schema |
+| 028-D5 | the gate is tier 3, run by hand before a release, and CI runs only the checker's own tests, one of which parses the committed baseline | a `forma bench` step on `ci-metal.yml`; benchmarking the synthetic fixture in CI; a dedicated CI job for the baseline parse | [000 §8](000-decisions.md) keeps the checkpoint out of CI and the runner has none, so a gate there would measure a two-layer fixture or nothing. What CI does gate is the part that rots silently: the checker and the committed baseline's schema |
 | 028-D6 | a deliberate loss is accepted by an entry in an `accepted` map in the source whose reason names a decision id | a `-allow=<axis>` flag; a field in the generated record | the trade is reviewed in a diff beside the code that caused it, and "recorded in a spec" is checked rather than assumed. A flag leaves no record of who decided, and a record field is overwritten by the next run |
-| 028-D7 | a schema mismatch refuses the comparison, naming both version strings and the command that regenerates the baseline | comparing the fields both versions carry | `cmd/tgo/record.go:17-22` already states this requirement and nothing acted on it. A moved field reads as a regression, or as a pass, and the pass is the one nobody investigates |
-| 028-D8 | conditions that decide the numbers must match, and `go_version` and `accel_version` must not | refusing on any condition difference; comparing across machines with a wider band | a baseline from another device is refused by field name rather than absorbed, and an accel bump is still comparable, which is what `cmd/tgo/env.go:35-39` stamps the revision for and how [C20](010-conformance.md) was found |
+| 028-D7 | a schema mismatch refuses the comparison, naming both version strings and the command that regenerates the baseline | comparing the fields both versions carry | `cmd/forma/record.go:17-22` already states this requirement and nothing acted on it. A moved field reads as a regression, or as a pass, and the pass is the one nobody investigates |
+| 028-D8 | conditions that decide the numbers must match, and `go_version` and `accel_version` must not | refusing on any condition difference; comparing across machines with a wider band | a baseline from another device is refused by field name rather than absorbed, and an accel bump is still comparable, which is what `cmd/forma/env.go:35-39` stamps the revision for and how [C20](010-conformance.md) was found |

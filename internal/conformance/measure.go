@@ -12,10 +12,10 @@ import (
 	"golang.design/x/accel"
 	"golang.design/x/accel/quant"
 
-	"github.com/latere-ai/tgo/bench"
+	"latere.ai/x/forma/bench"
 )
 
-// Measurements are the five numbers of specs/010-conformance.md §3: what tgo
+// Measurements are the five numbers of specs/010-conformance.md §3: what forma
 // reports back to accel, measured rather than asserted, and re-measured each
 // release.
 //
@@ -39,7 +39,7 @@ type Measurements struct {
 // Divergence is where a greedy CPU run and a greedy Metal run part, over one
 // prompt.
 //
-// §3: it decides whether "the same result on both backends" is a claim tgo can
+// §3: it decides whether "the same result on both backends" is a claim forma can
 // make. Reduction order differs between the backends, so the two runs are not
 // required to be identical -- they are required to differ, when they differ, on
 // a decision that was close. The margin is what says which happened.
@@ -146,7 +146,7 @@ type Readback struct {
 //
 // bench already partitions a step into host, submit, device and readback and
 // reports the four as fractions (017-D1), so the measurement §3 asks for is a
-// projection of a report tgo takes anyway rather than a second instrument.
+// projection of a report forma takes anyway rather than a second instrument.
 func ReadbackFrom(r bench.Report, vocab, bytesPerToken int) Readback {
 	return Readback{
 		Vocab:  vocab,
@@ -278,7 +278,7 @@ func (c Compile) HitRate() float64 {
 }
 
 // Total is the compile time of every bucket together: the cold start 010 §3.1
-// claims tgo wins.
+// claims forma wins.
 func (c Compile) Total() time.Duration {
 	var t time.Duration
 	for _, b := range c.Buckets {
@@ -404,7 +404,7 @@ func Publish(rows []Row, m Measurements) string {
 		"internal/conformance/register.go; this file is output.\n\n" +
 		"## The register\n\n")
 	b.WriteString(Document(rows))
-	b.WriteString("\n## Numbers tgo reports back\n\n")
+	b.WriteString("\n## Numbers forma reports back\n\n")
 	b.WriteString(m.Document())
 	return b.String()
 }

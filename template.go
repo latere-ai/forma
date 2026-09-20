@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Latere AI
 // SPDX-License-Identifier: Apache-2.0
 
-package tgo
+package forma
 
 import (
 	"encoding/json"
@@ -9,10 +9,10 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/latere-ai/tgo/chat"
+	"latere.ai/x/forma/chat"
 )
 
-// 003-D2: a checkpoint carries the chat template it was tuned with, and tgo
+// 003-D2: a checkpoint carries the chat template it was tuned with, and forma
 // renders with a Go implementation of it. When the two disagree the model sees
 // a prompt in a shape it was not trained on, and the symptom is not an error —
 // it is answers that are slightly worse, which nobody attributes to a template.
@@ -82,7 +82,7 @@ func templateWarning(raw []byte, r chat.Renderer) string {
 		// A tokenizer_config.json that does not parse is worth saying out loud
 		// even though nothing here depends on it: the file is the tokenizer's
 		// too, and a caller who sees this knows why a later surprise happened.
-		return fmt.Sprintf("tgo: %v; not comparing the chat template", err)
+		return fmt.Sprintf("forma: %v; not comparing the chat template", err)
 	}
 	if declared == "" {
 		return ""
@@ -91,9 +91,9 @@ func templateWarning(raw []byte, r chat.Renderer) string {
 	if got == want {
 		return ""
 	}
-	return fmt.Sprintf("tgo: this checkpoint's chat template is not the one tgo "+
-		"renders: the checkpoint's hashes to %s and tgo's to %s. Rendering with "+
-		"tgo's anyway (003-D2) — the prompt may differ from what the model was "+
+	return fmt.Sprintf("forma: this checkpoint's chat template is not the one forma "+
+		"renders: the checkpoint's hashes to %s and forma's to %s. Rendering with "+
+		"forma's anyway (003-D2) — the prompt may differ from what the model was "+
 		"tuned on, which shows up as slightly worse answers rather than as an "+
 		"error", got, want)
 }

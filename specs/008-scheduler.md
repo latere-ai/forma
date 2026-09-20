@@ -79,7 +79,7 @@ $$\frac{t(1)}{t(\infty)} = \frac{W}{A} + 1$$
 
 **$A$ is not small, and this is where an earlier draft was wrong.** Reading the
 cache dominates it. [005 §3](005-kv-cache.md) gives 288 KiB per position in f32
-and 144 KiB in f16, and the pool tgo allocates is f16 (`blocks.go:88`), so
+and 144 KiB in f16, and the pool Forma allocates is f16 (`blocks.go:88`), so
 $A \approx L \cdot 144\text{ KiB}$ for context length $L$:
 
 | context $L$ | $A$ | crossover $B$ | ceiling |
@@ -206,7 +206,7 @@ that has to be right — it is the same two numbers admission already maintains.
 sglang's RadixAttention keys a trie on token prefixes and shares the KV blocks
 beneath a common prefix. This section previously said prefix reuse was
 downstream of gap 4 — the unreachable page table — and recorded that as the
-point, since it is otherwise natural to plan prefix caching as a tgo feature and
+point, since it is otherwise natural to plan prefix caching as a Forma feature and
 discover late that it is an accel one.
 
 **That dependency is discharged.** `AttentionOptions.Pages` landed on
@@ -225,7 +225,7 @@ Two things the move clarified, both of which belong here rather than there:
 
 ## 7. Four hooks that are cheap now and expensive later
 
-tgo keeps these live in v0 at a cost of nothing, so that when [C1](010-conformance.md)
+Forma keeps these live in v0 at a cost of nothing, so that when [C1](010-conformance.md)
 closes the retrofit stays local:
 
 | hook | v0 shape | what happened |
@@ -236,7 +236,7 @@ closes the retrofit stays local:
 | **one step is one call** on the streaming surface | one stream | held in substance, not in shape. There is no `Generate` and no internal channel — [007-D6](007-engine.md) rejects channels — but one `Stream.Next` is one model step, so a scheduler drives many streams without the public API moving |
 
 The first two were free because accel 043 moved per-row values onto tensors
-before tgo wrote any code. The third and fourth are decisions tgo made for
+before Forma wrote any code. The third and fourth are decisions Forma made for
 reasons that stand on their own. Two of the four predicted the retrofit's
 *shape* and were wrong about it: the page table did not slide under `Session`,
 and the stream is an iterator. What made the retrofit local was the naming, not
@@ -288,7 +288,7 @@ values are asserted against real sessions.
   and lets `ScatterRows` drop them; in a batch those rows index one past the
   offsets array — another sequence's cache on a GPU, read back fluently. That
   is [C23](010-conformance.md), filed as
-  [accel#24](https://github.com/golang-design/accel/issues/24). tgo argued for
+  [accel#24](https://github.com/golang-design/accel/issues/24). Forma argued for
   "a row past the last extent contributes nothing" over clamping it into the
   last sequence, accel took that shape, and the interim fix that charged the
   padding to a real sequence's extent came back out: pad rows carry the cache
@@ -338,11 +338,11 @@ while [C3/C6](010-conformance.md)'s `tensor.Sample` sits unused.
 [021](021-admission-queue.md) took it, and it is 008-D9's handover to
 [019](019-session-affinity.md)'s `Pool`.
 
-**The server does not use it** was that `tgo serve` pools sessions where a
+**The server does not use it** was that `forma serve` pools sessions where a
 scheduler over a batch would replace them.
 [022](022-batched-serving.md) took it, and it waits on the two above.
 
-## 10. What tgo does now
+## 10. What Forma does now
 
 Holds one named, skipping test per [010](010-conformance.md) register row, each
 naming the accel spec that owns it. [C1](010-conformance.md),

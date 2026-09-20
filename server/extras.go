@@ -9,7 +9,7 @@ import (
 	"strconv"
 )
 
-// extras are the request fields tgo honours that llmdialect's IR does not
+// extras are the request fields forma honours that llmdialect's IR does not
 // carry, read from the raw body beside DecodeRequest (009-D12, §4.1).
 //
 // Every field here is also a name in [honoured], and the two are checked
@@ -31,18 +31,18 @@ type extras struct {
 	// carrying one may be routed only to a pooled session whose last request
 	// carried the same one, and a request carrying none only to a session that
 	// had none. It is not a sampling knob and reaches no
-	// [github.com/latere-ai/tgo.Policy] field, which is why it is subtracted
+	// [latere.ai/x/forma.Policy] field, which is why it is subtracted
 	// from the loss report by [honouredSession] rather than by [honoured].
 	cacheSalt string
 
 	// logProbs and topLogProbs are specs/030-logprobs.md §4's two wire shapes,
-	// already reduced to tgo's one.
+	// already reduced to forma's one.
 	//
 	// The member is a different type on each surface that has it. On
 	// /v1/chat/completions `logprobs` is a bool and `top_logprobs` an int; on
 	// /v1/completions `logprobs` is itself the count of alternatives and there
 	// is no second member. Reading them here rather than in each frontend
-	// keeps one place that knows what tgo does with the answer -- the type is
+	// keeps one place that knows what forma does with the answer -- the type is
 	// the dialect's, the meaning is not.
 	logProbs    bool
 	topLogProbs int
@@ -50,7 +50,7 @@ type extras struct {
 	// thinkingOff is the one signal that does not survive into ir.Request:
 	// Anthropic's thinking:{"type":"disabled"} and OpenAI's
 	// reasoning_effort:"none" both decode to no ir.Reasoning at all, which is
-	// indistinguishable from a request that said nothing. tgo's default is on,
+	// indistinguishable from a request that said nothing. forma's default is on,
 	// so the difference is visible in the prompt.
 	thinkingOff bool
 }
@@ -158,7 +158,7 @@ func parseLogProbs(top map[string]json.RawMessage, ex *extras) error {
 		ex.topLogProbs = *n
 	}
 	// top_logprobs without logprobs asks for alternatives to a number the
-	// caller did not ask for, which tgo.Policy refuses. Reading it as a
+	// caller did not ask for, which forma.Policy refuses. Reading it as a
 	// request for both is what every OpenAI client means by it.
 	if ex.topLogProbs > 0 {
 		ex.logProbs = true

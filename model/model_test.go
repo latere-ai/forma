@@ -13,7 +13,7 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"github.com/latere-ai/tgo/chat"
+	"latere.ai/x/forma/chat"
 )
 
 // registerSeq numbers the architectures this file registers.

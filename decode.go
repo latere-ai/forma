@@ -1,17 +1,17 @@
 // SPDX-FileCopyrightText: 2026 Latere AI
 // SPDX-License-Identifier: Apache-2.0
 
-package tgo
+package forma
 
 import (
 	"fmt"
 	"math"
 	"strings"
 
-	"github.com/latere-ai/tgo/chat"
-	"github.com/latere-ai/tgo/internal/grammar"
-	"github.com/latere-ai/tgo/sample"
-	"github.com/latere-ai/tgo/tokenizer"
+	"latere.ai/x/forma/chat"
+	"latere.ai/x/forma/internal/grammar"
+	"latere.ai/x/forma/sample"
+	"latere.ai/x/forma/tokenizer"
 )
 
 // decoder is what turns one row of logits into events and a stopping decision.
@@ -101,7 +101,7 @@ func (d *decoder) consume(logits []float32, history []int) (bool, error) {
 	// brought back by either.
 	if d.gram != nil {
 		if err := d.gram.Mask(logits); err != nil {
-			return true, fmt.Errorf("tgo: masking a constrained step: %w", err)
+			return true, fmt.Errorf("forma: masking a constrained step: %w", err)
 		}
 	}
 	// Before the draw, and on a copy: Next rewrites the row in place, so
@@ -132,7 +132,7 @@ func (d *decoder) consume(logits []float32, history []int) (bool, error) {
 	// nothing reads again.
 	if d.gram != nil {
 		if err := d.gram.Advance(tok); err != nil {
-			return true, fmt.Errorf("tgo: advancing a constrained step: %w", err)
+			return true, fmt.Errorf("forma: advancing a constrained step: %w", err)
 		}
 	}
 	d.usage.CompletionTokens++

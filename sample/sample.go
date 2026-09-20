@@ -47,7 +47,7 @@ import (
 
 // TopMaxRounds is how many candidates either truncation stage can keep.
 //
-// accel 028's bound, restated here because tgo cannot import it: it lives in
+// accel 028's bound, restated here because forma cannot import it: it lives in
 // accel's internal kernel package, and accel 039 -- which would export it from
 // the tensor layer -- is not built. Both of accel's masks walk the
 // distribution one entry per round and stop at 128 rounds, so a policy that

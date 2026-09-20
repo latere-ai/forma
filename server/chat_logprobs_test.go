@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/latere-ai/tgo"
+	"latere.ai/x/forma"
 )
 
 // chatLogProbs decodes the per-choice logprobs object of a chat completion.
@@ -28,9 +28,9 @@ type chatLogProbs struct {
 func logProbEngine() *fakeEngine {
 	return &fakeEngine{
 		script: text("ab"),
-		probs: [][]tgo.TokenProb{{{
+		probs: [][]forma.TokenProb{{{
 			ID: 7, Text: "ab", LogProb: -0.5,
-			Top: []tgo.TokenProb{
+			Top: []forma.TokenProb{
 				{ID: 7, Text: "ab", LogProb: -0.5},
 				// 030-D3: a token the policy gave no chance is null on the wire.
 				{ID: 9, Text: "zz", LogProb: math.Inf(-1)},
@@ -70,8 +70,8 @@ func TestChatCompletionsServeLogProbs(t *testing.T) {
 	s := newTestServer(t, eng)
 	w := post(t, s, "/v1/chat/completions", inject(t, routes[0].body(""), `,"logprobs":true,"top_logprobs":2`))
 	wantStatus(t, w, http.StatusOK)
-	if loss := w.Header().Get("X-Tgo-Loss"); strings.Contains(loss, "logprobs") {
-		t.Errorf("X-Tgo-Loss = %q names a member this route served", loss)
+	if loss := w.Header().Get("X-Forma-Loss"); strings.Contains(loss, "logprobs") {
+		t.Errorf("X-Forma-Loss = %q names a member this route served", loss)
 	}
 	p := eng.only(t).sawPolicy()
 	if !p.LogProbs || p.TopLogProbs != 2 {

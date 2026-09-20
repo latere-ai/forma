@@ -11,9 +11,9 @@ import (
 	"golang.design/x/accel"
 	"golang.design/x/accel/quant"
 
-	tgo "github.com/latere-ai/tgo"
-	"github.com/latere-ai/tgo/model"
-	"github.com/latere-ai/tgo/weights"
+	forma "latere.ai/x/forma"
+	"latere.ai/x/forma/model"
+	"latere.ai/x/forma/weights"
 )
 
 // defaultContext is the KV capacity every command prices and runs at.
@@ -79,7 +79,7 @@ type memoryFacts struct {
 // token: the model, the precision decision, the memory it implies, and the
 // machine and build that will produce the numbers.
 //
-// It is one struct because `tgo info` prints it and `tgo bench` embeds it as
+// It is one struct because `forma info` prints it and `forma bench` embeds it as
 // the conditions of every measurement (017-D4). Two structs would let the two
 // drift, and a benchmark whose conditions disagree with `info` on the same
 // directory is worse than one with no conditions at all.
@@ -111,8 +111,8 @@ type describeOptions struct {
 	Cache accel.DType
 
 	// Device is the accelerator to describe. The zero value is
-	// tgo.AutoDevice, which is what a command with no --device asks for.
-	Device tgo.Device
+	// forma.AutoDevice, which is what a command with no --device asks for.
+	Device forma.Device
 }
 
 // describe computes everything a report says about a model.
@@ -205,7 +205,7 @@ func footprint(specs []model.WeightSpec) (params, planes, f16Bytes, int8Bytes, i
 // no policy — and accel binds by exact dtype, so a gain cannot come through
 // specs/001-weights.md §2's pipeline at all: it is uploaded wide and the
 // quantized path never sees it. Pricing one at f16 understates Qwen3-0.6B by
-// 128 KiB, which is small and is not zero, and a `tgo info` that prints a
+// 128 KiB, which is small and is not zero, and a `forma info` that prints a
 // footprint the model does not have is the silent number §5 exists to prevent.
 func planeBytes(kind model.Kind, n int64, p weights.Precision) int64 {
 	if kind == model.KindGain {
@@ -234,7 +234,7 @@ func planeBytes(kind model.Kind, n int64, p weights.Precision) int64 {
 //
 // It restates weights.planLoad's rule, which is unexported and reachable only
 // through a load that needs a device and moves every byte of the checkpoint.
-// `tgo info` has to print the choice without doing that, so the rule is here
+// `forma info` has to print the choice without doing that, so the rule is here
 // too and the two are pinned against each other by TestChoosePrecisionMatches-
 // TheLoader below. See the discrepancy note in the package's report.
 func choosePrecision(policy weights.Precision, f16Bytes, int8Bytes, int4Bytes, budget int64) (precisionFacts, error) {
@@ -315,8 +315,8 @@ func cachedLayerCount(c *model.Config) int {
 //
 // The predicted footprints stay, because specs/001-weights.md §5 requires the
 // comparison to be printed and not only its answer. What the engine resolved
-// replaces the answer and the memory that follows from it: `tgo run` and
-// `tgo bench` print a precision beside text the model actually produced, and a
+// replaces the answer and the memory that follows from it: `forma run` and
+// `forma bench` print a precision beside text the model actually produced, and a
 // header naming the precision this process guessed while the loader chose
 // another is worse under §5 than printing none. A disagreement is stated in the
 // reason rather than overwritten.
@@ -347,7 +347,7 @@ func resolvedInto(rep modelReport, in engineInfo) modelReport {
 //	M_kv = 2 · L · C · H_kv · d_h · w   ⇒   w = M_kv / (2 · L · C · H_kv · d_h)
 //
 // The width is measured rather than assumed because it is going to move. §3
-// states that the design tgo builds is f16 and that the f32 constraint which
+// states that the design forma builds is f16 and that the f32 constraint which
 // forced the wider store is closed upstream, so the day the key and value
 // states narrow, a table that kept printing f32 would overstate every cache it
 // prices by a factor of two while the engine reported the truth.
@@ -392,7 +392,7 @@ func dtypeSize(name string) int {
 	return 0
 }
 
-// infoFlagSet declares what `tgo info` accepts. See [runFlagSet] for why
+// infoFlagSet declares what `forma info` accepts. See [runFlagSet] for why
 // declaring is separate from parsing.
 func infoFlagSet() (*flag.FlagSet, *infoFlags) {
 	fs := flag.NewFlagSet("info", flag.ContinueOnError)
@@ -404,7 +404,7 @@ func infoFlagSet() (*flag.FlagSet, *infoFlags) {
 	}
 }
 
-// infoFlags holds `tgo info`'s flag values.
+// infoFlags holds `forma info`'s flag values.
 type infoFlags struct {
 	precision, device *string
 	context           *int

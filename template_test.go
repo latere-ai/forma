@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Latere AI
 // SPDX-License-Identifier: Apache-2.0
 
-package tgo
+package forma
 
 import (
 	"encoding/json"
@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/latere-ai/tgo/chat"
+	"latere.ai/x/forma/chat"
 )
 
 // stubRenderer carries a checksum and renders nothing. The comparison under
@@ -63,7 +63,7 @@ func TestACheckpointTemplateMismatchIsReported(t *testing.T) {
 		r:    other,
 		want: chat.Checksum(tmpl),
 	}, {
-		// Which of several is "the one" is not tgo's to guess, and guessing
+		// Which of several is "the one" is not forma's to guess, and guessing
 		// wrong produces a warning about a template nobody renders with.
 		name: "a named list with no default is silent",
 		raw:  `{"chat_template": [{"name": "tool_use", "template": "x"}]}`,
@@ -95,9 +95,9 @@ func TestACheckpointTemplateMismatchIsReported(t *testing.T) {
 			}
 			// 003-D2 names *both* checksums, because one is unactionable: a
 			// reader with only the checkpoint's hash cannot tell which
-			// renderer tgo used.
+			// renderer forma used.
 			if tc.want == chat.Checksum(tmpl) && !strings.Contains(got, tc.r.TemplateChecksum()) {
-				t.Errorf("warning names the checkpoint's checksum and not tgo's: %q", got)
+				t.Errorf("warning names the checkpoint's checksum and not forma's: %q", got)
 			}
 		})
 	}

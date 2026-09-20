@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Latere AI
 // SPDX-License-Identifier: Apache-2.0
 
-package tgo
+package forma
 
 import (
 	"context"
@@ -16,11 +16,11 @@ import (
 
 	"golang.design/x/accel"
 
-	"github.com/latere-ai/tgo/chat"
-	"github.com/latere-ai/tgo/model"
-	"github.com/latere-ai/tgo/nn"
-	"github.com/latere-ai/tgo/safetensors"
-	"github.com/latere-ai/tgo/weights"
+	"latere.ai/x/forma/chat"
+	"latere.ai/x/forma/model"
+	"latere.ai/x/forma/nn"
+	"latere.ai/x/forma/safetensors"
+	"latere.ai/x/forma/weights"
 )
 
 // TestOpenRefusals: every one names what was wrong, because a checkpoint is a
@@ -713,7 +713,7 @@ func TestBindBufferRefusesAViewTheBufferCannotGive(t *testing.T) {
 // TestInt8WeightsRunTheSameLoop is 004-D6 from the engine's side: precision is
 // a load-time decision and not a graph one, so the int8 path is the same loop
 // with different buffers bound — quants plus a scale plane per weight, and the
-// scale plane's name is the one tgo/nn declares.
+// scale plane's name is the one forma/nn declares.
 func TestInt8WeightsRunTheSameLoop(t *testing.T) {
 	t.Parallel()
 	dir := checkpoint{tie: true}.write(t)
@@ -800,7 +800,7 @@ func TestGainsAreF32BecauseTheGraphDeclaresThemSo(t *testing.T) {
 }
 
 // TestCacheBytesCarriesTheWidth is specs/005-kv-cache.md §3's arithmetic on the
-// library side, against the same worked example cmd/tgo's TestKVCacheArithmetic
+// library side, against the same worked example cmd/forma's TestKVCacheArithmetic
 // uses: a Qwen3-4B shape, L=36, H_kv=8, d_h=128, is 2·36·8·128 = 73728 elements
 // per position — 288 KB in f32 and 144 KB in f16.
 //

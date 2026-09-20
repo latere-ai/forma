@@ -49,7 +49,7 @@ import (
 	"golang.design/x/accel"
 	"golang.design/x/accel/quant"
 
-	"github.com/latere-ai/tgo/safetensors"
+	"latere.ai/x/forma/safetensors"
 )
 
 // Precision is the form a weight takes on the device.
@@ -150,7 +150,7 @@ type Tensor struct {
 	//
 	// It is a property of the tensor and not a policy, which is why it is
 	// declared here rather than pinned by a caller: two callers pinning it
-	// separately is two rules that have to agree, and the footprint `tgo info`
+	// separately is two rules that have to agree, and the footprint `forma info`
 	// prints is computed by one of them and the load by the other.
 	Gathered bool
 
@@ -780,7 +780,7 @@ func mappedNote(mapped bool) string {
 }
 
 // HumanBytes formats a byte count in binary units, for the load report and
-// for `tgo info`. Both must print the same digits for the same footprint, so
+// for `forma info`. Both must print the same digits for the same footprint, so
 // there is one spelling.
 func HumanBytes(n int64) string {
 	const unit = 1024

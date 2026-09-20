@@ -6,14 +6,14 @@ package server
 import (
 	"context"
 
-	"github.com/latere-ai/tgo"
-	"github.com/latere-ai/tgo/bench"
-	"github.com/latere-ai/tgo/chat"
+	"latere.ai/x/forma"
+	"latere.ai/x/forma/bench"
+	"latere.ai/x/forma/chat"
 )
 
 // Engine is everything this package needs from a model.
 //
-// It is an interface and not [tgo.Model] so that the HTTP surface can be tested
+// It is an interface and not [forma.Model] so that the HTTP surface can be tested
 // against a scripted token stream, with no device and no weights
 // (specs/009-server.md 009-D4). [Wrap] is the only implementation that ships,
 // and it forwards.
@@ -56,8 +56,8 @@ type Engine interface {
 
 // SessionSpec is what a request needs its session built with.
 //
-// Tools and thinking are session options in tgo rather than fields of
-// [tgo.Policy], because they are rendered into the prompt and Policy is one
+// Tools and thinking are session options in forma rather than fields of
+// [forma.Policy], because they are rendered into the prompt and Policy is one
 // request's sampling configuration. A server that made one session and reused
 // it could not honour either.
 type SessionSpec struct {
@@ -69,7 +69,7 @@ type SessionSpec struct {
 	Thinking bool
 
 	// Recorder instruments the loop. It is the server's, one per request, and
-	// is what feeds tgo_decode_step_seconds and tgo_logits_readback_seconds.
+	// is what feeds forma_decode_step_seconds and forma_logits_readback_seconds.
 	Recorder *bench.Recorder
 
 	// Key bounds what this request may reuse of another request's key/value
@@ -79,7 +79,7 @@ type SessionSpec struct {
 	// It is honoured only by a pooled engine, where it decides which pooled
 	// session a request may be routed to, and it fails closed: a request with
 	// no key matches only sessions whose last request had none
-	// (specs/019-session-affinity.md 019-D3). tgo has no notion of a tenant
+	// (specs/019-session-affinity.md 019-D3). forma has no notion of a tenant
 	// (009 §7), so the key is whatever the layer in front supplies.
 	Key string
 }
@@ -87,11 +87,11 @@ type SessionSpec struct {
 // Session is one conversation, and is used by exactly one request.
 type Session interface {
 	// Chat renders messages through the model's template and generates.
-	Chat(ctx context.Context, msgs []chat.Message, p tgo.Policy) (Stream, error)
+	Chat(ctx context.Context, msgs []chat.Message, p forma.Policy) (Stream, error)
 
 	// Complete generates from raw text with no template, which is what
 	// /v1/completions serves.
-	Complete(ctx context.Context, prompt string, p tgo.Policy) (Stream, error)
+	Complete(ctx context.Context, prompt string, p forma.Policy) (Stream, error)
 
 	// Close ends the request's hold on the session.
 	//
@@ -104,36 +104,36 @@ type Session interface {
 	Close() error
 }
 
-// Stream yields a completion as it is produced. It is [tgo.Stream]'s surface,
+// Stream yields a completion as it is produced. It is [forma.Stream]'s surface,
 // minus Text, which is Event().Text.
 type Stream interface {
 	Next() bool
-	Event() tgo.Event
-	Usage() tgo.Usage
+	Event() forma.Event
+	Usage() forma.Usage
 	Err() error
 
 	// StopReason and StopSequence are why generation ended. They are read once,
 	// after Next has returned false: a stream still running reports
-	// [tgo.StopRunning], and so does one that failed, whose answer is Err.
-	StopReason() tgo.StopReason
+	// [forma.StopRunning], and so does one that failed, whose answer is Err.
+	StopReason() forma.StopReason
 	StopSequence() string
 
 	// LogProbs is the tokens the last Next produced, and is empty unless the
 	// request asked for them. It is valid until the next Next
 	// (specs/030-logprobs.md §2), so a handler that keeps them appends.
-	LogProbs() []tgo.TokenProb
+	LogProbs() []forma.TokenProb
 }
 
 // Wrap adapts a loaded model to [Engine], serving it under the id name.
 //
 // Every method forwards. The mapping that is not a forward -- an ir.Request to
-// messages and a [tgo.Policy] -- is in adapt.go, and it is the only place the
+// messages and a [forma.Policy] -- is in adapt.go, and it is the only place the
 // two vocabularies meet (009-D10).
-func Wrap(m *tgo.Model, name string) Engine { return &modelEngine{m: m, name: name} }
+func Wrap(m *forma.Model, name string) Engine { return &modelEngine{m: m, name: name} }
 
 // modelEngine is [Wrap]'s implementation.
 type modelEngine struct {
-	m    *tgo.Model
+	m    *forma.Model
 	name string
 }
 
@@ -145,24 +145,24 @@ func (e *modelEngine) CacheBytesPerSession() int64 { return e.m.Info().CacheByte
 func (e *modelEngine) CheckSchema(schema []byte) error { return e.m.CheckSchema(schema) }
 
 func (e *modelEngine) NewSession(_ context.Context, spec SessionSpec) (Session, error) {
-	opts := []tgo.SessionOption{
-		tgo.WithThinking(spec.Thinking),
+	opts := []forma.SessionOption{
+		forma.WithThinking(spec.Thinking),
 		// The request's cache_salt, which this engine used to drop.
 		//
 		// A session of its own shares nothing with another session, so under
-		// [tgo.CacheSession] the salt reached nothing and dropping it was
-		// invisible. Under [tgo.CacheProcess] every session draws from one
+		// [forma.CacheSession] the salt reached nothing and dropping it was
+		// invisible. Under [forma.CacheProcess] every session draws from one
 		// block pool, and a salt that does not reach it means two tenants with
 		// the same system prompt seed identically: the second one's first token
 		// arrives fast, which is a membership test over the first one's prompt
 		// (016 §7.1). §4's loss report told both of them it had been honoured.
-		tgo.WithCacheSalt(spec.Key),
+		forma.WithCacheSalt(spec.Key),
 	}
 	if len(spec.Tools) > 0 {
-		opts = append(opts, tgo.WithTools(spec.Tools...))
+		opts = append(opts, forma.WithTools(spec.Tools...))
 	}
 	if spec.Recorder != nil {
-		opts = append(opts, tgo.WithRecorder(spec.Recorder))
+		opts = append(opts, forma.WithRecorder(spec.Recorder))
 	}
 	s, err := e.m.NewSession(opts...)
 	if err != nil {
@@ -171,13 +171,13 @@ func (e *modelEngine) NewSession(_ context.Context, spec SessionSpec) (Session, 
 	return &modelSession{s: s}, nil
 }
 
-// modelSession forwards to a [tgo.Session].
+// modelSession forwards to a [forma.Session].
 type modelSession struct {
-	s  *tgo.Session
-	st *tgo.Stream
+	s  *forma.Session
+	st *forma.Stream
 }
 
-func (s *modelSession) Chat(ctx context.Context, msgs []chat.Message, p tgo.Policy) (Stream, error) {
+func (s *modelSession) Chat(ctx context.Context, msgs []chat.Message, p forma.Policy) (Stream, error) {
 	// The nil check is not ceremony: a typed nil in an interface is not nil,
 	// and a caller that checked the stream rather than the error would read a
 	// method on it.
@@ -189,7 +189,7 @@ func (s *modelSession) Chat(ctx context.Context, msgs []chat.Message, p tgo.Poli
 	return st, nil
 }
 
-func (s *modelSession) Complete(ctx context.Context, prompt string, p tgo.Policy) (Stream, error) {
+func (s *modelSession) Complete(ctx context.Context, prompt string, p forma.Policy) (Stream, error) {
 	st, err := s.s.Complete(ctx, prompt, p)
 	if err != nil {
 		return nil, err
@@ -218,7 +218,7 @@ func (s *modelSession) Close() error { return s.s.Close() }
 // it, so a request can be routed to the session already holding the longest
 // matching prefix.
 //
-// This is what makes [github.com/latere-ai/tgo.WithPrefixCache] reachable from
+// This is what makes [latere.ai/x/forma.WithPrefixCache] reachable from
 // a server. Without it every request gets its own session and closes it on the
 // way out, so a session never sees a second turn and there is no own-prefix to
 // reuse (specs/019-session-affinity.md §1).
@@ -233,7 +233,7 @@ func (s *modelSession) Close() error { return s.s.Close() }
 // semaphore and the pool are the same number arrived at once. The pool blocks a
 // request that finds no free session, and the admitter is what turns that wait
 // into a bounded queue and a 429 (009-D3).
-func WrapPool(m *tgo.Model, name string, n int) (*PoolEngine, error) {
+func WrapPool(m *forma.Model, name string, n int) (*PoolEngine, error) {
 	p, err := m.NewPool(n)
 	if err != nil {
 		return nil, err
@@ -245,7 +245,7 @@ func WrapPool(m *tgo.Model, name string, n int) (*PoolEngine, error) {
 // pool in place of a session per request.
 type PoolEngine struct {
 	modelEngine
-	pool *tgo.Pool
+	pool *forma.Pool
 }
 
 // Sessions is how many conversations the pool holds, which is also how many
@@ -254,7 +254,7 @@ func (e *PoolEngine) Sessions() int { return e.pool.Size() }
 
 // Close releases every pooled session's device memory.
 //
-// It must be called before the [github.com/latere-ai/tgo.Model] is closed,
+// It must be called before the [latere.ai/x/forma.Model] is closed,
 // which is the order accel requires, and after the last request has finished.
 func (e *PoolEngine) Close() error { return e.pool.Close() }
 
@@ -264,7 +264,7 @@ func (e *PoolEngine) Close() error { return e.pool.Close() }
 // compares the request's token ids against every pooled session's history and
 // the ids exist only once the prompt is rendered (019 §3).
 func (e *PoolEngine) NewSession(ctx context.Context, spec SessionSpec) (Session, error) {
-	l, err := e.pool.Acquire(ctx, tgo.PoolRequest{
+	l, err := e.pool.Acquire(ctx, forma.PoolRequest{
 		Tools: spec.Tools, Thinking: spec.Thinking, Key: spec.Key, Recorder: spec.Recorder,
 	})
 	if err != nil {
@@ -273,10 +273,10 @@ func (e *PoolEngine) NewSession(ctx context.Context, spec SessionSpec) (Session,
 	return &leasedSession{l: l}, nil
 }
 
-// leasedSession forwards to a [github.com/latere-ai/tgo.Lease].
-type leasedSession struct{ l *tgo.Lease }
+// leasedSession forwards to a [latere.ai/x/forma.Lease].
+type leasedSession struct{ l *forma.Lease }
 
-func (s *leasedSession) Chat(ctx context.Context, msgs []chat.Message, p tgo.Policy) (Stream, error) {
+func (s *leasedSession) Chat(ctx context.Context, msgs []chat.Message, p forma.Policy) (Stream, error) {
 	st, err := s.l.Chat(ctx, msgs, p)
 	if err != nil {
 		return nil, err
@@ -284,7 +284,7 @@ func (s *leasedSession) Chat(ctx context.Context, msgs []chat.Message, p tgo.Pol
 	return st, nil
 }
 
-func (s *leasedSession) Complete(ctx context.Context, prompt string, p tgo.Policy) (Stream, error) {
+func (s *leasedSession) Complete(ctx context.Context, prompt string, p forma.Policy) (Stream, error) {
 	st, err := s.l.Complete(ctx, prompt, p)
 	if err != nil {
 		return nil, err
@@ -301,6 +301,6 @@ func (s *leasedSession) Close() error {
 }
 
 // Reused is how many leading prompt positions the request took from the pooled
-// session's cache. It is [github.com/latere-ai/tgo.Usage.CachedPromptTokens]
+// session's cache. It is [latere.ai/x/forma.Usage.CachedPromptTokens]
 // for a caller holding the session rather than the stream.
 func (s *leasedSession) Reused() int { return s.l.Reused() }

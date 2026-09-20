@@ -15,7 +15,7 @@ import (
 	"golang.design/x/accel"
 	"golang.design/x/accel/tensor"
 
-	"github.com/latere-ai/tgo/nn"
+	"latere.ai/x/forma/nn"
 )
 
 // One block at a real checkpoint's shapes, which is where head_dim stops being
@@ -26,14 +26,14 @@ import (
 // A block that inferred it would build every shape wrong, and the synthetic
 // tests above cannot see that: they are free to choose shapes that agree.
 //
-// Gated on TGO_MODEL and skipped by default: specs/000-decisions.md decision 8
+// Gated on FORMA_MODEL and skipped by default: specs/000-decisions.md decision 8
 // keeps a 1.5 GB checkpoint out of every run. Only config.json is read -- the
 // weights here are zeros, because what is under test is the graph and not the
 // numbers a checkpoint would put through it.
 func TestOneBlockAtACheckpointsShapes(t *testing.T) {
-	dir := os.Getenv("TGO_MODEL")
+	dir := os.Getenv("FORMA_MODEL")
 	if dir == "" {
-		t.Skip("set TGO_MODEL to a model directory to run this")
+		t.Skip("set FORMA_MODEL to a model directory to run this")
 	}
 	raw, err := os.ReadFile(filepath.Join(dir, "config.json"))
 	if err != nil {

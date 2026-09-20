@@ -1,14 +1,14 @@
 // SPDX-FileCopyrightText: 2026 Latere AI
 // SPDX-License-Identifier: Apache-2.0
 
-package tgo
+package forma
 
 import (
 	"errors"
 	"fmt"
 
-	"github.com/latere-ai/tgo/internal/grammar"
-	"github.com/latere-ai/tgo/tokenizer"
+	"latere.ai/x/forma/internal/grammar"
+	"latere.ai/x/forma/tokenizer"
 )
 
 // This file is the whole of the wiring between a request's schema and the
@@ -100,7 +100,7 @@ func (m *Model) CheckSchema(schema []byte) error {
 // session in the process from decoding.
 func (m *Model) grammar(schema []byte) (*grammar.Grammar, error) {
 	if len(schema) == 0 {
-		return nil, errors.New("tgo: the schema is empty")
+		return nil, errors.New("forma: the schema is empty")
 	}
 	key := string(schema)
 	m.schemaMu.Lock()
@@ -111,7 +111,7 @@ func (m *Model) grammar(schema []byte) (*grammar.Grammar, error) {
 	g, err := grammar.Compile(schema, vocabulary{tok: m.tok, size: m.cfg.VocabSize},
 		grammar.Options{Stop: m.stopIDs()})
 	if err != nil {
-		return nil, fmt.Errorf("tgo: %w", err)
+		return nil, fmt.Errorf("forma: %w", err)
 	}
 	if m.schemas == nil || len(m.schemas) >= schemaCacheMax {
 		m.schemas = make(map[string]*grammar.Grammar, schemaCacheMax)

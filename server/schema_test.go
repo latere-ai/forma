@@ -9,7 +9,7 @@ import (
 	"testing"
 )
 
-// §4's schema row, from both sides. A schema tgo can enforce is carried onto
+// §4's schema row, from both sides. A schema forma can enforce is carried onto
 // the policy; one it cannot is a 400 that says why, answered before anything is
 // allocated.
 
@@ -99,8 +99,8 @@ func TestAnAcceptedSchemaReachesThePolicy(t *testing.T) {
 				t.Errorf("Policy.Schema = %q, want the schema the request carried", got)
 			}
 			// And it is not reported as dropped, because it was not.
-			if loss := w.Header().Get("X-Tgo-Loss"); loss != "" {
-				t.Errorf("X-Tgo-Loss = %q on a request whose schema was enforced", loss)
+			if loss := w.Header().Get("X-Forma-Loss"); loss != "" {
+				t.Errorf("X-Forma-Loss = %q on a request whose schema was enforced", loss)
 			}
 		})
 	}
@@ -150,8 +150,8 @@ func TestJSONObjectModeRunsAndIsReported(t *testing.T) {
 	// subtraction table honours `response_format`, and llmdialect files this
 	// mode under its own name so that honouring the one does not swallow the
 	// other: a caller who asked for JSON and got prose must hear it here.
-	if loss := w.Header().Get("X-Tgo-Loss"); !strings.Contains(loss, "response_format.json_object") {
-		t.Errorf("X-Tgo-Loss = %q and does not report json_object mode, which nothing "+
+	if loss := w.Header().Get("X-Forma-Loss"); !strings.Contains(loss, "response_format.json_object") {
+		t.Errorf("X-Forma-Loss = %q and does not report json_object mode, which nothing "+
 			"enforced", loss)
 	}
 }
@@ -162,7 +162,7 @@ func TestJSONObjectModeRunsAndIsReported(t *testing.T) {
 // The two stop a completion by different rules, and the one that fires first
 // wins: a stop string cuts the text where it matched, which is half a document
 // on a request whose whole point is a document that parses. Refused here rather
-// than left to [github.com/latere-ai/tgo.Policy]'s own check, which runs inside
+// than left to [latere.ai/x/forma.Policy]'s own check, which runs inside
 // Session.start -- after this file has taken the KV reservation it exists to
 // protect, and with no field name on the error, so a caller would read a 500
 // naming nothing.

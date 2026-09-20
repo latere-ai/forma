@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Latere AI
 // SPDX-License-Identifier: Apache-2.0
 
-package tgo
+package forma
 
 import (
 	"context"
@@ -14,9 +14,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/latere-ai/tgo/bench"
-	"github.com/latere-ai/tgo/chat"
-	"github.com/latere-ai/tgo/internal/grammar"
+	"latere.ai/x/forma/bench"
+	"latere.ai/x/forma/chat"
+	"latere.ai/x/forma/internal/grammar"
 )
 
 // Runner is many conversations sharing one forward pass.
@@ -157,7 +157,7 @@ func (m *Model) NewRunner(o RunnerOptions) (*Runner, error) {
 		o.Backlog = DefaultBacklog
 	}
 	if o.Backlog < 1 {
-		return nil, fmt.Errorf("tgo: the runner's backlog is %d; a request that may "+
+		return nil, fmt.Errorf("forma: the runner's backlog is %d; a request that may "+
 			"fall behind by no steps is dropped by its first one", o.Backlog)
 	}
 	s, err := m.NewScheduler(o.Slots, SchedulerOptions{Chunk: o.Chunk, Reserve: o.Reserve})
@@ -194,7 +194,7 @@ func (r *Runner) Slots() int { return r.sched.Slots() }
 func mintDomain() (string, error) {
 	var b [16]byte
 	if _, err := rand.Read(b[:]); err != nil {
-		return "", fmt.Errorf("tgo: reading the runner's isolation domain: %w", err)
+		return "", fmt.Errorf("forma: reading the runner's isolation domain: %w", err)
 	}
 	return hex.EncodeToString(b[:]), nil
 }
@@ -264,13 +264,13 @@ func (r *Runner) start(ctx context.Context, req RunRequest, ids []int, p Policy)
 	*SlotStream, error) {
 
 	if ctx == nil {
-		return nil, errors.New("tgo: the context is nil")
+		return nil, errors.New("forma: the context is nil")
 	}
 	if err := p.check(r.m.cfg.VocabSize); err != nil {
 		return nil, err
 	}
 	if len(ids) == 0 {
-		return nil, errors.New("tgo: the prompt is empty; there is nothing to " +
+		return nil, errors.New("forma: the prompt is empty; there is nothing to " +
 			"condition on")
 	}
 	capacity := r.m.Info().Context
@@ -355,7 +355,7 @@ const DefaultBacklog = 256
 
 // ErrSlowConsumer is what a request is ended with when it stopped reading its
 // own events for long enough to fill its channel.
-var ErrSlowConsumer = errors.New("tgo: the caller stopped reading its events")
+var ErrSlowConsumer = errors.New("forma: the caller stopped reading its events")
 
 // slotStep is one step's output for one slot, crossing from the driver to the
 // request's goroutine.
@@ -599,7 +599,7 @@ func (r *Runner) failAll(err error) {
 			continue
 		}
 		if err == nil {
-			err = errors.New("tgo: the runner was closed while this request was " +
+			err = errors.New("forma: the runner was closed while this request was " +
 				"generating")
 		}
 		run.dec.end(err)

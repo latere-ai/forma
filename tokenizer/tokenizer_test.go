@@ -584,16 +584,16 @@ func FuzzEncode(f *testing.F) {
 // (specs/000-decisions.md decision 8).
 //
 // It asserts only claims the specification makes, never ids this package
-// produced: 002-D5 is explicit that a vector generated from tgo would make the
+// produced: 002-D5 is explicit that a vector generated from forma would make the
 // test assert that the code does what it does. What the spec does state, and
 // what is checked here, is that "eee" is one token on Qwen3's real merge table
 // -- the measurement section 5 uses to argue for leftmost tie-breaking.
 //
-//	TGO_TOKENIZER=/path/to/tokenizer.json go test ./tokenizer/
+//	FORMA_TOKENIZER=/path/to/tokenizer.json go test ./tokenizer/
 func TestRealTokenizer(t *testing.T) {
-	path := os.Getenv("TGO_TOKENIZER")
+	path := os.Getenv("FORMA_TOKENIZER")
 	if path == "" {
-		t.Skip("set TGO_TOKENIZER to a real tokenizer.json to run this")
+		t.Skip("set FORMA_TOKENIZER to a real tokenizer.json to run this")
 	}
 	tk, err := Load(path)
 	if err != nil {

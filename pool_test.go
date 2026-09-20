@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Latere AI
 // SPDX-License-Identifier: Apache-2.0
 
-package tgo
+package forma
 
 import (
 	"context"
@@ -13,8 +13,8 @@ import (
 
 	"golang.design/x/accel/tensor"
 
-	"github.com/latere-ai/tgo/bench"
-	"github.com/latere-ai/tgo/chat"
+	"latere.ai/x/forma/bench"
+	"latere.ai/x/forma/chat"
 )
 
 // The capacity every pooled session in this file runs at.

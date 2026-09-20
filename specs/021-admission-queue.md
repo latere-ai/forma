@@ -20,7 +20,7 @@ scheduler (`server/admit.go:40`).
 
 This spec designs the one queue that sits in front of admission, so a request
 that cannot be admitted now waits instead of failing, and so
-`tgo_queue_wait_seconds` reports a number that includes both reasons a request
+`forma_queue_wait_seconds` reports a number that includes both reasons a request
 waits rather than one of them.
 
 ## 1. What is there today, and what each half measures
@@ -51,7 +51,7 @@ design and is not this one.
 
 ## 2. Where the queue lives
 
-**A third object, in package `tgo`, over `Scheduler`. This overrules
+**A third object, in package `forma`, over `Scheduler`. This overrules
 [008-D9](008-scheduler.md)'s placement and keeps its conclusion.**
 
 008-D9 says [019](019-session-affinity.md)'s `Pool` becomes the queue, on the
@@ -193,8 +193,8 @@ An unbounded queue converts a refusal into an unbounded latency, which is
 | wait $W$ | 30s | 429, `reason="queue_timeout"` |
 
 $D = 8N$ reproduces today's number where today's number is: `DefaultQueue` is
-32 (`server/options.go:30`) and `tgo serve` defaults to four sessions
-(`cmd/tgo/main.go:135`), so $8 \times 4 = 32$. Stating it as a multiple of $N$
+32 (`server/options.go:30`) and `forma serve` defaults to four sessions
+(`cmd/forma/main.go:135`), so $8 \times 4 = 32$. Stating it as a multiple of $N$
 is what makes it scale with a `--sessions` a deployment raises, which the
 constant does not. $W$ keeps `DefaultQueueWait` (`server/options.go:33`).
 
@@ -271,7 +271,7 @@ tenants sent.
 
 ## 7. What the queue measures
 
-The queue is in package `tgo` and the exposition is in `server`, whose `metrics`
+The queue is in package `forma` and the exposition is in `server`, whose `metrics`
 type is package-private (`server/metrics.go:75`). So the queue exports a
 snapshot and 022 wires it to the series that already exist:
 
@@ -286,9 +286,9 @@ type QueueStats struct {
 
 | series | today | under this spec |
 | --- | --- | --- |
-| `tgo_queue_depth` | `metrics.go:165-167`, waiters for a session slot | waiters for a slot **and** its blocks |
-| `tgo_queue_wait_seconds` | `metrics.go:169-171` | same name, real number: it now includes the block wait |
-| `tgo_sessions_rejected_total{reason}` | `metrics.go:188-191` | the same three reasons `server/admit.go` already emits: `queue_full`, `queue_timeout`, `client_gone` |
+| `forma_queue_depth` | `metrics.go:165-167`, waiters for a session slot | waiters for a slot **and** its blocks |
+| `forma_queue_wait_seconds` | `metrics.go:169-171` | same name, real number: it now includes the block wait |
+| `forma_sessions_rejected_total{reason}` | `metrics.go:188-191` | the same three reasons `server/admit.go` already emits: `queue_full`, `queue_timeout`, `client_gone` |
 
 `metrics.go:169`'s help text says "waiting for a session slot" and becomes wrong
 when the denominator changes. That, and adding the new series to
@@ -296,7 +296,7 @@ when the denominator changes. That, and adding the new series to
 an owner rather than a discoverer.
 
 **One new series, and it is the one [008 §3](008-scheduler.md) asks for:**
-`tgo_admission_deferred_total{reason}`, counting `no_slot` against
+`forma_admission_deferred_total{reason}`, counting `no_slot` against
 `block_pool`. §3 requires that a rejection for "no slot" and a rejection for
 "the pool cannot hold this" are distinguishable, because a server that reports
 one number for both is indistinguishable from a slow one, and `Scheduler.Admit`
@@ -374,7 +374,7 @@ suite needs no device (§2, and [008 §8](008-scheduler.md)'s reason).
 - **Eviction policy.** 008-D5 and `victim` (`schedule.go:128`) are decided and
   unchanged. §3 says only how the queue interacts with them.
 - **Per-request reserve.** $R$ stays one deployment number (§1).
-- **Priorities, tenants, or per-key fairness.** [009 §7](009-server.md): tgo has
+- **Priorities, tenants, or per-key fairness.** [009 §7](009-server.md): Forma has
   no notion of a tenant, and a queue that ranked by one would invent it.
 
 ## 11. Scope
@@ -394,7 +394,7 @@ call site moved. `queue_test.go` is the §9 table plus four rows §9 did not nam
 
 **What shipped**, section by section. §1's conjunction is evaluated in one place
 (`Scheduler.Feasible` and `Scheduler.Admit`); §2's third object is
-`tgo.Queue` over the `Admitter` interface, with one driver goroutine that never
+`forma.Queue` over the `Admitter` interface, with one driver goroutine that never
 holds the queue's lock across an admission; §3's FIFO with a bounded overtake
 and a monotone reserving head is `Queue.drive`; §4's $D = 8N$ and $W$ are
 `QueueOptions` defaults and `Queue.Wait` is what a `Retry-After` is derived
@@ -461,7 +461,7 @@ different design; 022 is where it is made.
 the queue — replacing `server/admit.go`'s semaphore, deleting the second
 semaphore [019 §8.6](019-session-affinity.md) describes, wiring `QueueStats`
 into `metrics`, fixing `metrics.go:169`'s help text and adding
-`tgo_admission_deferred_total` to [009 §6](009-server.md)'s list — is
+`forma_admission_deferred_total` to [009 §6](009-server.md)'s list — is
 [022](022-batched-serving.md)'s, as §10 says. Nothing in `server/` imports
 `Queue` yet, which is that spec's first pass rather than a gap in this one.
 
@@ -469,7 +469,7 @@ into `metrics`, fixing `metrics.go:169`'s help text and adding
 
 | id | decision | rejected | consequence |
 | --- | --- | --- | --- |
-| 021-D1 | the queue is a third object over `Scheduler`, in package `tgo` | put it in [019](019-session-affinity.md)'s `Pool`, as [008-D9](008-scheduler.md) says; or in `Batch` | `Pool.sem` waits on an idle session and takes its token before the prompt exists (`pool.go:188`), so it cannot express §1's second condition; `Batch` is mechanism (008-D8). 008-D9's conclusion — the scheduler inherits the waiting — is kept and its placement is superseded |
+| 021-D1 | the queue is a third object over `Scheduler`, in package `forma` | put it in [019](019-session-affinity.md)'s `Pool`, as [008-D9](008-scheduler.md) says; or in `Batch` | `Pool.sem` waits on an idle session and takes its token before the prompt exists (`pool.go:188`), so it cannot express §1's second condition; `Batch` is mechanism (008-D8). 008-D9's conclusion — the scheduler inherits the waiting — is kept and its placement is superseded |
 | 021-D2 | the queue drives the scheduler through an `Admitter` interface, not by holding `Scheduler.mu` | a blocking `Scheduler.Admit` | `Step` holds `s.mu` for the whole dispatch (`scheduler.go:206`), so a blocking admit under it would wait on the lock it needs released. The interface also makes every ordering and cancellation case testable with no device, which is [008 §8](008-scheduler.md)'s principle |
 | 021-D3 | feasibility is arithmetic at the door, not error classification | queue everything and let `Admit` sort it out | `prefix.ErrExhausted` means "the pool is too small" (`prefix.go:275-278`) and "the blocks are busy" (`prefix.go:352`), and `Scheduler.Admit` returns both unwrapped (`scheduler.go:105-107`). Refusing the first at the door is what makes §3's head-of-line bound finite |
 | 021-D4 | FIFO with a bounded overtake of $K$; the head becomes reserving on the $K$-th | strict FIFO; or best-fit over the whole queue | strict FIFO idles a free slot behind a head waiting for blocks; best-fit starves large prompts, and a starving admission is a refusal that never says so. The bound makes the worst case $K$ overtakes and then $W$ |
@@ -477,5 +477,5 @@ into `metrics`, fixing `metrics.go:169`'s help text and adding
 | 021-D6 | $D = 8N$ and $W$ stay a bound, and `Retry-After` is $\lceil W \rceil$ | an unbounded queue; or a `Retry-After` estimated from service time | an unbounded queue converts a refusal into an unbounded latency ([009-D3](009-server.md)). $W$ is the only interval the queue can promise; a service-time estimate guesses low under the load that produced the 429, which is a retry storm |
 | 021-D7 | the wait budget is a timer beside the context, not a context derived from it | `context.WithTimeout(ctx, W)` | a derived context reports `DeadlineExceeded` for both a full budget and a caller's own deadline, and the two answer 429 and 499 (`server/errors.go:82-85`). `server/admit.go:91` already splits them |
 | 021-D8 | arrival order wins over affinity, and the queue does not read the key | reorder so requests sharing a prefix are admitted adjacently | under `CacheProcess` reuse is keyed on chained block hashes seeded with the salt (`batch.go:244`), so the slot a request lands in does not change what it reuses — 008-D9's own amendment. Reordering would cost FIFO and buy what the pool's LRU already gives |
-| 021-D9 | the queue exports a stats snapshot; `server` keeps the series names | write Prometheus text from package `tgo` | `server.metrics` is package-private (`server/metrics.go:75`) and the exposition is [009 §6](009-server.md)'s. `tgo_queue_depth` and `tgo_queue_wait_seconds` keep their names and change denominator, and `tgo_admission_deferred_total{reason}` is added because [008 §3](008-scheduler.md) requires the two deferral reasons to be distinguishable |
+| 021-D9 | the queue exports a stats snapshot; `server` keeps the series names | write Prometheus text from package `forma` | `server.metrics` is package-private (`server/metrics.go:75`) and the exposition is [009 §6](009-server.md)'s. `forma_queue_depth` and `forma_queue_wait_seconds` keep their names and change denominator, and `forma_admission_deferred_total{reason}` is added because [008 §3](008-scheduler.md) requires the two deferral reasons to be distinguishable |
 | 021-D10 | a waiter cancelled after the admit side won is **finished** by the queue before `Admit` returns `ctx.Err()` | return the error and let the caller's `defer` sort it out; or refuse to admit an entry whose context is already done | the caller is returning an error and holds no slot index, so nothing would call `Finish` and the slot is out of the batch for the life of the process — `pool.go:177-180`'s failure, worse here because a slot also holds blocks. Checking the context first does not help: the check and the win are two moments, so the race survives it |

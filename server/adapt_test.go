@@ -10,8 +10,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/latere-ai/tgo"
-	"github.com/latere-ai/tgo/chat"
+	"latere.ai/x/forma"
+	"latere.ai/x/forma/chat"
 )
 
 // The shapes an engine can produce that a naive translation would drop or
@@ -22,8 +22,8 @@ import (
 
 func TestAnEventStreamWithNoBlockStartStillCarriesItsText(t *testing.T) {
 	t.Parallel()
-	eng := &fakeEngine{script: []tgo.Event{
-		{Kind: tgo.TextDelta, Block: chat.BlockText, Text: "orphaned"},
+	eng := &fakeEngine{script: []forma.Event{
+		{Kind: forma.TextDelta, Block: chat.BlockText, Text: "orphaned"},
 	}}
 	s := newTestServer(t, eng)
 	w := post(t, s, "/v1/chat/completions", routes[0].body(""))
@@ -35,11 +35,11 @@ func TestAnEventStreamWithNoBlockStartStillCarriesItsText(t *testing.T) {
 
 func TestAStrayBlockStopIsNotFramed(t *testing.T) {
 	t.Parallel()
-	eng := &fakeEngine{script: []tgo.Event{
-		{Kind: tgo.BlockStop, Block: chat.BlockText},
-		{Kind: tgo.BlockStart, Block: chat.BlockText},
-		{Kind: tgo.TextDelta, Block: chat.BlockText, Text: "hi"},
-		{Kind: tgo.BlockStop, Block: chat.BlockText},
+	eng := &fakeEngine{script: []forma.Event{
+		{Kind: forma.BlockStop, Block: chat.BlockText},
+		{Kind: forma.BlockStart, Block: chat.BlockText},
+		{Kind: forma.TextDelta, Block: chat.BlockText, Text: "hi"},
+		{Kind: forma.BlockStop, Block: chat.BlockText},
 	}}
 	s := newTestServer(t, eng)
 	fs := streamBody(t, s, "/v1/messages", routes[1].body(`,"stream":true`))
@@ -63,7 +63,7 @@ func TestAStrayBlockStopIsNotFramed(t *testing.T) {
 func TestAnUnknownEventKindIsSkipped(t *testing.T) {
 	t.Parallel()
 	var b blockIndex
-	if _, ok := b.translate(tgo.Event{Kind: tgo.EventKind(200)}); ok {
+	if _, ok := b.translate(forma.Event{Kind: forma.EventKind(200)}); ok {
 		t.Error("an unknown event kind was translated into an IR event")
 	}
 	if _, ok := b.closeOpen(); ok {

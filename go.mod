@@ -1,4 +1,4 @@
-module github.com/latere-ai/tgo
+module latere.ai/x/forma
 
 go 1.27.0
 

@@ -36,7 +36,7 @@ as the reference the device path is checked against. Nothing here deletes it.
 
 ## 2. The number this spec is about
 
-$V$ is not a tgo constant. `model/config.go:52` reads `VocabSize` from the
+$V$ is not a Forma constant. `model/config.go:52` reads `VocabSize` from the
 checkpoint's `vocab_size`, and for Qwen3 it is **151936**, which is the value
 `model/qwen3_real_test.go:47` pins and `batch.go:396` quotes.
 
@@ -111,7 +111,7 @@ batch, cache dtype, stored weights. Recording the sampling nodes into that graph
 would put the policy's *shape* into that key, so changing one slot's top-$k$
 would recompile a graph of some 790 nodes.
 [010 §3](010-conformance.md) already lists plan compile time per bucket as a
-number tgo measures, and [017 §4.1](017-benchmarks.md) puts cold start at 27.6s.
+number Forma measures, and [017 §4.1](017-benchmarks.md) puts cold start at 27.6s.
 A policy change at admission cannot cost that.
 
 So the boundary is a second plan over the same buffer.
@@ -309,7 +309,7 @@ $$u_{i} = \frac{\big(\mathrm{finalize}(\text{seed} + i \cdot \varphi^{-1}2^{64})
 with `Draw(step)` indexed by the **token position** rather than by a draw
 counter (accel `tensor/stream.go:85`).
 
-tgo adopts it, and three things follow.
+Forma adopts it, and three things follow.
 
 - **[006-D2](006-sampling.md) becomes structural.** "One draw per step whatever
   the policy" was a discipline the host sampler kept by taking the draw before
@@ -318,8 +318,8 @@ tgo adopts it, and three things follow.
   principle. 006-D2's row should be amended in place to say so; this spec cannot
   edit 006.
 - **The seed is the request's, never the slot's.** `Derive(root, seq)` exists for
-  a batch sharing one root seed. tgo's `Policy.Seed` (`policy.go`) is per
-  request, so tgo uses `Stream{Seed: p.Seed}` directly and reaches for `Derive`
+  a batch sharing one root seed. Forma's `Policy.Seed` (`policy.go`) is per
+  request, so Forma uses `Stream{Seed: p.Seed}` directly and reaches for `Derive`
   only to synthesise seeds for requests that gave none. Deriving by slot index
   would make a completion depend on **which slot the scheduler happened to
   admit it into**, which is reproducibility destroyed by the thing it was meant

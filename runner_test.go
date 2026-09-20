@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Latere AI
 // SPDX-License-Identifier: Apache-2.0
 
-package tgo
+package forma
 
 import (
 	"context"
@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/latere-ai/tgo/bench"
+	"latere.ai/x/forma/bench"
 )
 
 // newRunner opens a runner over the shared block pool and closes it with the
@@ -695,7 +695,7 @@ func TestAMintedSaltCannotBeNamed(t *testing.T) {
 	if first == second {
 		t.Fatalf("two minted salts are both %q", first)
 	}
-	for _, guess := range []string{"1", "0", "-1", "tgo-1", first[:8]} {
+	for _, guess := range []string{"1", "0", "-1", "forma-1", first[:8]} {
 		if r.salt(guess) == first || r.salt(guess) == second {
 			t.Errorf("a caller naming %q reaches a minted domain", guess)
 		}

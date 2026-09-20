@@ -18,15 +18,15 @@ import (
 	"testing"
 	"time"
 
-	tgo "github.com/latere-ai/tgo"
-	"github.com/latere-ai/tgo/server"
-	"github.com/latere-ai/tgo/weights"
+	forma "latere.ai/x/forma"
+	"latere.ai/x/forma/server"
+	"latere.ai/x/forma/weights"
 )
 
 // fakeServerEngine is a model as [server.Engine] sees one.
 //
 // Five of its seven methods are constants, which is all the paths under test
-// need: `tgo serve` binds, prints and stops, and makes no request. NewSession
+// need: `forma serve` binds, prints and stops, and makes no request. NewSession
 // and CheckSchema refuse, so a test that started generating, or compiled a
 // schema, by accident fails rather than hanging.
 type fakeServerEngine struct {
@@ -53,7 +53,7 @@ func (f *fakeServerEngine) CheckSchema([]byte) error {
 	return errors.New("this fake engine compiles nothing")
 }
 
-// fakeServable is the model `tgo serve` loads, without a device or a
+// fakeServable is the model `forma serve` loads, without a device or a
 // checkpoint.
 //
 // The four numbers are pairwise distinct and none of them divides another
@@ -118,7 +118,7 @@ func TestParseServeDefaults(t *testing.T) {
 	if o.Engine.Context != defaultContext {
 		t.Errorf("context = %d, want %d", o.Engine.Context, defaultContext)
 	}
-	if o.Engine.Device != tgo.AutoDevice {
+	if o.Engine.Device != forma.AutoDevice {
 		t.Errorf("device = %v, want auto", o.Engine.Device)
 	}
 }
@@ -129,7 +129,7 @@ func TestParseServeFlags(t *testing.T) {
 	if err != nil {
 		t.Fatalf("parseServe: %v", err)
 	}
-	if o.Addr != "0.0.0.0:8080" || !o.Public || o.Engine.Context != 1024 || o.Engine.Device != tgo.CPU {
+	if o.Addr != "0.0.0.0:8080" || !o.Public || o.Engine.Context != 1024 || o.Engine.Device != forma.CPU {
 		t.Errorf("parseServe = %+v, want every flag carried through", o)
 	}
 	if got := o.Engine.Precision.String(); got != "int8" {
@@ -503,11 +503,11 @@ func useCountedServable(t *testing.T, info engineInfo) *int {
 }
 
 // TestServeReleasesTheModelItLoaded: a loaded checkpoint holds device memory,
-// so both ways out of `tgo serve` have to give it back -- a start that failed
+// so both ways out of `forma serve` have to give it back -- a start that failed
 // after the load, and a command that returned after its interrupt.
 //
 // Neither is visible from outside the process: the operating system reclaims
-// everything at exit, so a leak here is a `tgo serve` embedded in something
+// everything at exit, so a leak here is a `forma serve` embedded in something
 // longer-lived holding a whole checkpoint and nothing saying so. The release is
 // therefore counted at the seam rather than inferred from the listener, which
 // stops answering whether or not the model was freed.
@@ -567,7 +567,7 @@ func TestServeRoutesAreTheRoutesTheServerAnswers(t *testing.T) {
 			w := httptest.NewRecorder()
 			srv.ServeHTTP(w, req)
 			if w.Code == http.StatusNotFound {
-				t.Errorf("`tgo serve` prints %s %s and the server answers 404", r.Method, r.Path)
+				t.Errorf("`forma serve` prints %s %s and the server answers 404", r.Method, r.Path)
 			}
 		})
 	}
@@ -813,18 +813,18 @@ func (s *syncBuilder) String() string {
 	return s.b.String()
 }
 
-// TestServeARealCheckpoint runs the whole command against the model TGO_MODEL
+// TestServeARealCheckpoint runs the whole command against the model FORMA_MODEL
 // names: the live loader, a real device, a real request over HTTP, and the
 // graceful stop.
 //
 // Skipped by default (specs/000-decisions.md decision 8). It stays in the tree
 // because openServable is the one path above that no fake exercises: every
 // other test replaces it, so without this nothing checks that server.Wrap and
-// tgo.Open agree with what this file asks of them.
+// forma.Open agree with what this file asks of them.
 func TestServeARealCheckpoint(t *testing.T) {
-	dir := os.Getenv("TGO_MODEL")
+	dir := os.Getenv("FORMA_MODEL")
 	if dir == "" {
-		t.Skip("TGO_MODEL is not set; this test loads a real checkpoint")
+		t.Skip("FORMA_MODEL is not set; this test loads a real checkpoint")
 	}
 	interrupt, _ := useInterrupts(t)
 	stdout, stderr := &syncBuilder{}, &syncBuilder{}
@@ -973,15 +973,15 @@ func TestServeRefusesANegativeSessionCount(t *testing.T) {
 func TestServePassesThePrefixCacheFlagToTheLoader(t *testing.T) {
 	for _, tc := range []struct {
 		args []string
-		want tgo.CacheScope
+		want forma.CacheScope
 	}{
-		{nil, tgo.CacheOff},
+		{nil, forma.CacheOff},
 		// Bare, which has to keep meaning the session scope and has to not
 		// swallow the model directory after it.
-		{[]string{"--prefix-cache"}, tgo.CacheSession},
-		{[]string{"--prefix-cache=off"}, tgo.CacheOff},
-		{[]string{"--prefix-cache=session"}, tgo.CacheSession},
-		{[]string{"--prefix-cache=process"}, tgo.CacheProcess},
+		{[]string{"--prefix-cache"}, forma.CacheSession},
+		{[]string{"--prefix-cache=off"}, forma.CacheOff},
+		{[]string{"--prefix-cache=session"}, forma.CacheSession},
+		{[]string{"--prefix-cache=process"}, forma.CacheProcess},
 	} {
 		o, err := parseServe(append(append([]string(nil), tc.args...), "models/x"))
 		if err != nil {
@@ -1087,12 +1087,12 @@ func TestServeBatchedImpliesTheProcessScope(t *testing.T) {
 	for _, tc := range []struct {
 		name  string
 		args  []string
-		scope tgo.CacheScope
+		scope forma.CacheScope
 	}{
-		{"bare", []string{"--batched"}, tgo.CacheProcess},
+		{"bare", []string{"--batched"}, forma.CacheProcess},
 		{"asked for the same scope", []string{"--batched", "--prefix-cache=process"},
-			tgo.CacheProcess},
-		{"not asked for at all", nil, tgo.CacheOff},
+			forma.CacheProcess},
+		{"not asked for at all", nil, forma.CacheOff},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			o, err := parseServe(append(tc.args, filepath.Join("models", "qwen3")))
@@ -1123,11 +1123,11 @@ func TestServeBatchedImpliesTheProcessScope(t *testing.T) {
 // ceil((T+R)/B) is then more blocks than one sequence's share of the pool.
 func TestServeReserveFitsTheContext(t *testing.T) {
 	for _, c := range []struct{ context, want int }{
-		{4096, tgo.DefaultReserve},
-		{1024, tgo.DefaultReserve},
+		{4096, forma.DefaultReserve},
+		{1024, forma.DefaultReserve},
 		{256, 128},
-		{32, tgo.CacheBlock},
-		{8, tgo.CacheBlock},
+		{32, forma.CacheBlock},
+		{8, forma.CacheBlock},
 	} {
 		if got := serveReserve(c.context); got != c.want {
 			t.Errorf("serveReserve(%d) = %d, want %d", c.context, got, c.want)

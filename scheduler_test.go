@@ -1,14 +1,14 @@
 // SPDX-FileCopyrightText: 2026 Latere AI
 // SPDX-License-Identifier: Apache-2.0
 
-package tgo
+package forma
 
 import (
 	"errors"
 	"strings"
 	"testing"
 
-	"github.com/latere-ai/tgo/internal/prefix"
+	"latere.ai/x/forma/internal/prefix"
 )
 
 func newScheduler(t *testing.T, m *Model, n int, o SchedulerOptions) *Scheduler {

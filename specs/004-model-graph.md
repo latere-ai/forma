@@ -18,7 +18,7 @@ returns tensors, and weights arrive as `tensor.Weight` ports declared by name.
 
 ```mermaid
 flowchart TB
-  subgraph tgo
+  subgraph forma
     M["model/qwen3<br/>config -> forward pass"] --> N["nn<br/>RMSNorm, Attention, MLP"]
     M --> R["model<br/>registry, Config, weight map"]
   end
@@ -27,7 +27,7 @@ flowchart TB
   A --> D["CPU backend / Metal"]
 ```
 
-The arrow that must not exist is tgo → accel's device layer. If a model needs
+The arrow that must not exist is Forma → accel's device layer. If a model needs
 it, that is [000 D1](000-decisions.md) and it becomes a
 [010](010-conformance.md) register row.
 
@@ -112,7 +112,7 @@ was always f32.
 
 At $M = 1$, which is every decode step, **the matrix-vector kernel is reached on
 the int8 path and not on the f16 one.** accel's matrix-vector kernel reads f16
-on *both* operands and tgo's activations are f32, so an f16 weight takes the
+on *both* operands and Forma's activations are f32, so an f16 weight takes the
 tile and most of its rows are idle. `QuantMatMul` has an $M = 1$ specialisation
 that takes an f32 activation ([C15](010-conformance.md)), so the int8 path —
 what `auto` picks for a large model — is the one with a decode kernel.
@@ -207,7 +207,7 @@ the batched-RoPE bug in accel 043, arrived at from the other direction.
 ### 2.5.2 The fix is a load-time permutation, and its order is forced
 
 The two conventions are related by a permutation of the head's channels, so
-tgo pre-permutes the projection's **output** channels at load and accel's
+Forma pre-permutes the projection's **output** channels at load and accel's
 interleaved kernel then computes the half-split rotation:
 
 $$y[2i] = x[i], \qquad y[2i+1] = x[i + d_h/2], \qquad 0 \le i < d_h/2$$
@@ -224,7 +224,7 @@ is applied per channel before RoPE and its gain vector must follow its channels.
    for it. [001-D5](001-weights.md)'s "measured post-transpose" becomes
    post-transpose-**and-permute**.
 2. **It is host-side and load-time**, so it costs nothing at run time and stays
-   inside [000 D1](000-decisions.md) — it is a layout decision about bytes tgo
+   inside [000 D1](000-decisions.md) — it is a layout decision about bytes Forma
    owns, not a kernel.
 
 `rotaryDim` is $d_h$: Qwen3 rotates the whole head.
@@ -247,13 +247,13 @@ $$\text{positions} = [\,p_0^{\times H},\ p_1^{\times H},\ \dots,\ p_{T-1}^{\time
 > This signature is one day old. It took a scalar `Offset` and computed
 > `row + Offset`, which is exactly right for one sequence and silently wrong for
 > a batch: the row index is the *slot*, so only one member rotates at its own
-> cache length. tgo filed
+> cache length. Forma filed
 > [accel#2](https://github.com/golang-design/accel/issues/2); accel
 > [043](https://github.com/golang-design/accel/blob/main/specs/043-per-row-values.md)
 > generalised it into one rule — *a scalar is a value every row shares; a value
 > that differs per row is a tensor* — and changed the operator.
 >
-> The consequence for tgo is that **there is no batched RoPE to write later**.
+> The consequence for Forma is that **there is no batched RoPE to write later**.
 > The one-row tensor a single sequence binds is the same mechanism, which is
 > 043 §3's orthogonality test.
 
@@ -341,7 +341,7 @@ $V=151936$, a 4096-position cache — **760 kernel selections** for prefill and
 > **The dtype-check casts are gone.** An earlier draft of this table had four
 > `Cast` nodes per layer — rows 5, 17, 20 and 23 — because `MatMul` required its
 > two operands to share a dtype, and a transformer's activations are f32 while
-> its weights are f16 or int8. tgo reported the cost; accel relaxed the rule
+> its weights are f16 or int8. Forma reported the cost; accel relaxed the rule
 > ([C8](010-conformance.md)). Measured on the real graph: **1013 kernel
 > selections became 760.**
 >
@@ -388,7 +388,7 @@ test.
 
 The `Contiguous` after the `Slice` is deliberate: `Slice` returns a view with a
 non-zero offset, and accel refuses a strided operand into `MatMul` rather than
-copying behind the caller's back. Calling `Contiguous` is how tgo says the copy
+copying behind the caller's back. Calling `Contiguous` is how Forma says the copy
 is worth it — and at `[1,d]` it is 10 KB, which it plainly is.
 
 ## 4. The weight map
@@ -436,7 +436,7 @@ table transposed. Two consequences:
   > proved it. An earlier draft refused *any* tied checkpoint that also shipped a
   > head. Qwen3-0.6B does exactly that, and its two planes hash identically
   > (`8f29acf5…`, verified over both 311 MB ranges) — so the rule refused the
-  > model tgo exists to run. Shapes alone cannot tell the two cases apart, which
+  > model Forma exists to run. Shapes alone cannot tell the two cases apart, which
   > is why the comparison is on bytes and belongs to the loader rather than to
   > the header check.
 
@@ -450,7 +450,7 @@ string was right and the weights are not the ones the map was written for.
 
 ## 5. The config
 
-Read from `config.json`. **tgo reads these values from the file; nothing depends
+Read from `config.json`. **Forma reads these values from the file; nothing depends
 on a number written in this spec.** The symbolic shapes above are what the code
 uses.
 
@@ -593,7 +593,7 @@ from comes from the checkpoint's own `config.json` rather than from this file
   the graph needed it, and a refusal whose cause is gone refuses a working
   configuration.
 - The matrix-vector kernel at $M=1$ is the int8 path's, not the f16 path's.
-  accel's matvec reads f16 on both operands and tgo's activations are f32
+  accel's matvec reads f16 on both operands and Forma's activations are f32
   (`nn/blocks_test.go:93`), which is the one numeric claim in this spec that the
   code contradicted rather than extended.
 - §8's oracle tier is the CPU backend only. Metal is covered by an end-to-end
@@ -632,4 +632,4 @@ zero-extent port name in accel's diagnostics.
 | 004-D7 | a tied head uploads two planes | share one buffer | the two layouts differ; sharing needs [C9](010-conformance.md), which accel correctly refuses |
 | 004-D10 | tied **and** shipped is refused only when the planes differ | refuse on the config/tensor mismatch alone | the first rule refused Qwen3-0.6B, which is tied, ships a head, and has identical planes. A header check cannot decide it, so the comparison is the loader's ([§4](#4-the-weight-map)) |
 | 004-D8 | shapes in this spec are symbolic; values come from `config.json` | hardcode a size's constants | a spec cannot go stale against a checkpoint it does not contain |
-| 004-D9 | permute q/k projection output channels and the QK-norm gains at load, after transpose and before quantization | ask accel for a NeoX RoPE; permute on device each step | accel is interleaved and Qwen3 is half-split; nothing refuses the mismatch. A load-time byte layout is tgo's to own and costs nothing per step ([§2.5.2](#252-the-fix-is-a-load-time-permutation-and-its-order-is-forced)) |
+| 004-D9 | permute q/k projection output channels and the QK-norm gains at load, after transpose and before quantization | ask accel for a NeoX RoPE; permute on device each step | accel is interleaved and Qwen3 is half-split; nothing refuses the mismatch. A load-time byte layout is Forma's to own and costs nothing per step ([§2.5.2](#252-the-fix-is-a-load-time-permutation-and-its-order-is-forced)) |

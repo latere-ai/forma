@@ -14,7 +14,7 @@ import (
 	"golang.design/x/accel/quant"
 	"golang.design/x/accel/tensor"
 
-	"github.com/latere-ai/tgo/nn"
+	"latere.ai/x/forma/nn"
 )
 
 // rig records one graph, compiles it on the CPU backend and submits it.

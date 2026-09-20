@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Latere AI
 // SPDX-License-Identifier: Apache-2.0
 
-package tgo
+package forma
 
 import (
 	"context"
@@ -9,8 +9,8 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/latere-ai/tgo/bench"
-	"github.com/latere-ai/tgo/chat"
+	"latere.ai/x/forma/bench"
+	"latere.ai/x/forma/chat"
 )
 
 // Pool is N conversations' worth of key/value cache, held for the process's
@@ -97,7 +97,7 @@ type PoolRequest struct {
 	// a caller who supplies nothing shares with nobody rather than with
 	// everybody (019-D3).
 	//
-	// tgo has no notion of a tenant (009 §7), so the key is whatever the layer
+	// forma has no notion of a tenant (009 §7), so the key is whatever the layer
 	// in front supplies. specs/016-prefix-cache.md §7.1's cache_salt is what
 	// the server puts here.
 	Key string
@@ -118,7 +118,7 @@ type PoolRequest struct {
 // The pool must be closed before the [Model] is.
 func (m *Model) NewPool(n int) (*Pool, error) {
 	if n < 1 {
-		return nil, fmt.Errorf("tgo: a pool of %d sessions holds no conversation; it needs "+
+		return nil, fmt.Errorf("forma: a pool of %d sessions holds no conversation; it needs "+
 			"at least one", n)
 	}
 	p := &Pool{m: m, sem: make(chan struct{}, n), entries: make([]*poolEntry, 0, n)}
@@ -126,7 +126,7 @@ func (m *Model) NewPool(n int) (*Pool, error) {
 		s, err := m.NewSession()
 		if err != nil {
 			_ = p.Close()
-			return nil, fmt.Errorf("tgo: reserving session %d of %d for the pool: %w",
+			return nil, fmt.Errorf("forma: reserving session %d of %d for the pool: %w",
 				i+1, n, err)
 		}
 		p.entries = append(p.entries, &poolEntry{s: s})
@@ -160,7 +160,7 @@ func (p *Pool) Close() error {
 		errs = append(errs, e.s.Close())
 	}
 	if leased > 0 {
-		errs = append(errs, fmt.Errorf("tgo: the pool was closed with %d session(s) still "+
+		errs = append(errs, fmt.Errorf("forma: the pool was closed with %d session(s) still "+
 			"leased; their requests were still generating", leased))
 	}
 	return errors.Join(errs...)
@@ -180,7 +180,7 @@ func (p *Pool) Close() error {
 // life of the process.
 func (p *Pool) Acquire(ctx context.Context, req PoolRequest) (*Lease, error) {
 	if ctx == nil {
-		return nil, errors.New("tgo: the context is nil")
+		return nil, errors.New("forma: the context is nil")
 	}
 	if err := ctx.Err(); err != nil {
 		return nil, err
@@ -195,7 +195,7 @@ func (p *Pool) Acquire(ctx context.Context, req PoolRequest) (*Lease, error) {
 	p.mu.Unlock()
 	if closed {
 		<-p.sem
-		return nil, errors.New("tgo: the pool is closed")
+		return nil, errors.New("forma: the pool is closed")
 	}
 	return &Lease{p: p, req: req}, nil
 }
@@ -276,7 +276,7 @@ func (l *Lease) Reused() int {
 // usable reports whether this lease will accept work.
 func (l *Lease) usable() error {
 	if l.released {
-		return errors.New("tgo: the lease has been released and its session is another " +
+		return errors.New("forma: the lease has been released and its session is another " +
 			"request's")
 	}
 	return nil
@@ -285,7 +285,7 @@ func (l *Lease) usable() error {
 // generate routes the request and starts it.
 func (l *Lease) generate(ctx context.Context, ids []int, p Policy) (*Stream, error) {
 	if len(ids) == 0 {
-		return nil, errors.New("tgo: the prompt is empty; there is nothing to condition on")
+		return nil, errors.New("forma: the prompt is empty; there is nothing to condition on")
 	}
 	if l.e == nil {
 		e, matched := l.p.route(ids, l.req.Key)

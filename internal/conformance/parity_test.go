@@ -11,9 +11,9 @@ import (
 	"golang.design/x/accel"
 	"golang.design/x/accel/tensor"
 
-	"github.com/latere-ai/tgo/internal/conformance"
-	"github.com/latere-ai/tgo/internal/oracle"
-	"github.com/latere-ai/tgo/nn"
+	"latere.ai/x/forma/internal/conformance"
+	"latere.ai/x/forma/internal/oracle"
+	"latere.ai/x/forma/nn"
 )
 
 // These are specs/010-conformance.md §5's parity checks, one per nn block, on

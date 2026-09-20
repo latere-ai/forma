@@ -20,7 +20,7 @@ import (
 	"golang.design/x/accel"
 	"golang.design/x/accel/quant"
 
-	"github.com/latere-ai/tgo/safetensors"
+	"latere.ai/x/forma/safetensors"
 )
 
 // tensorSpec is one tensor to put in a synthesised checkpoint.
@@ -768,7 +768,7 @@ func TestRoundShiftByZeroIsTheIdentity(t *testing.T) {
 }
 
 // openRepoAt opens a checkpoint directory the caller names. Only the
-// TGO_MODEL-gated test uses it.
+// FORMA_MODEL-gated test uses it.
 func openRepoAt(t *testing.T, dir string) *safetensors.Repo {
 	t.Helper()
 	repo, err := safetensors.OpenRepo(dir)

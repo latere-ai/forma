@@ -34,7 +34,7 @@ var openLockFile = func(path string) (*os.File, error) {
 // acquireLock takes the lock for a revision directory, waiting up to wait for
 // whoever holds it.
 //
-// O_CREATE|O_EXCL is atomic on every GOOS tgo builds for and needs no syscall
+// O_CREATE|O_EXCL is atomic on every GOOS forma builds for and needs no syscall
 // beyond what os offers, which is what keeps this cgo-free. There is
 // deliberately no staleness timeout: a lock whose owner died is cleared by
 // naming the file in the error, not by guessing from its age that the owner is
@@ -64,7 +64,7 @@ func acquireLock(ctx context.Context, path string, wait time.Duration) (*lock, e
 			return nil, fmt.Errorf("hub: %s: %w", path, err)
 		}
 		if !time.Now().Before(deadline) {
-			return nil, fmt.Errorf("%w: %s; if no tgo is running, remove it",
+			return nil, fmt.Errorf("%w: %s; if no forma is running, remove it",
 				ErrLocked, path)
 		}
 		t := time.NewTimer(lockPoll)

@@ -1,14 +1,14 @@
 // SPDX-FileCopyrightText: 2026 Latere AI
 // SPDX-License-Identifier: Apache-2.0
 
-package tgo
+package forma
 
 import (
 	"fmt"
 
-	"github.com/latere-ai/tgo/bench"
+	"latere.ai/x/forma/bench"
 
-	"github.com/latere-ai/tgo/chat"
+	"latere.ai/x/forma/chat"
 )
 
 // Device names the accelerator a model runs on.
@@ -47,7 +47,7 @@ func (d Device) String() string {
 type Precision int
 
 // The precisions a caller can ask for. They are the policy
-// [github.com/latere-ai/tgo/weights] resolves, restated here so the public
+// [latere.ai/x/forma/weights] resolves, restated here so the public
 // surface does not export the loader (007-D7).
 const (
 	// AutoPrecision is the zero value: the widest form that fits the device's
@@ -151,9 +151,9 @@ type sessionOptions struct {
 //
 // specs/017-benchmarks.md 017-D1 makes the host/submit/device/readback
 // breakdown the deliverable rather than a detail: a single throughput number
-// cannot say whether a regression is tgo's or accel's, which is the question
+// cannot say whether a regression is forma's or accel's, which is the question
 // this project exists to answer. The engine was already recording the four
-// terms and had no way to hand them out, so `tgo bench` could report wall-clock
+// terms and had no way to hand them out, so `forma bench` could report wall-clock
 // throughput and had to print the breakdown as missing -- exactly the number
 // 017-D1 says is not enough on its own.
 //
@@ -171,7 +171,7 @@ func WithRecorder(r *bench.Recorder) SessionOption {
 // case the paged cache exists for, and until [016] lands the only way to spend
 // less on the short ones is to ask for less.
 //
-// [016]: https://github.com/latere-ai/tgo/blob/main/specs/016-prefix-cache.md
+// [016]: https://github.com/latere-ai/forma/blob/main/specs/016-prefix-cache.md
 func WithSessionContext(n int) SessionOption {
 	return func(o *sessionOptions) { o.context = n }
 }
@@ -194,7 +194,7 @@ func WithSessionContext(n int) SessionOption {
 //
 // The empty string is a key of its own and shares with nobody rather than with
 // everybody: a caller who supplies nothing gets the safe answer, not the fast
-// one. tgo has no notion of a tenant (009 §7), so what belongs here is whatever
+// one. forma has no notion of a tenant (009 §7), so what belongs here is whatever
 // the layer in front uses to tell them apart — the server puts a request's
 // cache_salt in it.
 func WithCacheSalt(v string) SessionOption {
@@ -217,7 +217,7 @@ func WithTools(specs ...chat.ToolSpec) SessionOption {
 // A cache hit is faster than a miss and that timing is observable, so
 // cross-request reuse is a membership oracle over other requests' prompts. The
 // scope is what makes the default safe for a deployment; it is a decision the
-// operator makes rather than one tgo makes for them (016-D7).
+// operator makes rather than one forma makes for them (016-D7).
 type CacheScope int8
 
 // The scopes a caller can ask for.
@@ -311,7 +311,7 @@ func (o options) checkCache() error {
 		return nil
 	case CacheSession:
 		if o.cachePositions <= 0 {
-			return fmt.Errorf("tgo: WithPrefixCache asks to reuse %d positions; a cache "+
+			return fmt.Errorf("forma: WithPrefixCache asks to reuse %d positions; a cache "+
 				"holds at least one", o.cachePositions)
 		}
 		return nil
@@ -319,13 +319,13 @@ func (o options) checkCache() error {
 		// The pool is measured in blocks, so a size below one block is a
 		// configuration that would allocate nothing and share nothing.
 		if o.cachePositions < CacheBlock {
-			return fmt.Errorf("tgo: WithPrefixCache(process) asks for a pool of %d "+
+			return fmt.Errorf("forma: WithPrefixCache(process) asks for a pool of %d "+
 				"positions and a block holds %d; the pool is the memory every "+
 				"session shares, so it is at least one block "+
 				"(specs/016-prefix-cache.md §3)", o.cachePositions, CacheBlock)
 		}
 		return nil
 	}
-	return fmt.Errorf("tgo: WithPrefixCache scope is %v; it is one of %v, %v or %v",
+	return fmt.Errorf("forma: WithPrefixCache scope is %v; it is one of %v, %v or %v",
 		o.cacheScope, CacheOff, CacheSession, CacheProcess)
 }

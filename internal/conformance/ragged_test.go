@@ -382,7 +382,7 @@ func TestC16TheExtentsAreRead(t *testing.T) {
 //
 // The row was open because the ragged kernel read f32 only, so the operator
 // that makes batching possible gave back the halving [C5] closed for. accel
-// shipped the narrow variant against tgo's report
+// shipped the narrow variant against forma's report
 // ([#23](https://github.com/golang-design/accel/issues/23)), and this is the
 // probe that says so by value rather than by the issue being closed -- §2.2.1
 // records four rows that closed upstream and stayed open here.
@@ -450,12 +450,12 @@ func TestC22ARaggedStepOverAnF16CacheMatchesTheF32One(t *testing.T) {
 //
 // The row was open because a token past the last segment counted every row,
 // indexed one past the offsets array, and on a GPU read another sequence's
-// cache back as a fluent answer. accel took the shape tgo's report recommended
+// cache back as a fluent answer. accel took the shape forma's report recommended
 // ([#24](https://github.com/golang-design/accel/issues/24)): such a row
 // contributes nothing rather than being clamped into the last sequence, which
 // is the difference between padding and a wrong answer.
 //
-// What it buys tgo is the padding rule. A batched step can pad q to a plan
+// What it buys forma is the padding rule. A batched step can pad q to a plan
 // shape and let the extra rows fall off the end, instead of charging them to a
 // real sequence's extent.
 func TestC23AQueryRowPastTheExtentsIsInert(t *testing.T) {

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Latere AI
 // SPDX-License-Identifier: Apache-2.0
 
-package tgo
+package forma
 
 import (
 	"context"
@@ -14,11 +14,11 @@ import (
 	"golang.design/x/accel"
 	"golang.design/x/accel/tensor"
 
-	"github.com/latere-ai/tgo/bench"
-	"github.com/latere-ai/tgo/chat"
-	"github.com/latere-ai/tgo/internal/grammar"
-	"github.com/latere-ai/tgo/internal/prefix"
-	"github.com/latere-ai/tgo/model"
+	"latere.ai/x/forma/bench"
+	"latere.ai/x/forma/chat"
+	"latere.ai/x/forma/internal/grammar"
+	"latere.ai/x/forma/internal/prefix"
+	"latere.ai/x/forma/model"
 )
 
 // ErrContextExhausted is what a request that does not fit the session's cache
@@ -27,7 +27,7 @@ import (
 // A refusal and never a truncation (§7, 006 §4): silently dropping the start of
 // a user's context produces an answer to a question they did not ask, and
 // nothing downstream can tell that from an answer to the one they did.
-var ErrContextExhausted = errors.New("tgo: the context is exhausted")
+var ErrContextExhausted = errors.New("forma: the context is exhausted")
 
 // ErrSessionFailed wraps the error that made a session unusable.
 //
@@ -35,7 +35,7 @@ var ErrContextExhausted = errors.New("tgo: the context is exhausted")
 // whose extent is unknown, and continuing from it would produce plausible text
 // from a corrupt state. The session refuses further work with the original
 // error attached until [Session.Reset] is called, which is explicit (007-D5).
-var ErrSessionFailed = errors.New("tgo: the session failed and has not been reset")
+var ErrSessionFailed = errors.New("forma: the session failed and has not been reset")
 
 // Session is one conversation: its key/value cache, its position in that
 // cache, and the buffers one step binds.
@@ -127,12 +127,12 @@ func (m *Model) NewSession(opts ...SessionOption) (*Session, error) {
 		fn(&o)
 	}
 	if o.context <= 0 {
-		return nil, fmt.Errorf("tgo: the session context is %d; a cache holds at least one "+
+		return nil, fmt.Errorf("forma: the session context is %d; a cache holds at least one "+
 			"position", o.context)
 	}
 	buckets, err := bucketsFor(o.context)
 	if err != nil {
-		return nil, fmt.Errorf("tgo: %w", err)
+		return nil, fmt.Errorf("forma: %w", err)
 	}
 	c := m.cfg
 	s := &Session{
@@ -158,7 +158,7 @@ func (m *Model) NewSession(opts ...SessionOption) (*Session, error) {
 			Usage: accel.BufferStorage | accel.BufferCopyDst | accel.BufferCopySrc,
 		})
 		if err != nil {
-			return fmt.Errorf("tgo: allocating %s: %w", label, err)
+			return fmt.Errorf("forma: allocating %s: %w", label, err)
 		}
 		*dst = b
 		return nil
@@ -224,7 +224,7 @@ func (m *Model) NewSession(opts ...SessionOption) (*Session, error) {
 		for _, b := range []*accel.Buffer{s.keys, s.values} {
 			if err := m.dev.Queue().WriteBuffer(b, 0, zero); err != nil {
 				_ = s.Close()
-				return nil, fmt.Errorf("tgo: clearing the cache: %w", err)
+				return nil, fmt.Errorf("forma: clearing the cache: %w", err)
 			}
 		}
 		// A queue write is batched, and a buffer closed with one outstanding is
@@ -232,7 +232,7 @@ func (m *Model) NewSession(opts ...SessionOption) (*Session, error) {
 		// handing the session over, so it completes here.
 		if err := m.dev.Queue().Flush().Wait(); err != nil {
 			_ = s.Close()
-			return nil, fmt.Errorf("tgo: clearing the cache: %w", err)
+			return nil, fmt.Errorf("forma: clearing the cache: %w", err)
 		}
 	}
 
@@ -423,7 +423,7 @@ func (s *Session) Complete(ctx context.Context, prompt string, p Policy) (*Strea
 // usable reports whether this session will accept work.
 func (s *Session) usable() error {
 	if s.closed {
-		return errors.New("tgo: the session is closed")
+		return errors.New("forma: the session is closed")
 	}
 	if s.failed != nil {
 		return fmt.Errorf("%w: %w", ErrSessionFailed, s.failed)
@@ -447,7 +447,7 @@ func (m *Model) encode(p chat.Prompt) ([]int, error) {
 		if part.Control != "" {
 			id, ok := m.tok.Special(part.Control)
 			if !ok {
-				return nil, fmt.Errorf("tgo: the tokenizer has no control token %q, which "+
+				return nil, fmt.Errorf("forma: the tokenizer has no control token %q, which "+
 					"this model's template emits", part.Control)
 			}
 			ids = append(ids, id)
@@ -461,7 +461,7 @@ func (m *Model) encode(p chat.Prompt) ([]int, error) {
 // start refuses what cannot fit and builds the stream.
 func (s *Session) start(ctx context.Context, ids []int, p Policy) (*Stream, error) {
 	if ctx == nil {
-		return nil, errors.New("tgo: the context is nil")
+		return nil, errors.New("forma: the context is nil")
 	}
 	if err := p.check(s.m.cfg.VocabSize); err != nil {
 		return nil, err
@@ -480,7 +480,7 @@ func (s *Session) start(ctx context.Context, ids []int, p Policy) (*Stream, erro
 		gram = g
 	}
 	if len(ids) == 0 {
-		return nil, errors.New("tgo: the prompt is empty; there is nothing to condition on")
+		return nil, errors.New("forma: the prompt is empty; there is nothing to condition on")
 	}
 	// The prompt and at least one generated token. Refused here, at the
 	// request, rather than after a prefill that would have to be undone.
@@ -539,7 +539,7 @@ func (s *Session) acquire(ids []int, salt string) (int, error) {
 		IDs: ids, Session: s.salt, Salt: salt,
 	})
 	if err != nil {
-		return 0, fmt.Errorf("tgo: leasing blocks for a %d-token prompt: %w", len(ids), err)
+		return 0, fmt.Errorf("forma: leasing blocks for a %d-token prompt: %w", len(ids), err)
 	}
 	s.lease, s.pages = l, l.Blocks()
 	return l.Reused(), nil
@@ -562,7 +562,7 @@ func (s *Session) reserve(toks ...int) error {
 	// chained over a token nobody computed names a block holding something
 	// else -- [Session.publish] records them once the step lands.
 	if err := s.lease.Grow(len(toks)); err != nil {
-		return fmt.Errorf("tgo: extending a sequence by %d token(s): %w", len(toks), err)
+		return fmt.Errorf("forma: extending a sequence by %d token(s): %w", len(toks), err)
 	}
 	s.pages = s.lease.Blocks()
 	return nil
@@ -580,7 +580,7 @@ func (s *Session) publish(toks ...int) error {
 		return nil
 	}
 	if err := s.lease.Commit(toks...); err != nil {
-		return fmt.Errorf("tgo: recording %d computed token(s): %w", len(toks), err)
+		return fmt.Errorf("forma: recording %d computed token(s): %w", len(toks), err)
 	}
 	// The session's own length and not the lease's: the lease covers what this
 	// conversation may write, and only what a step has written may be offered
@@ -652,7 +652,7 @@ func (s *Session) run(rows int, toks []int, first int) ([]float32, timings, erro
 		{s.lengths, s.step.lengths},
 	} {
 		if err := q.WriteBuffer(w.buf, 0, w.data); err != nil {
-			return nil, t, fmt.Errorf("tgo: binding a step's inputs: %w", err)
+			return nil, t, fmt.Errorf("forma: binding a step's inputs: %w", err)
 		}
 	}
 	if s.shared {
@@ -664,7 +664,7 @@ func (s *Session) run(rows int, toks []int, first int) ([]float32, timings, erro
 		// bug this line exists for, found by a run that compared a pooled
 		// session against a contiguous one and not by any refusal.
 		if len(s.step.pages) != s.m.blocks.maxPages() {
-			return nil, t, fmt.Errorf("tgo: the page table binding holds %d entries "+
+			return nil, t, fmt.Errorf("forma: the page table binding holds %d entries "+
 				"and the port declares %d; a step that wrote a short table would "+
 				"leave the rest of the port holding whatever was there",
 				len(s.step.pages), s.m.blocks.maxPages())
@@ -680,20 +680,20 @@ func (s *Session) run(rows int, toks []int, first int) ([]float32, timings, erro
 			s.step.pages[i] = 0
 		}
 		if err := q.WriteBuffer(s.pageBuf, 0, s.step.pages); err != nil {
-			return nil, t, fmt.Errorf("tgo: binding the page table: %w", err)
+			return nil, t, fmt.Errorf("forma: binding the page table: %w", err)
 		}
 	}
 	t.submit = time.Since(start)
 
 	start = time.Now()
 	if err := s.submit(plan, b); err != nil {
-		return nil, t, fmt.Errorf("tgo: submitting a %d-token step: %w", len(toks), err)
+		return nil, t, fmt.Errorf("forma: submitting a %d-token step: %w", len(toks), err)
 	}
 	t.device = time.Since(start)
 
 	start = time.Now()
 	if err := q.ReadBuffer(s.logits, 0, s.hLogits); err != nil {
-		return nil, t, fmt.Errorf("tgo: reading the logits back: %w", err)
+		return nil, t, fmt.Errorf("forma: reading the logits back: %w", err)
 	}
 	t.readback = time.Since(start)
 	return s.hLogits, t, nil
@@ -732,14 +732,14 @@ func (s *Session) bindings(rows int) (tensor.Bindings, error) {
 	} {
 		v, err := e.buf.View(0, e.count)
 		if err != nil {
-			return tensor.Bindings{}, fmt.Errorf("tgo: binding %q: %w", e.name, err)
+			return tensor.Bindings{}, fmt.Errorf("forma: binding %q: %w", e.name, err)
 		}
 		bufs[e.name] = v
 	}
 	if s.shared {
 		v, err := s.pageBuf.View(0, s.m.blocks.maxPages())
 		if err != nil {
-			return tensor.Bindings{}, fmt.Errorf("tgo: binding %q: %w", model.PortPages, err)
+			return tensor.Bindings{}, fmt.Errorf("forma: binding %q: %w", model.PortPages, err)
 		}
 		bufs[model.PortPages] = v
 	}

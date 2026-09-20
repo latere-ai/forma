@@ -5,10 +5,10 @@
 // rule every parity test in the tree runs under, the derived tolerance every
 // comparison is judged by, and the generator that emits the register.
 //
-// It is tgo's primary output (010 §1). Two directions meet here. Downward, a
-// device result is compared against [github.com/latere-ai/tgo/internal/oracle],
-// and a disagreement is a finding against accel or against tgo. Upward, every
-// place tgo cannot express something is a row of the register in [Register],
+// It is forma's primary output (010 §1). Two directions meet here. Downward, a
+// device result is compared against [latere.ai/x/forma/internal/oracle],
+// and a disagreement is a finding against accel or against forma. Upward, every
+// place forma cannot express something is a row of the register in [Register],
 // and [Document] turns those rows into the Markdown 010 §2 publishes.
 //
 // # The three tiers
@@ -17,8 +17,8 @@
 //
 //	tier    needs                     no device or no weights
 //	1       nothing                   cannot happen; the CPU backend is always there
-//	2       a Metal device            skip, or fail under TGO_REQUIRE_METAL
-//	3       real weights, TGO_MODEL   skip; tier 3 is never in CI (010-D4)
+//	2       a Metal device            skip, or fail under FORMA_REQUIRE_METAL
+//	3       real weights, FORMA_MODEL   skip; tier 3 is never in CI (010-D4)
 //
 // The decision is [decide], a pure function of the tier and what is available,
 // so every branch of it is tested on a machine that has neither a Metal device
@@ -38,7 +38,7 @@
 // so the table cannot claim something no test tracks, and a row leaves the
 // register only when its test stops skipping.
 //
-// [Measurements] is §3: the five numbers tgo reports back, each a question
+// [Measurements] is §3: the five numbers forma reports back, each a question
 // accel cannot answer about itself. [Publish] emits the register and the
 // numbers as the one generated document §6 asks for.
 //

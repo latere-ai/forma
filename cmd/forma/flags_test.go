@@ -11,9 +11,9 @@ import (
 	"strings"
 	"testing"
 
-	tgo "github.com/latere-ai/tgo"
-	"github.com/latere-ai/tgo/sample"
-	"github.com/latere-ai/tgo/weights"
+	forma "latere.ai/x/forma"
+	"latere.ai/x/forma/sample"
+	"latere.ai/x/forma/weights"
 )
 
 func TestModelDir(t *testing.T) {
@@ -196,11 +196,11 @@ func TestCountFlags(t *testing.T) {
 func TestParseDevice(t *testing.T) {
 	for _, tc := range []struct {
 		in   string
-		want tgo.Device
+		want forma.Device
 	}{
-		{"", tgo.AutoDevice}, {"auto", tgo.AutoDevice}, {"AUTO", tgo.AutoDevice},
-		{"cpu", tgo.CPU}, {" cpu ", tgo.CPU},
-		{"metal", tgo.Metal}, {"gpu", tgo.Metal},
+		{"", forma.AutoDevice}, {"auto", forma.AutoDevice}, {"AUTO", forma.AutoDevice},
+		{"cpu", forma.CPU}, {" cpu ", forma.CPU},
+		{"metal", forma.Metal}, {"gpu", forma.Metal},
 	} {
 		got, err := parseDevice(tc.in)
 		if err != nil {

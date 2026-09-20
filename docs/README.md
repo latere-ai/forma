@@ -1,19 +1,21 @@
-# tgo documentation
+# Forma documentation
 
-**Audience: people running open-weight models with tgo.** Design documents for
+**Audience: people running open-weight models with Forma.** Design documents for
 contributors live in [`../specs/`](../specs/) and are written for a different
 reader — they argue about tradeoffs, and this does not.
 
 > [!NOTE]
-> **tgo runs, and most of these pages are not written yet.** `tgo pull`,
-> `tgo run` and `tgo serve` all work — the [README](../README.md) shows each one
+> **Forma runs, and most of these pages are not written yet.** `forma pull`,
+> `forma run` and `forma serve` all work — the [README](../README.md) shows each one
 > as a command you can run. Until the guides below arrive, that page and
-> [Orientation](orientation.md) are what exist, and `tgo <command> --help` is
+> [Orientation](orientation.md) are what exist, and `forma <command> --help` is
 > accurate because it comes from the code.
 
 ## Now
 
-- **[Orientation](orientation.md)** — what tgo is, what runs where, what it
+- **[Migration](migration.md)** — update imports, commands, and configuration from tgo.
+
+- **[Orientation](orientation.md)** — what Forma is, what runs where, what it
   costs in memory, and how it relates to accel.
 - **[README](../README.md)** — installing it, pulling a model, generating, and
   serving.

@@ -15,7 +15,7 @@ import (
 // Three states and not four. An operator that accepts a binding and computes
 // the wrong thing -- C13, before it closed -- is not a state here. §2 puts it
 // in §1's downward direction, where it is checked against the oracle, because a
-// register row is a claim about what tgo can express and a wrong answer is a
+// register row is a claim about what forma can express and a wrong answer is a
 // claim about what accel computes.
 type State int
 
@@ -29,7 +29,7 @@ const (
 	Open
 
 	// WontFix means accel's refusal is the correct answer and the row stays
-	// in the table because it still constrains what tgo can do at graph
+	// in the table because it still constrains what forma can do at graph
 	// time. C9 is the only one: silently copying a strided view into MatMul
 	// would hide a real cost behind an operator that looks free.
 	WontFix
@@ -50,7 +50,7 @@ func (s State) String() string {
 // issueURL is where a filed row points.
 const issueURL = "https://github.com/golang-design/accel/issues/"
 
-// Row is one row of the register: a thing tgo cannot express, or could not.
+// Row is one row of the register: a thing forma cannot express, or could not.
 //
 // The prose cells are opaque Markdown and not structured text. They carry
 // inline links, backticked identifiers, bold spans and LaTeX, and a type that
@@ -64,7 +64,7 @@ type Row struct {
 	// drift test carry the enforcement here.
 	ID string
 
-	// Cannot is what tgo cannot do, in the register's voice: a capability,
+	// Cannot is what forma cannot do, in the register's voice: a capability,
 	// not a symptom. §2.2 is about the difference -- four rows closed
 	// upstream against issues whose titles named a symptom, and the
 	// capability stayed absent.
@@ -75,7 +75,7 @@ type Row struct {
 
 	// Issue is the accel issue number, or 0 for a row that is not filed and
 	// should not be. 010-D8: an open row cites an open issue, and when accel
-	// closes one whose capability is still absent, tgo files a new one
+	// closes one whose capability is still absent, forma files a new one
 	// rather than commenting on the closed thread.
 	Issue int
 
@@ -93,7 +93,7 @@ type Row struct {
 	StateNote string
 
 	// Cost is the workaround and what it costs. "none needed" for a closed
-	// row, and for an open one the price tgo is paying now.
+	// row, and for an open one the price forma is paying now.
 	Cost string
 }
 
@@ -104,7 +104,7 @@ type Row struct {
 // failure this project exists to catch in accel, so the table is generated from
 // here by [Document], and TestTheSpecTableIsGenerated fails when the two part.
 //
-// A row is added when tgo hits something it cannot express, and it leaves only
+// A row is added when forma hits something it cannot express, and it leaves only
 // when its test stops skipping -- not when an issue closes, not when a spec is
 // written, and never because it was worked around.
 //
@@ -166,12 +166,12 @@ func Register() []Row {
 		Cost: "convert on the host at load, which is the right answer and not a " +
 			"workaround. [001 §3](001-weights.md): bf16 is the top half of an " +
 			"f32, so widening is a shift — exact, free, and done once. A bf16 " +
-			"GEMM would let tgo keep bf16 *on the device*, which costs the same " +
+			"GEMM would let forma keep bf16 *on the device*, which costs the same " +
 			"two bytes as f16 and buys nothing. Filed inside " +
 			"[#14](https://github.com/golang-design/accel/issues/14) and answered " +
 			"with the mixed GEMM that closed [C8](#2-the-register); re-audited " +
 			"2026-08-27 and reclassified rather than re-filed, because a " +
-			"capability tgo would not use is not a gap",
+			"capability forma would not use is not a gap",
 	}, {
 		ID:     "C8",
 		Cannot: "f32 activations against f16 or int8 weights",
@@ -278,7 +278,7 @@ func Register() []Row {
 		Cost: "none needed. `quant.Int4Quantize` and `Int4MatMul` landed against " +
 			"this report, verified twice — against a reconstruction reference, " +
 			"and against the weights the checkpoint held within " +
-			"`quant.Int4ErrorBound`. tgo stores them since 2026-08-27, so a 27B " +
+			"`quant.Int4ErrorBound`. forma stores them since 2026-08-27, so a 27B " +
 			"checkpoint resolves to **13.4 GiB** rather than 26.7 " +
 			"([001 §5.1](001-weights.md)). The embedding table is capped at int8, " +
 			"because it is gathered and there is no int4 gather",
@@ -432,7 +432,7 @@ func (r Row) Status() string {
 // reader back to the register to find out what is unsupported and by whom.
 func (r Row) SkipReason() string {
 	var b strings.Builder
-	fmt.Fprintf(&b, "%s: tgo cannot express %s. accel spec %s",
+	fmt.Fprintf(&b, "%s: forma cannot express %s. accel spec %s",
 		r.ID, r.Cannot, strings.Join(r.Specs, ", "))
 	if r.Issue != 0 {
 		fmt.Fprintf(&b, "; filed as %s%d", issueURL, r.Issue)
@@ -448,7 +448,7 @@ func (r Row) SkipReason() string {
 
 // header and divider are the register table's two fixed lines.
 const (
-	header  = "| # | what tgo cannot do | accel spec | filed | state | workaround, and what it costs |"
+	header  = "| # | what forma cannot do | accel spec | filed | state | workaround, and what it costs |"
 	divider = "| --- | --- | --- | --- | --- | --- |"
 )
 
@@ -496,7 +496,7 @@ func Validate(rows []Row) []string {
 				bad = append(bad, r.ID+" is a correct refusal and cites an "+
 					"issue. §2: it is not filed and should not be, because "+
 					"the refusal is the right answer and the row stays only "+
-					"because it constrains what tgo can do at graph time")
+					"because it constrains what forma can do at graph time")
 			}
 		case Closed:
 		default:

@@ -29,7 +29,7 @@ Keyed by the resolved commit sha, so two model versions share nothing and
 neither is corrupted by the other:
 
 ```
-$TGO_CACHE/models/{org}/{repo}/{sha}/
+$FORMA_CACHE/models/{org}/{repo}/{sha}/
 ```
 
 The key is what the revision resolved to, not what was asked for, so a moving
@@ -37,7 +37,7 @@ ref such as `main` does not overwrite what `main` used to be. A repo id with no
 org, such as `gpt2`, lands under the sentinel org `_`, which no Hugging Face
 account can be called.
 
-Default `$XDG_CACHE_HOME/tgo` or `~/.cache/tgo`. A download writes to a
+Default `$XDG_CACHE_HOME/forma` or `~/.cache/forma`. A download writes to a
 temporary name and renames on completion, so an interrupted fetch never leaves a
 file that looks whole. `Content-Length` and, where the API gives one, the sha256
 are both checked, and a mismatch is one of two kinds. Bytes that can never
@@ -54,24 +54,24 @@ never operates on something a reader might pick up.
 Shards download in parallel with a small bound; the bound exists because the
 disk is the limit, not the network, and eight parallel writes to one spinning
 disk is slower than two. A lock file beside each revision directory, at
-`{sha}.lock`, keeps two `tgo pull` processes from writing the same file. It sits
+`{sha}.lock`, keeps two `forma pull` processes from writing the same file. It sits
 beside rather than inside, because inside it would be an entry
 `safetensors.OpenRepo` has to know to ignore.
 
 ## 4. Not a registry
 
-tgo does not have its own model registry, does not host weights, and does not
+Forma does not have its own model registry, does not host weights, and does not
 have a `Modelfile`. A model is a Hugging Face repo id or a local path. Ollama's
 registry is a real product decision; it is not this one, and adding it later
 costs nothing that is decided here.
 
 ## Outcome
 
-Checkpoint distribution is `internal/hub` plus the `tgo pull` command, and it
+Checkpoint distribution is `internal/hub` plus the `forma pull` command, and it
 runs. It landed whole on 2026-08-26: the HF listing and resolve calls, the
 sha-keyed cache, the resumable download, the parallel bound, the revision lock,
 and the two ref forms. Every section of this spec has code behind it, at 95.4%
-coverage in `internal/hub` and 90.3% in `cmd/tgo`.
+coverage in `internal/hub` and 90.3% in `cmd/forma`.
 
 **What shipped**, section by section:
 
@@ -80,8 +80,8 @@ coverage in `internal/hub` and 90.3% in `cmd/tgo`.
 | 1 | `GET /api/models/{repo}/revision/{rev}?blobs=true`, then `resolve/{rev}/{path}` per file, on plain `net/http` | `internal/hub/client.go:278`, `client.go:347` |
 | 1 | `Authorization` dropped on any `host:port` change, chain bounded at 10, header set per request rather than in a transport | `internal/hub/client.go:153`, `client.go:192` |
 | 1 | the LFS pointer sniffed before any length check, as `ErrLFSPointer` | `internal/hub/download.go:150`, `hub.go:66` |
-| 2 | `$TGO_CACHE/models/{org}/{repo}/{sha}`, with `_` for a bare repo id | `internal/hub/client.go:184`, `hub.go:104` |
-| 2 | `TGO_CACHE`, else `XDG_CACHE_HOME/tgo`, else `~/.cache/tgo` | `internal/hub/hub.go:254` |
+| 2 | `$FORMA_CACHE/models/{org}/{repo}/{sha}`, with `_` for a bare repo id | `internal/hub/client.go:184`, `hub.go:104` |
+| 2 | `FORMA_CACHE`, else `XDG_CACHE_HOME/forma`, else `~/.cache/forma` | `internal/hub/hub.go:254` |
 | 2 | the `.part` name and the rename, the `Range` resume, and both length and sha256 checks | `internal/hub/download.go:95`, `download.go:112`, `download.go:183`, `download.go:192`, `download.go:200` |
 | 3 | a semaphore at `parallel()`, four by default | `internal/hub/fetch.go:102`, `client.go:29` |
 | 3 | `O_CREATE`\|`O_EXCL` on `{sha}.lock`, held for the whole download | `internal/hub/lock.go:19`, `lock.go:35`, `fetch.go:61` |
@@ -112,11 +112,11 @@ elements, backslashes, volume names and control characters, and reports
 `ErrUnsafePath` (`hub.go:223`, `hub.go:82`); where the token comes from, which
 is `--token`, then `$HF_TOKEN`, then `$HUGGING_FACE_HUB_TOKEN`, with `cmd`
 reading the environment and `hub` taking the token as a field
-(`cmd/tgo/pull.go:27`), and `$HF_ENDPOINT` overriding the API root for a mirror
-or an on-premises deployment (`client.go:164`); and `tgo pull` itself, which
-prints the path on stdout and progress on stderr so `tgo run "$(tgo pull ...)"`
+(`cmd/forma/pull.go:27`), and `$HF_ENDPOINT` overriding the API root for a mirror
+or an on-premises deployment (`client.go:164`); and `forma pull` itself, which
+prints the path on stdout and progress on stderr so `forma run "$(forma pull ...)"`
 composes, and which turns SIGINT into a cancelled download the next run resumes
-(`cmd/tgo/pull.go:102`, `pull.go:114`).
+(`cmd/forma/pull.go:102`, `pull.go:114`).
 
 ## Decision record
 

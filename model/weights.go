@@ -145,7 +145,7 @@ type checkOpts struct {
 // specs/004-model-graph.md §4 and 004-D10: redundancy is not a contradiction.
 // An exporter writing lm_head.weight out beside a tied embedding is common --
 // Qwen3-0.6B does it, and its two planes hash identically -- so refusing on the
-// config-versus-tensor mismatch alone refuses the model tgo exists to run.
+// config-versus-tensor mismatch alone refuses the model forma exists to run.
 // Shapes cannot tell the two cases apart, which is why this takes a comparator
 // and why the comparison belongs to whoever holds the file.
 //

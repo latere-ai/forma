@@ -2,14 +2,14 @@
 // SPDX-License-Identifier: Apache-2.0
 
 // Package oracle is a host-side float64 implementation of a transformer
-// forward pass, written from the mathematics rather than from tgo's graph.
+// forward pass, written from the mathematics rather than from forma's graph.
 //
 // It is the reference every device result is checked against
 // (specs/010-conformance.md §5). Its value comes from being an independent
 // derivation: it is written by reading the equations in
-// specs/004-model-graph.md §2, it imports nothing from tgo's nn or model
+// specs/004-model-graph.md §2, it imports nothing from forma's nn or model
 // packages, and it takes weights as []float64 and shapes as plain ints rather
-// than as tgo types. Two derivations of the same mathematics agreeing is
+// than as forma types. Two derivations of the same mathematics agreeing is
 // evidence; one derivation compared against itself is not (010-D2).
 //
 // Everything here is float64 and everything here is slow. Triple-nested loops

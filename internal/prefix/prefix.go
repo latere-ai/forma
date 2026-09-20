@@ -124,7 +124,7 @@ type Request struct {
 
 	// Salt is the caller-supplied cache_salt, mixed into the chain seed and
 	// therefore into every block hash. Blocks match only within one salt. The
-	// layer that knows who the caller is supplies it; tgo has no notion of a
+	// layer that knows who the caller is supplies it; forma has no notion of a
 	// tenant (009 §7).
 	Salt string
 

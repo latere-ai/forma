@@ -37,7 +37,7 @@ Nothing in `model/` knows this architecture, and the refusal is already correct.
 | the depthwise convolution exists | `nn/linear.go:178` `DepthwiseCausalConv`, over `nn.ConvState` |
 
 So a `Qwen3_5ForConditionalGeneration` checkpoint fails at `model.Open` with the
-list of architectures tgo knows, which is [004-D2](004-model-graph.md) working.
+list of architectures Forma knows, which is [004-D2](004-model-graph.md) working.
 
 **[018 §4](018-hybrid-models.md) is three-quarters right and one-quarter wrong.**
 It says `partial_rotary_factor: 0.25` is "already expressible" because
@@ -146,7 +146,7 @@ ignore `mrope_section`.
 
 `Qwen/Qwen3.5-397B-A17B` is `Qwen3_5MoeForConditionalGeneration`, `model_type`
 `qwen3_5_moe`, with `num_experts: 512` and `moe_intermediate_size: 1024`. It is
-therefore refused by the registry with the list of what tgo knows
+therefore refused by the registry with the list of what Forma knows
 ([004-D2](004-model-graph.md)), and **not** mis-built by this entry — which is
 worth stating because the two share every linear-attention field and differ in
 the MLP. Had the family reused one key, one builder would have answered for a
@@ -706,7 +706,7 @@ The last general row is the one [004 §7](004-model-graph.md) does not have and
 this architecture needs. `rawConfig` ignores unknown JSON keys, which is right
 for a dense model whose extra fields are metadata. It is wrong here: a `qwen3_5`
 config carries fields that change the arithmetic, this spec has read none of them
-from a real file, and a field tgo silently ignores is a model tgo silently gets
+from a real file, and a field Forma silently ignores is a model Forma silently gets
 wrong. So `qwen35Config` parses into a map as well as a struct and refuses any
 key not on an explicit allow list, naming it — **at both levels**, with
 different sets: the top level allows the architecture, the model type, the four
@@ -723,7 +723,7 @@ against any.
 ## 8. Verification without a 50 GiB download
 
 [000 D8](000-decisions.md): **no test downloads weights.** CI runs a synthetic
-config, `TGO_MODEL` runs the real one by hand, and [011 §4](011-sequencing.md)
+config, `FORMA_MODEL` runs the real one by hand, and [011 §4](011-sequencing.md)
 records the result.
 
 The fixture is a **4-layer, $I=4$, $d=64$** hybrid — three linear layers and one
@@ -787,17 +787,17 @@ is self-consistent, and whether it is Qwen3.5 is unproven.**
 ## 11. Scope: this is not one pass
 
 **One person cannot execute this spec completely in one pass**, and the reason is
-not size — it is that sub-scope A ends in a question tgo cannot answer alone.
+not size — it is that sub-scope A ends in a question Forma cannot answer alone.
 
 | | sub-scope | executable now? |
 | --- | --- | --- |
-| **A** | the `nn` prerequisites: `AttentionConfig.RotaryDim`, `AttentionWeights.Gate`, and reading a real `config.json` and safetensors header to settle [§2](#2-the-config-and-which-field-names-are-guesses) and [§4.5](#45-the-weight-map) | the `nn` half yes; the names are a download somebody does by hand. [§4.4](#44-the-gate-is-per-head-and-accels-is-per-token) is no longer on this list: it is settled, and against tgo |
+| **A** | the `nn` prerequisites: `AttentionConfig.RotaryDim`, `AttentionWeights.Gate`, and reading a real `config.json` and safetensors header to settle [§2](#2-the-config-and-which-field-names-are-guesses) and [§4.5](#45-the-weight-map) | the `nn` half yes; the names are a download somebody does by hand. [§4.4](#44-the-gate-is-per-head-and-accels-is-per-token) is no longer on this list: it is settled, and against Forma |
 | **B** | `qwen35Config`, the schedule, its refusals, the weight map, the registry entry, `Declare`'s extents and the dense KV index | **yes, today**, and it needs nothing from A except the field names |
 | **C** | `nn.GatedDelta` and `model/qwen3_5_graph.go` wired end to end against the host reference | **gated on A**: a per-head gate makes the block inexpressible |
 
 Build **B** first. It is the half that is testable with a synthetic fixture, it
-makes the refusals real, and it is what turns "tgo does not know this
-architecture" into "tgo knows this architecture and says what it cannot do yet" —
+makes the refusals real, and it is what turns "Forma does not know this
+architecture" into "Forma knows this architecture and says what it cannot do yet" —
 which is [000 D1](000-decisions.md)'s output.
 
 ## Outcome
@@ -878,7 +878,7 @@ that would load one.
 | 024-D7 | the output gate multiplies **before** $W_O$ | after $W_O$, on the `[T, d]` result | the gate projection is $H d_h$ wide and $W_O$ maps $H d_h \to d$; after-$O$ needs a $d$-wide gate, which is a different tensor in the checkpoint ([§5.2](#52-attn_output_gate-is-a-fifth-projection-and-it-multiplies-before-o)) |
 | 024-D8 | `extents` is declared at batch one for this architecture, and the **full layers still receive nil** | give both layer kinds the same extents tensor | accel refuses a nil extent on the recurrence and refuses a base on a ragged attention. Passing extents to both compiles and masks the wrong keys, with nothing in the output to say so ([§6.2](#62-declare-must-declare-extents-at-batch-one)) |
 | 024-D9 | the KV state is allocated at the **full-attention layer count** with an absolute-to-dense index | allocate `[L, …]` and leave 48 layers unwritten | 768 MiB per sequence per state of capacity nothing writes, at $C=8192$ f16 ([§6.3](#63-the-kv-state-is-allocated-at-sixteen-layers-not-sixty-four)) |
-| 024-D10 | a `qwen3_5` config key this graph does not implement is **refused by name** | ignore unknown keys, as `rawConfig` does | the dense parser earned its tolerance against real checkpoints; this one has read none. A field tgo ignores here changes the arithmetic ([§7](#7-refusals)) |
+| 024-D10 | a `qwen3_5` config key this graph does not implement is **refused by name** | ignore unknown keys, as `rawConfig` does | the dense parser earned its tolerance against real checkpoints; this one has read none. A field Forma ignores here changes the arithmetic ([§7](#7-refusals)) |
 | 024-D11 | ship sub-scope B before A and C, and say the spec is not one pass | one branch that lands the architecture whole | C is gated on an accel answer that does not exist. B is testable today and converts an unknown architecture into a stated, named gap, which is [000 D1](000-decisions.md)'s output ([§11](#11-scope-this-is-not-one-pass)) |
 | 024-D12 | text-only `qwen3_5` uses ordinary RoPE at width $\rho d_h$, and `mrope_section` is ignored because the reduction is proved rather than assumed | implement mRoPE's three sections; refuse the field | a text token has one position and mRoPE sets all three components to it, so every section computes $\text{pos}\cdot\omega_d$ and the interleaved and chunked layouts agree — $11+11+10 = \rho d_h/2$. A caller supplying unequal components is refused, which is what keeps the reduction the reason rather than a coincidence ([§2.4](#24-mrope-is-a-no-op-for-text-and-that-is-an-argument-rather-than-a-hope)) |
 | 024-D13 | the vision tower and the multi-token-prediction head are an **explicit named ignore set**, and a tensor outside both the map and the set is refused | drop every unnamed tensor; refuse the checkpoint | 333 `model.visual.*` and 15 `mtp.*` tensors are weights this graph does not need, and `model.Check` refuses an unnamed tensor. Dropping silently is the failure [§7](#7-refusals)'s general row is about; refusing is refusing a checkpoint over weights it does not read ([§4.5](#45-the-weight-map-read-from-the-checkpoint)) |

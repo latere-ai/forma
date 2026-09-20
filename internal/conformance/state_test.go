@@ -18,7 +18,7 @@ import (
 // Both versions live in one buffer, so accel cannot serve the old contents and
 // refuses instead.
 //
-// 005 depends on that in a way no other spec does. tgo hand-orders nothing in
+// 005 depends on that in a way no other spec does. forma hand-orders nothing in
 // the KV cache — it declares the reads and the writes and lets the version
 // chain decide what runs before what. If a stale read were served the new
 // contents rather than refused, the ordering would be a comment: a step that
@@ -72,7 +72,7 @@ func TestAStaleStateVersionIsRefused(t *testing.T) {
 	err := r.G.Err()
 	if err == nil {
 		t.Fatal("reading a superseded state version recorded; 005 §1.1 argues that " +
-			"tgo never hand-orders a cache write against a cache read, and that " +
+			"forma never hand-orders a cache write against a cache read, and that " +
 			"argument is only sound because this is refused")
 	}
 	if !strings.Contains(err.Error(), "ReadState") {
@@ -107,7 +107,7 @@ func TestTheCurrentStateVersionIsReadable(t *testing.T) {
 // decides staleness by *overlap* rather than by name. Decided by name, every
 // layer's read would be stale the moment any layer was written, and 005's
 // design — two states sliced per layer, every layer written in one step — would
-// not compile at all. tgo's cache depends on the overlap rule specifically, and
+// not compile at all. forma's cache depends on the overlap rule specifically, and
 // it is the half a reader would assume rather than check.
 func TestAWriteToOneLayerDoesNotStaleAnother(t *testing.T) {
 	r, s := newLayeredProbe(t, "kv-layers")

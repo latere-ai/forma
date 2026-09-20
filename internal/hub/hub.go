@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 // Package hub turns a Hugging Face repo id into a local directory that
-// [github.com/latere-ai/tgo/safetensors].OpenRepo can read.
+// [latere.ai/x/forma/safetensors].OpenRepo can read.
 //
 // specs/013-distribution.md is the design. specs/001-weights.md takes a
 // directory; this is how the directory appears.
@@ -35,7 +35,7 @@
 // (013-D2), so that a moving ref such as main is harmless: two revisions
 // coexist under
 //
-//	$TGO_CACHE/models/{org}/{repo}/{sha}/
+//	$FORMA_CACHE/models/{org}/{repo}/{sha}/
 //
 // and neither corrupts the other. A repo id with no org, such as gpt2, uses
 // the sentinel org "_", which no Hugging Face account can be called.
@@ -89,8 +89,8 @@ var ErrNotFound = errors.New("hub: no such repo or revision")
 // private, or needing a token that was not supplied.
 var ErrUnauthorized = errors.New("hub: the repo is gated or private")
 
-// ErrNoFiles reports a revision that lists nothing tgo can load.
-var ErrNoFiles = errors.New("hub: the revision lists no file tgo can load")
+// ErrNoFiles reports a revision that lists nothing forma can load.
+var ErrNoFiles = errors.New("hub: the revision lists no file forma can load")
 
 // ErrLocked reports a revision directory another process is writing.
 var ErrLocked = errors.New("hub: another process holds the revision lock")
@@ -243,26 +243,26 @@ func safePath(name string) error {
 	return nil
 }
 
-// CacheDir is where downloaded checkpoints live: $TGO_CACHE, else
-// $XDG_CACHE_HOME/tgo, else ~/.cache/tgo.
+// CacheDir is where downloaded checkpoints live: $FORMA_CACHE, else
+// $XDG_CACHE_HOME/forma, else ~/.cache/forma.
 //
 // The last one is taken literally on every GOOS, which is what
 // huggingface_hub does, so a checkpoint fetched by either tool is in the place
 // the other looks for it. os.UserCacheDir is the fallback for a machine with
 // no home directory.
 func CacheDir() (string, error) {
-	if d := os.Getenv("TGO_CACHE"); d != "" {
+	if d := os.Getenv("FORMA_CACHE"); d != "" {
 		return d, nil
 	}
 	if d := os.Getenv("XDG_CACHE_HOME"); d != "" {
-		return filepath.Join(d, "tgo"), nil
+		return filepath.Join(d, "forma"), nil
 	}
 	if home, err := os.UserHomeDir(); err == nil && home != "" {
-		return filepath.Join(home, ".cache", "tgo"), nil
+		return filepath.Join(home, ".cache", "forma"), nil
 	}
 	d, err := os.UserCacheDir()
 	if err != nil {
 		return "", fmt.Errorf("hub: no cache directory: %w", err)
 	}
-	return filepath.Join(d, "tgo"), nil
+	return filepath.Join(d, "forma"), nil
 }

@@ -17,8 +17,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/latere-ai/tgo"
-	"github.com/latere-ai/tgo/chat"
+	"latere.ai/x/forma"
+	"latere.ai/x/forma/chat"
 )
 
 // §5. Three traps, each of which passes a content test and fails in the field.
@@ -235,7 +235,7 @@ func TestTheTerminalEventCarriesTheStopReasonAndTheUsage(t *testing.T) {
 // A completion cut short by max_tokens says so, which is the difference between
 // an answer and a truncation a client cannot see.
 //
-// Both OpenAI surfaces are checked, because /v1/completions carries tgo's own
+// Both OpenAI surfaces are checked, because /v1/completions carries forma's own
 // codec rather than llmdialect's and its finish_reason is a second mapping.
 func TestReachingMaxTokensIsReportedAsLength(t *testing.T) {
 	t.Parallel()
@@ -276,7 +276,7 @@ func TestReachingMaxTokensIsReportedAsLength(t *testing.T) {
 func TestAStopStringIsAnsweredAsStopSequenceAndNamed(t *testing.T) {
 	t.Parallel()
 	eng := &fakeEngine{script: text("a", "b"),
-		stopReason: tgo.StopSequence, stopSequence: "STOP"}
+		stopReason: forma.StopSequence, stopSequence: "STOP"}
 	s := newTestServer(t, eng)
 	w := post(t, s, "/v1/messages", routes[1].body(""))
 	wantStatus(t, w, http.StatusOK)
@@ -294,7 +294,7 @@ func TestAStopStringIsAnsweredAsStopSequenceAndNamed(t *testing.T) {
 		t.Run(r.name, func(t *testing.T) {
 			t.Parallel()
 			eng := &fakeEngine{script: text("a", "b"),
-				stopReason: tgo.StopSequence, stopSequence: "STOP"}
+				stopReason: forma.StopSequence, stopSequence: "STOP"}
 			w := post(t, newTestServer(t, eng), r.path, r.body(""))
 			wantStatus(t, w, http.StatusOK)
 			if !strings.Contains(w.Body.String(), `"finish_reason":"stop"`) {
@@ -306,7 +306,7 @@ func TestAStopStringIsAnsweredAsStopSequenceAndNamed(t *testing.T) {
 
 // Each output block carries its own ordinal.
 //
-// ir.Event numbers the blocks and [tgo.Event] does not, which is the one piece
+// ir.Event numbers the blocks and [forma.Event] does not, which is the one piece
 // of state the translation keeps. Two blocks sharing an index is not a
 // cosmetic error: an Anthropic client indexes its content array by it, so the
 // answer overwrites the thought.
@@ -453,12 +453,12 @@ func TestEveryEventIsFlushed(t *testing.T) {
 func TestAClientDisconnectCancelsGeneration(t *testing.T) {
 	t.Parallel()
 	// A script long enough that the client can hang up in the middle of it.
-	var script []tgo.Event
-	script = append(script, tgo.Event{Kind: tgo.BlockStart, Block: chat.BlockText})
+	var script []forma.Event
+	script = append(script, forma.Event{Kind: forma.BlockStart, Block: chat.BlockText})
 	for range 512 {
-		script = append(script, tgo.Event{Kind: tgo.TextDelta, Block: chat.BlockText, Text: "x"})
+		script = append(script, forma.Event{Kind: forma.TextDelta, Block: chat.BlockText, Text: "x"})
 	}
-	script = append(script, tgo.Event{Kind: tgo.BlockStop, Block: chat.BlockText})
+	script = append(script, forma.Event{Kind: forma.BlockStop, Block: chat.BlockText})
 
 	gate := make(chan struct{}, 1)
 	eng := &fakeEngine{script: script, gate: gate}
@@ -568,8 +568,8 @@ func TestTheLossHeaderSurvivesARealStreamingConnection(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer func() { _ = resp.Body.Close() }()
-	if got := resp.Header.Get("X-Tgo-Loss"); got != "user" {
-		t.Errorf("X-Tgo-Loss over the wire = %q, want %q: the header was set after the "+
+	if got := resp.Header.Get("X-Forma-Loss"); got != "user" {
+		t.Errorf("X-Forma-Loss over the wire = %q, want %q: the header was set after the "+
 			"status line and reached nobody", got, "user")
 	}
 	body, err := io.ReadAll(resp.Body)
@@ -599,7 +599,7 @@ func TestACancelledRequestIsNotAnEmptySuccess(t *testing.T) {
 		t.Errorf("a cancelled request answered 200 with %q", w.Body.String())
 	}
 	if body := get(t, s, "/metrics").Body.String(); !strings.Contains(body,
-		`tgo_sessions_rejected_total{reason="client_gone"} 1`) {
+		`forma_sessions_rejected_total{reason="client_gone"} 1`) {
 		t.Errorf("the cancellation was not counted:\n%s", body)
 	}
 }
@@ -611,10 +611,10 @@ func TestACancelledRequestIsNotAnEmptySuccess(t *testing.T) {
 // both make a real engine stop.
 func TestTheHandlerStopsEvenWhenTheEngineIgnoresTheContext(t *testing.T) {
 	t.Parallel()
-	var script []tgo.Event
-	script = append(script, tgo.Event{Kind: tgo.BlockStart, Block: chat.BlockText})
+	var script []forma.Event
+	script = append(script, forma.Event{Kind: forma.BlockStart, Block: chat.BlockText})
 	for range 64 {
-		script = append(script, tgo.Event{Kind: tgo.TextDelta, Block: chat.BlockText, Text: "x"})
+		script = append(script, forma.Event{Kind: forma.TextDelta, Block: chat.BlockText, Text: "x"})
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()

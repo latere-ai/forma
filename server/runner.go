@@ -7,16 +7,16 @@ import (
 	"context"
 	"time"
 
-	"github.com/latere-ai/tgo"
-	"github.com/latere-ai/tgo/chat"
+	"latere.ai/x/forma"
+	"latere.ai/x/forma/chat"
 )
 
 // The batched engine.
 //
 // specs/022-batched-serving.md. [WrapPool] gives every in-flight request its
-// own [tgo.Session], and a session owns a forward pass -- so B concurrent
+// own [forma.Session], and a session owns a forward pass -- so B concurrent
 // requests read the weights B times per token produced, and throughput is what
-// one sequence gets. A [tgo.Runner] puts every in-flight request in one step.
+// one sequence gets. A [forma.Runner] puts every in-flight request in one step.
 //
 // Nothing else in this package moves. The engine is chosen where the model is
 // opened; [Server] holds an [Engine] and the four dialect routes, the loss
@@ -25,10 +25,10 @@ import (
 // WrapRunner adapts a loaded model to [Engine] with a batched runner behind it,
 // so every in-flight request shares one forward pass.
 //
-// It needs a model opened with [github.com/latere-ai/tgo.WithPrefixCache] at
-// [github.com/latere-ai/tgo.CacheProcess]: sequences that step together have
+// It needs a model opened with [latere.ai/x/forma.WithPrefixCache] at
+// [latere.ai/x/forma.CacheProcess]: sequences that step together have
 // different lengths, so a contiguous per-session cache would pad every one of
-// them to the longest, and [github.com/latere-ai/tgo.Model.NewBatch] refuses a
+// them to the longest, and [latere.ai/x/forma.Model.NewBatch] refuses a
 // model without a shared block pool. The batched path and the process scope are
 // one configuration (022-D1).
 //
@@ -36,7 +36,7 @@ import (
 // [WithConcurrency] so the admission semaphore and the batch are the same
 // number arrived at once. [New] refuses a concurrency above it, which is the
 // same refusal it already makes over a pooled engine.
-func WrapRunner(m *tgo.Model, name string, o tgo.RunnerOptions) (*RunnerEngine, error) {
+func WrapRunner(m *forma.Model, name string, o forma.RunnerOptions) (*RunnerEngine, error) {
 	r, err := m.NewRunner(o)
 	if err != nil {
 		return nil, err
@@ -48,7 +48,7 @@ func WrapRunner(m *tgo.Model, name string, o tgo.RunnerOptions) (*RunnerEngine, 
 // runner in place of a session per request.
 type RunnerEngine struct {
 	modelEngine
-	r *tgo.Runner
+	r *forma.Runner
 }
 
 // Sessions is how many requests may generate at once, which for a batched
@@ -69,7 +69,7 @@ func (e *RunnerEngine) AdmissionDepth() int { return e.r.Queue().MaxDepth() }
 
 // Runner is the batch behind the engine, for a caller reporting what the queue
 // measured (021 §7).
-func (e *RunnerEngine) Runner() *tgo.Runner { return e.r }
+func (e *RunnerEngine) Runner() *forma.Runner { return e.r }
 
 // Close stops the driver and releases the batch. It must be called before the
 // model is closed, which is the order accel requires.
@@ -80,9 +80,9 @@ func (e *RunnerEngine) Close() error { return e.r.Close() }
 // exists only once it is rendered (008 §3).
 //
 // So this never blocks, and the wait a request does is inside
-// [github.com/latere-ai/tgo.Queue] where it is counted and bounded.
+// [latere.ai/x/forma.Queue] where it is counted and bounded.
 func (e *RunnerEngine) NewSession(_ context.Context, spec SessionSpec) (Session, error) {
-	return &runnerSession{r: e.r, req: tgo.RunRequest{
+	return &runnerSession{r: e.r, req: forma.RunRequest{
 		Tools:    spec.Tools,
 		Thinking: spec.Thinking,
 		// The request's cache_salt. Under a shared block pool this is the
@@ -96,12 +96,12 @@ func (e *RunnerEngine) NewSession(_ context.Context, spec SessionSpec) (Session,
 
 // runnerSession is one request over the batch.
 type runnerSession struct {
-	r   *tgo.Runner
-	req tgo.RunRequest
-	st  *tgo.SlotStream
+	r   *forma.Runner
+	req forma.RunRequest
+	st  *forma.SlotStream
 }
 
-func (s *runnerSession) Chat(ctx context.Context, msgs []chat.Message, p tgo.Policy) (
+func (s *runnerSession) Chat(ctx context.Context, msgs []chat.Message, p forma.Policy) (
 	Stream, error) {
 
 	// The nil check is not ceremony: a typed nil in an interface is not nil,
@@ -115,7 +115,7 @@ func (s *runnerSession) Chat(ctx context.Context, msgs []chat.Message, p tgo.Pol
 	return st, nil
 }
 
-func (s *runnerSession) Complete(ctx context.Context, prompt string, p tgo.Policy) (
+func (s *runnerSession) Complete(ctx context.Context, prompt string, p forma.Policy) (
 	Stream, error) {
 
 	st, err := s.r.Complete(ctx, s.req, prompt, p)

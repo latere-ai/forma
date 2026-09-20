@@ -18,9 +18,9 @@ import (
 // The numbers §6 asks for, in Prometheus text exposition, hand-written because
 // this package's dependency list is stdlib plus llmdialect.
 //
-// The pair that carries the point is tgo_logits_readback_seconds against
-// tgo_decode_step_seconds: specs/010-conformance.md §3's readback share,
-// measured in production rather than in a benchmark. tgo_queue_wait_seconds is
+// The pair that carries the point is forma_logits_readback_seconds against
+// forma_decode_step_seconds: specs/010-conformance.md §3's readback share,
+// measured in production rather than in a benchmark. forma_queue_wait_seconds is
 // what specs/008-scheduler.md's absence costs, in the units a caller feels.
 
 // buckets are the histogram boundaries, in seconds.
@@ -157,39 +157,39 @@ func (m *metrics) write(w io.Writer) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	_, _ = fmt.Fprint(w, "# HELP tgo_requests_in_flight Requests generating right now.\n")
-	_, _ = fmt.Fprint(w, "# TYPE tgo_requests_in_flight gauge\n")
+	_, _ = fmt.Fprint(w, "# HELP forma_requests_in_flight Requests generating right now.\n")
+	_, _ = fmt.Fprint(w, "# TYPE forma_requests_in_flight gauge\n")
 	for _, d := range slices.Sorted(maps.Keys(m.inFlight)) {
-		_, _ = fmt.Fprintf(w, "tgo_requests_in_flight{dialect=\"%s\"} %d\n", escape(d), m.inFlight[d])
+		_, _ = fmt.Fprintf(w, "forma_requests_in_flight{dialect=\"%s\"} %d\n", escape(d), m.inFlight[d])
 	}
 
-	_, _ = fmt.Fprint(w, "# HELP tgo_queue_depth Admitted requests waiting for a session slot.\n")
-	_, _ = fmt.Fprint(w, "# TYPE tgo_queue_depth gauge\n")
-	_, _ = fmt.Fprintf(w, "tgo_queue_depth %d\n", m.queued)
+	_, _ = fmt.Fprint(w, "# HELP forma_queue_depth Admitted requests waiting for a session slot.\n")
+	_, _ = fmt.Fprint(w, "# TYPE forma_queue_depth gauge\n")
+	_, _ = fmt.Fprintf(w, "forma_queue_depth %d\n", m.queued)
 
-	_, _ = fmt.Fprint(w, "# HELP tgo_queue_wait_seconds Time spent waiting for a session slot.\n")
-	_, _ = fmt.Fprint(w, "# TYPE tgo_queue_wait_seconds histogram\n")
-	m.queueWait.write(w, "tgo_queue_wait_seconds")
+	_, _ = fmt.Fprint(w, "# HELP forma_queue_wait_seconds Time spent waiting for a session slot.\n")
+	_, _ = fmt.Fprint(w, "# TYPE forma_queue_wait_seconds histogram\n")
+	m.queueWait.write(w, "forma_queue_wait_seconds")
 
-	_, _ = fmt.Fprint(w, "# HELP tgo_decode_step_seconds One request's median decode step.\n")
-	_, _ = fmt.Fprint(w, "# TYPE tgo_decode_step_seconds histogram\n")
-	m.decodeStep.write(w, "tgo_decode_step_seconds")
+	_, _ = fmt.Fprint(w, "# HELP forma_decode_step_seconds One request's median decode step.\n")
+	_, _ = fmt.Fprint(w, "# TYPE forma_decode_step_seconds histogram\n")
+	m.decodeStep.write(w, "forma_decode_step_seconds")
 
-	_, _ = fmt.Fprint(w, "# HELP tgo_logits_readback_seconds One request's median logits readback, "+
+	_, _ = fmt.Fprint(w, "# HELP forma_logits_readback_seconds One request's median logits readback, "+
 		"the share of a decode step spent moving a row of logits to the host.\n")
-	_, _ = fmt.Fprint(w, "# TYPE tgo_logits_readback_seconds histogram\n")
-	m.readback.write(w, "tgo_logits_readback_seconds")
+	_, _ = fmt.Fprint(w, "# TYPE forma_logits_readback_seconds histogram\n")
+	m.readback.write(w, "forma_logits_readback_seconds")
 
-	_, _ = fmt.Fprint(w, "# HELP tgo_request_loss_total Advisory fields accepted and not acted on.\n")
-	_, _ = fmt.Fprint(w, "# TYPE tgo_request_loss_total counter\n")
+	_, _ = fmt.Fprint(w, "# HELP forma_request_loss_total Advisory fields accepted and not acted on.\n")
+	_, _ = fmt.Fprint(w, "# TYPE forma_request_loss_total counter\n")
 	for _, f := range slices.Sorted(maps.Keys(m.loss)) {
-		_, _ = fmt.Fprintf(w, "tgo_request_loss_total{field=\"%s\"} %d\n", escape(f), m.loss[f])
+		_, _ = fmt.Fprintf(w, "forma_request_loss_total{field=\"%s\"} %d\n", escape(f), m.loss[f])
 	}
 
-	_, _ = fmt.Fprint(w, "# HELP tgo_sessions_rejected_total Requests refused rather than run.\n")
-	_, _ = fmt.Fprint(w, "# TYPE tgo_sessions_rejected_total counter\n")
+	_, _ = fmt.Fprint(w, "# HELP forma_sessions_rejected_total Requests refused rather than run.\n")
+	_, _ = fmt.Fprint(w, "# TYPE forma_sessions_rejected_total counter\n")
 	for _, r := range slices.Sorted(maps.Keys(m.rejected)) {
-		_, _ = fmt.Fprintf(w, "tgo_sessions_rejected_total{reason=\"%s\"} %d\n", escape(r), m.rejected[r])
+		_, _ = fmt.Fprintf(w, "forma_sessions_rejected_total{reason=\"%s\"} %d\n", escape(r), m.rejected[r])
 	}
 }
 

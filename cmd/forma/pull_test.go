@@ -13,10 +13,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/latere-ai/tgo/internal/hub"
+	"latere.ai/x/forma/internal/hub"
 )
 
-// fakePuller is internal/hub as `tgo pull` uses it: a listing, a directory, and
+// fakePuller is internal/hub as `forma pull` uses it: a listing, a directory, and
 // whatever progress the test wants reported.
 //
 // It touches no network and writes no cache, which is what lets every refusal
@@ -238,7 +238,7 @@ func TestPullPrintsTheDirectoryOnStdoutAndProgressOnStderr(t *testing.T) {
 	if err := cmdPull([]string{"Qwen/Qwen3-0.6B"}, &stdout, &stderr); err != nil {
 		t.Fatalf("cmdPull: %v", err)
 	}
-	// Exactly the path and a newline, so that `tgo run "$(tgo pull ...)"`
+	// Exactly the path and a newline, so that `forma run "$(forma pull ...)"`
 	// works: a progress line on stdout would become part of the path.
 	if got, want := stdout.String(), f.dir+"\n"; got != want {
 		t.Errorf("stdout = %q, want %q", got, want)

@@ -18,7 +18,7 @@ import (
 // llmdialect translates the three chat dialects; /v1/completions is not one of
 // them, and it is the one route where no template runs: the body's `prompt`
 // reaches the model as the bytes the caller wrote (specs/007-engine.md's
-// Session.Complete). So tgo owns this codec end to end -- decode, encode and
+// Session.Complete). So forma owns this codec end to end -- decode, encode and
 // SSE -- and owns it as an llmdialect.Frontend, so it travels the same pipeline
 // as the other three and its refusals and its loss report come out of the same
 // two tables rather than a fourth copy of them.
@@ -150,20 +150,20 @@ func legacyStop(raw json.RawMessage) ([]string, error) {
 // would change the answer.
 func (*legacyFrontend) finish(top map[string]json.RawMessage, out *request) *apiError {
 	if raw, ok := top["suffix"]; ok && !isNull(raw) {
-		return refusal("suffix", "tgo: suffix is not supported: filling in the middle needs "+
+		return refusal("suffix", "forma: suffix is not supported: filling in the middle needs "+
 			"the prompt built around the completion, and this route sends the prompt verbatim")
 	}
 	if raw, ok := top["echo"]; ok && !isNull(raw) {
 		var echo bool
 		if json.Unmarshal(raw, &echo) == nil && echo {
-			return refusal("echo", "tgo: echo is not supported: the answer would carry the "+
+			return refusal("echo", "forma: echo is not supported: the answer would carry the "+
 				"prompt back, which this server does not re-tokenize")
 		}
 	}
 	if raw, ok := top["best_of"]; ok && !isNull(raw) {
 		var n int
 		if json.Unmarshal(raw, &n) == nil && n > 1 {
-			return refusal("best_of", "tgo: best_of=%d is not supported: sampling several "+
+			return refusal("best_of", "forma: best_of=%d is not supported: sampling several "+
 				"completions and picking one needs batching (specs/008-scheduler.md)", n)
 		}
 	}
@@ -172,7 +172,7 @@ func (*legacyFrontend) finish(top map[string]json.RawMessage, out *request) *api
 		out.prompt = out.msgs[0].Blocks[0].Text
 	}
 	if out.prompt == "" {
-		return badRequest("tgo: the prompt is empty, and a completion of nothing is nothing")
+		return badRequest("forma: the prompt is empty, and a completion of nothing is nothing")
 	}
 	out.msgs = nil
 	return nil
@@ -318,7 +318,7 @@ func (e *legacyEventEncoder) Encode(ev ir.Event) error {
 		_, err := fmt.Fprint(e.w, "data: [DONE]\n\n")
 		return err
 	default:
-		return fmt.Errorf("tgo: unknown event type %q", ev.Type)
+		return fmt.Errorf("forma: unknown event type %q", ev.Type)
 	}
 }
 

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Latere AI
 // SPDX-License-Identifier: Apache-2.0
 
-package tgo
+package forma
 
 import (
 	"fmt"
@@ -79,11 +79,11 @@ type schedPlan struct {
 // left out of is a step, and eviction is for a pool that cannot grow (§4).
 func nextStep(slots []schedState, chunk, rows int) (schedPlan, error) {
 	if chunk <= 0 {
-		return schedPlan{}, fmt.Errorf("tgo: the prefill chunk is %d; a chunk is at "+
+		return schedPlan{}, fmt.Errorf("forma: the prefill chunk is %d; a chunk is at "+
 			"least one token", chunk)
 	}
 	if rows <= 0 {
-		return schedPlan{}, fmt.Errorf("tgo: a step of %d rows carries nothing", rows)
+		return schedPlan{}, fmt.Errorf("forma: a step of %d rows carries nothing", rows)
 	}
 	var p schedPlan
 	left := rows

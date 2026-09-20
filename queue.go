@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Latere AI
 // SPDX-License-Identifier: Apache-2.0
 
-package tgo
+package forma
 
 import (
 	"context"
@@ -12,7 +12,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/latere-ai/tgo/internal/prefix"
+	"latere.ai/x/forma/internal/prefix"
 )
 
 // The queue in front of admission.
@@ -48,16 +48,16 @@ const (
 var (
 	// ErrQueueFull is what [Queue.Admit] refuses with past its depth bound. An
 	// unbounded queue converts a refusal into an unbounded latency (009-D3).
-	ErrQueueFull = errors.New("tgo: the admission queue is full")
+	ErrQueueFull = errors.New("forma: the admission queue is full")
 
 	// ErrQueueTimeout is what [Queue.Admit] refuses with past its wait budget.
 	// It is deliberately not the caller's context error: the two answer 429 and
 	// 499, and a context derived from the budget would collapse them into one
 	// (021-D7).
-	ErrQueueTimeout = errors.New("tgo: the admission queue's wait budget elapsed")
+	ErrQueueTimeout = errors.New("forma: the admission queue's wait budget elapsed")
 
 	// ErrQueueClosed is what a waiter gets when the queue is closed under it.
-	ErrQueueClosed = errors.New("tgo: the admission queue is closed")
+	ErrQueueClosed = errors.New("forma: the admission queue is closed")
 )
 
 // Admitter is what a [Queue] needs of a scheduler. [Scheduler] satisfies it.
@@ -117,7 +117,7 @@ type Ticket uint64
 
 // QueueStats is what the queue measures, drained.
 //
-// The queue is in package tgo and the Prometheus exposition is server's, whose
+// The queue is in package forma and the Prometheus exposition is server's, whose
 // metrics type is package-private (021-D9). So the queue reports and server
 // names the series.
 //
@@ -231,25 +231,25 @@ type waiter struct {
 // The caller closes it with [Queue.Close].
 func NewQueue(a Admitter, o QueueOptions) (*Queue, error) {
 	if a == nil {
-		return nil, errors.New("tgo: a queue needs an admitter to admit into")
+		return nil, errors.New("forma: a queue needs an admitter to admit into")
 	}
 	n := a.Slots()
 	if n < 1 {
-		return nil, fmt.Errorf("tgo: the admitter has %d slots; a queue in front of "+
+		return nil, fmt.Errorf("forma: the admitter has %d slots; a queue in front of "+
 			"nothing would refuse every request it accepted", n)
 	}
 	if o.Depth == 0 {
 		o.Depth = DefaultQueueDepth * n
 	}
 	if o.Depth < 1 {
-		return nil, fmt.Errorf("tgo: the queue's depth is %d; a queue that holds "+
+		return nil, fmt.Errorf("forma: the queue's depth is %d; a queue that holds "+
 			"nobody is a refusal with extra steps", o.Depth)
 	}
 	if o.Wait == 0 {
 		o.Wait = DefaultQueueWait
 	}
 	if o.Wait < 0 {
-		return nil, fmt.Errorf("tgo: the queue's wait budget is %s; it is how long a "+
+		return nil, fmt.Errorf("forma: the queue's wait budget is %s; it is how long a "+
 			"request waits before it is refused", o.Wait)
 	}
 	k := n
@@ -257,7 +257,7 @@ func NewQueue(a Admitter, o QueueOptions) (*Queue, error) {
 		k = *o.Overtake
 	}
 	if k < 0 {
-		return nil, fmt.Errorf("tgo: the queue's overtake bound is %d; zero is strict "+
+		return nil, fmt.Errorf("forma: the queue's overtake bound is %d; zero is strict "+
 			"arrival order and larger is how many times a head may be passed", k)
 	}
 	q := &Queue{

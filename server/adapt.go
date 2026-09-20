@@ -9,13 +9,13 @@ import (
 
 	"latere.ai/x/pkg/llmdialect/ir"
 
-	"github.com/latere-ai/tgo"
-	"github.com/latere-ai/tgo/chat"
+	"latere.ai/x/forma"
+	"latere.ai/x/forma/chat"
 )
 
 // This file is the whole of the mapping between llmdialect's vocabulary and
-// tgo's: an ir.Request becomes messages, a session shape and a
-// [github.com/latere-ai/tgo.Policy], and nothing else in the tree imports ir
+// forma's: an ir.Request becomes messages, a session shape and a
+// [latere.ai/x/forma.Policy], and nothing else in the tree imports ir
 // for that purpose (009-D10). One file, so the two vocabularies meet once.
 
 // request is one decoded request, checked and mapped.
@@ -30,15 +30,15 @@ type request struct {
 	prompt string
 
 	spec   SessionSpec
-	policy tgo.Policy
+	policy forma.Policy
 
-	// loss is what X-Tgo-Loss carries, already corrected both ways (loss.go).
+	// loss is what X-Forma-Loss carries, already corrected both ways (loss.go).
 	loss []string
 
 	stream bool
 }
 
-// adapt maps a decoded ir.Request onto tgo's types.
+// adapt maps a decoded ir.Request onto forma's types.
 //
 // Everything that can refuse does so here, before a session is allocated: a
 // request that will not run must not first take a KV reservation from one that
@@ -83,27 +83,27 @@ func adapt(d ir.Dialect, req *ir.Request, ex extras, raw map[string]bool, eng En
 // point: "a numeric bound is arithmetic on the value" tells a caller to move
 // the bound into their own validation, while "unsupported" sends them to guess
 // which of their keywords was the problem.
-func mapSchema(d ir.Dialect, req *ir.Request, eng Engine, pol *tgo.Policy) *apiError {
+func mapSchema(d ir.Dialect, req *ir.Request, eng Engine, pol *forma.Policy) *apiError {
 	if req.Schema == nil {
 		return nil
 	}
 	f := schemaField(d)
 	if len(req.Schema.Schema) == 0 {
-		return refusal(f, "tgo: %s asks for a JSON schema and carries none", f)
+		return refusal(f, "forma: %s asks for a JSON schema and carries none", f)
 	}
-	// Refused here as well as in tgo.Policy, because this is the layer that can
+	// Refused here as well as in forma.Policy, because this is the layer that can
 	// answer it: Policy.check runs inside Session.start, after this file has
 	// already allocated the session, and its error would arrive as a 500 with
 	// no field on it. A stop string cuts the completion where it matched, so it
 	// would end a constrained request on half a document (015-D9).
 	if len(pol.Stop) > 0 {
-		return refusal(f, "tgo: %s asks for a JSON schema and the request also carries a "+
+		return refusal(f, "forma: %s asks for a JSON schema and the request also carries a "+
 			"stop sequence %q; a stop string cuts the completion where it matched, so it "+
 			"would end the document early and it would not parse. Send one or the other",
 			f, pol.Stop)
 	}
 	if err := eng.CheckSchema(req.Schema.Schema); err != nil {
-		return refusal(f, "tgo: %s cannot be compiled to a token mask: %v", f, err)
+		return refusal(f, "forma: %s cannot be compiled to a token mask: %v", f, err)
 	}
 	pol.Schema = req.Schema.Schema
 	return nil
@@ -111,7 +111,7 @@ func mapSchema(d ir.Dialect, req *ir.Request, eng Engine, pol *tgo.Policy) *apiE
 
 // maxTopLogProbs is the wire's ceiling on top_logprobs, which OpenAI documents
 // as 20. It is below sample.TopMaxRounds, so a request that clears it is one
-// tgo can serve.
+// forma can serve.
 const maxTopLogProbs = 20
 
 // schemaField is what one dialect calls the member that asked for a schema.
@@ -131,7 +131,7 @@ func schemaField(d ir.Dialect) string {
 //
 // Two shapes differ and both matter. The IR carries the system prompt beside
 // the messages while the Qwen3 template reads it from position zero, and the IR
-// puts tool results in a user turn while tgo gives them their own Tool role --
+// puts tool results in a user turn while forma gives them their own Tool role --
 // which is what lets the renderer wrap each in <tool_response> without
 // inspecting text (specs/003-chat-template.md 003-D8).
 func mapMessages(req *ir.Request) ([]chat.Message, *apiError) {
@@ -154,12 +154,12 @@ func mapMessages(req *ir.Request) ([]chat.Message, *apiError) {
 		out = append(out, turns...)
 	}
 	if len(out) == 0 || out[len(out)-1].Role == chat.System {
-		return nil, badRequest("tgo: the request carries no message to answer")
+		return nil, badRequest("forma: the request carries no message to answer")
 	}
 	return out, nil
 }
 
-// mapTurn splits one IR message into the turns tgo renders.
+// mapTurn splits one IR message into the turns forma renders.
 //
 // A run of tool results becomes Tool turns and the rest stays on the original
 // role, in the order the blocks arrived: a caller who put a result between two
@@ -181,7 +181,7 @@ func mapTurn(role chat.Role, blocks []ir.Block) ([]chat.Message, *apiError) {
 			if role != chat.Assistant {
 				// The renderer refuses it too, and refusing here names the
 				// dialect member rather than the internal turn index.
-				return nil, badRequest("tgo: a thinking block belongs to an assistant turn")
+				return nil, badRequest("forma: a thinking block belongs to an assistant turn")
 			}
 			pending = append(pending, chat.Block{Type: chat.BlockThinking, Text: b.Text})
 		case ir.BlockRedactedThinking:
@@ -190,14 +190,14 @@ func mapTurn(role chat.Role, blocks []ir.Block) ([]chat.Message, *apiError) {
 			// dropping it that would not be dropped by rendering it.
 		case ir.BlockToolUse:
 			if b.ToolUse == nil {
-				return nil, badRequest("tgo: a tool_use block carries no call")
+				return nil, badRequest("forma: a tool_use block carries no call")
 			}
 			pending = append(pending, chat.Block{Type: chat.BlockToolUse, ToolUse: &chat.ToolUse{
 				ID: b.ToolUse.ID, Name: b.ToolUse.Name, Args: b.ToolUse.Args,
 			}})
 		case ir.BlockToolResult:
 			if b.ToolResult == nil {
-				return nil, badRequest("tgo: a tool_result block carries no result")
+				return nil, badRequest("forma: a tool_result block carries no result")
 			}
 			text, aerr := textOfChecked(b.ToolResult.Blocks)
 			if aerr != nil {
@@ -215,7 +215,7 @@ func mapTurn(role chat.Role, blocks []ir.Block) ([]chat.Message, *apiError) {
 		case ir.BlockImage:
 			return nil, imageRefusal()
 		default:
-			return nil, refusal(string(b.Type), "tgo: a %q content block has no place in a "+
+			return nil, refusal(string(b.Type), "forma: a %q content block has no place in a "+
 				"text-only model's prompt", b.Type)
 		}
 	}
@@ -228,7 +228,7 @@ func mapTurn(role chat.Role, blocks []ir.Block) ([]chat.Message, *apiError) {
 // specs/004-model-graph.md 004-D2 makes a vision model additive, and that is
 // when this stops being a refusal.
 func imageRefusal() *apiError {
-	return refusal("image", "tgo: image content is not supported: this model is text-only, "+
+	return refusal("image", "forma: image content is not supported: this model is text-only, "+
 		"and dropping the image would answer a different question")
 }
 
@@ -274,8 +274,8 @@ func mapTools(tools []ir.Tool) []chat.ToolSpec {
 // max_tokens and the stop strings come from ir.Request, and the seed, the
 // penalties and the bias come from [extras], because the IR has no room for
 // them (§4.1).
-func mapPolicy(d ir.Dialect, req *ir.Request, ex extras, vocab int) (tgo.Policy, *apiError) {
-	var p tgo.Policy
+func mapPolicy(d ir.Dialect, req *ir.Request, ex extras, vocab int) (forma.Policy, *apiError) {
+	var p forma.Policy
 	if req.Temperature != nil {
 		p.Temperature = float32(*req.Temperature)
 	}
@@ -293,7 +293,7 @@ func mapPolicy(d ir.Dialect, req *ir.Request, ex extras, vocab int) (tgo.Policy,
 	// specs/030-logprobs.md §4: the engine is asked for logprobs only on a
 	// route whose encoder can carry them, because computing them runs a
 	// whole-vocabulary exp per step (030-D4). Two routes can: /v1/completions
-	// through tgo's own codec, and /v1/chat/completions through llmdialect's,
+	// through forma's own codec, and /v1/chat/completions through llmdialect's,
 	// whose ir carries them on the response and on each text delta. The
 	// Anthropic and Responses surfaces have no member for them, so the ask
 	// stays a loss there.
@@ -302,7 +302,7 @@ func mapPolicy(d ir.Dialect, req *ir.Request, ex extras, vocab int) (tgo.Policy,
 	// ceiling is the wire's: OpenAI documents top_logprobs at 20, and a caller
 	// asking for 200 has made a mistake worth naming.
 	if ex.topLogProbs > maxTopLogProbs {
-		return p, badRequest("tgo: top_logprobs is %d and the maximum is %d",
+		return p, badRequest("forma: top_logprobs is %d and the maximum is %d",
 			ex.topLogProbs, maxTopLogProbs)
 	}
 	if d == dialectLegacy || d == ir.DialectOpenAIChat {
@@ -310,10 +310,10 @@ func mapPolicy(d ir.Dialect, req *ir.Request, ex extras, vocab int) (tgo.Policy,
 	}
 	if req.MaxTokens != nil {
 		if *req.MaxTokens <= 0 {
-			return p, badRequest("tgo: max_tokens must be positive, got %d", *req.MaxTokens)
+			return p, badRequest("forma: max_tokens must be positive, got %d", *req.MaxTokens)
 		}
 		if *req.MaxTokens > int64(math.MaxInt32) {
-			return p, badRequest("tgo: max_tokens is out of range: %d", *req.MaxTokens)
+			return p, badRequest("forma: max_tokens is out of range: %d", *req.MaxTokens)
 		}
 		p.MaxTokens = int(*req.MaxTokens)
 	}
@@ -332,14 +332,14 @@ func mapPolicy(d ir.Dialect, req *ir.Request, ex extras, vocab int) (tgo.Policy,
 	}
 	if ex.penaltyWindow != nil {
 		if *ex.penaltyWindow < 0 {
-			return p, badRequest("tgo: penalty_window must not be negative, got %d", *ex.penaltyWindow)
+			return p, badRequest("forma: penalty_window must not be negative, got %d", *ex.penaltyWindow)
 		}
 		p.PenaltyWindow = *ex.penaltyWindow
 	}
 	if len(ex.logitBias) > 0 {
 		for id := range ex.logitBias {
 			if id < 0 || id >= vocab {
-				return p, refusal("logit_bias", "tgo: logit_bias names token %d, which is "+
+				return p, refusal("logit_bias", "forma: logit_bias names token %d, which is "+
 					"outside this model's vocabulary of %d: a bias that lands on no token "+
 					"changes the answer without saying so", id, vocab)
 			}

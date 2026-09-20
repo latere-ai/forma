@@ -17,9 +17,9 @@ import (
 	"strings"
 	"time"
 
-	tgo "github.com/latere-ai/tgo"
-	"github.com/latere-ai/tgo/server"
-	"github.com/latere-ai/tgo/weights"
+	forma "latere.ai/x/forma"
+	"latere.ai/x/forma/server"
+	"latere.ai/x/forma/weights"
 )
 
 // shutdownGrace is how long a graceful stop waits for in-flight requests.
@@ -32,7 +32,7 @@ import (
 // than left with a process that will not exit.
 const shutdownGrace = 30 * time.Second
 
-// serveRoutes is what `tgo serve` prints, one line per route the handler
+// serveRoutes is what `forma serve` prints, one line per route the handler
 // answers on.
 //
 // It is written here rather than asked of the server because
@@ -52,7 +52,7 @@ var serveRoutes = []struct{ Method, Path, What string }{
 	{"GET", "/metrics", "Prometheus text exposition"},
 }
 
-// defaultSessions is the pool `tgo serve` builds when nothing says otherwise.
+// defaultSessions is the pool `forma serve` builds when nothing says otherwise.
 //
 // It is two numbers at once (specs/019-session-affinity.md §4): how many
 // requests may generate at the same time, and how many conversations keep their
@@ -67,7 +67,7 @@ var serveRoutes = []struct{ Method, Path, What string }{
 // whose device cannot hold four gets what it can hold, and never less than one.
 const defaultSessions = 4
 
-// serveOptions is `tgo serve`'s command line, parsed.
+// serveOptions is `forma serve`'s command line, parsed.
 type serveOptions struct {
 	Dir    string
 	Addr   string
@@ -90,7 +90,7 @@ type serveOptions struct {
 	Engine engineOptions
 }
 
-// serveFlagSet declares what `tgo serve` accepts. See [runFlagSet] for why
+// serveFlagSet declares what `forma serve` accepts. See [runFlagSet] for why
 // declaring is separate from parsing.
 func serveFlagSet() (*flag.FlagSet, *serveFlags) {
 	fs := flag.NewFlagSet("serve", flag.ContinueOnError)
@@ -124,7 +124,7 @@ func registerScope(fs *flag.FlagSet) *scopeFlag {
 	return v
 }
 
-// serveFlags holds `tgo serve`'s flag values.
+// serveFlags holds `forma serve`'s flag values.
 type serveFlags struct {
 	addr, precision, device *string
 	public                  *bool
@@ -134,7 +134,7 @@ type serveFlags struct {
 	slots, kv               *int
 }
 
-// parseServe parses and checks `tgo serve`'s arguments.
+// parseServe parses and checks `forma serve`'s arguments.
 func parseServe(args []string) (serveOptions, error) {
 	fs, f := serveFlagSet()
 	dir, err := modelDir(fs, args)
@@ -192,20 +192,20 @@ func parseServe(args []string) (serveOptions, error) {
 	// overwritten.
 	scope := f.prefixCache.scope
 	if *f.batched {
-		if f.prefixCache.set && scope != tgo.CacheProcess {
+		if f.prefixCache.set && scope != forma.CacheProcess {
 			return serveOptions{}, fmt.Errorf("%w: --batched needs --prefix-cache "+
 				"process and this is %s; sequences that step together have different "+
 				"lengths, so a contiguous per-session cache would pad every one of "+
 				"them to the longest (specs/022-batched-serving.md 022-D1)",
 				errUsage, scope)
 		}
-		scope = tgo.CacheProcess
+		scope = forma.CacheProcess
 	}
 	// --kv sizes the one thing a process-scoped cache has and the other two
 	// scopes do not. Refused rather than ignored: a number an operator passed
 	// and nothing read is the shape of a deployment that thinks it configured
 	// something.
-	if set["kv"] && scope != tgo.CacheProcess {
+	if set["kv"] && scope != forma.CacheProcess {
 		return serveOptions{}, fmt.Errorf("%w: --kv sizes the shared block pool and "+
 			"--prefix-cache is %s, which gives every session its own cache; --kv "+
 			"needs --prefix-cache process or --batched", errUsage, scope)
@@ -273,8 +273,8 @@ func publicBindRefusal(addr string) error {
 // There is no flag for it, because this process serves one model (009-D5) and a
 // name it invented would be a second thing to get right. The id is printed at
 // startup and answered by GET /v1/models, so it is discoverable rather than
-// guessed. Trailing separators are stripped first: `tgo serve ./models/qwen/`
-// and `tgo serve ./models/qwen` must serve the same id.
+// guessed. Trailing separators are stripped first: `forma serve ./models/qwen/`
+// and `forma serve ./models/qwen` must serve the same id.
 func modelID(dir string) string {
 	if name := filepath.Base(filepath.Clean(dir)); name != "." && name != string(filepath.Separator) {
 		return name
@@ -282,7 +282,7 @@ func modelID(dir string) string {
 	return "model"
 }
 
-// servable is a loaded model as `tgo serve` needs it: a way to build the
+// servable is a loaded model as `forma serve` needs it: a way to build the
 // engine once its size is known, what the loader resolved, and the release.
 //
 // The engine is not built here because it cannot be. specs/019-session-affinity.md
@@ -309,17 +309,17 @@ type servable struct {
 // and the graceful stop -- is then reachable from a test with no device, no
 // weights and no checkpoint.
 var openServable = func(dir, name string, o engineOptions) (servable, error) {
-	opts := []tgo.Option{
-		tgo.WithPrecision(livePrecision(o.Precision)),
-		tgo.WithContext(o.Context),
-		tgo.WithDevice(o.Device),
+	opts := []forma.Option{
+		forma.WithPrecision(livePrecision(o.Precision)),
+		forma.WithContext(o.Context),
+		forma.WithDevice(o.Device),
 	}
 	switch o.PrefixCache {
-	case tgo.CacheSession:
+	case forma.CacheSession:
 		// The budget is the whole context, because a pooled session's history
 		// is its own and there is nothing else to spend it on.
-		opts = append(opts, tgo.WithPrefixCache(tgo.CacheSession, o.Context))
-	case tgo.CacheProcess:
+		opts = append(opts, forma.WithPrefixCache(forma.CacheSession, o.Context))
+	case forma.CacheProcess:
 		// One pool, and --kv is what sizes it. Its default is exactly what the
 		// per-session caches would have cost -- slots x context positions, held
 		// once instead of once each -- so a deployment that does not set it
@@ -332,9 +332,9 @@ var openServable = func(dir, name string, o engineOptions) (servable, error) {
 		// allocated while the model loads and the admission needs the loaded
 		// weights. Where the two disagree the admission is the one that
 		// reports it, in --slots and --context terms.
-		opts = append(opts, tgo.WithPrefixCache(tgo.CacheProcess, poolPositions(o)))
+		opts = append(opts, forma.WithPrefixCache(forma.CacheProcess, poolPositions(o)))
 	}
-	m, err := tgo.Open(dir, opts...)
+	m, err := forma.Open(dir, opts...)
 	if err != nil {
 		return servable{}, err
 	}
@@ -344,7 +344,7 @@ var openServable = func(dir, name string, o engineOptions) (servable, error) {
 	return servable{
 		Pool: func(sessions int) (server.Engine, error) {
 			if o.Batched {
-				e, err := server.WrapRunner(m, name, tgo.RunnerOptions{
+				e, err := server.WrapRunner(m, name, forma.RunnerOptions{
 					Slots: sessions, Reserve: serveReserve(o.Context),
 				})
 				if err != nil {
@@ -413,19 +413,19 @@ const defaultBatchSlots = 8
 // serveReserve is §3's R for a batched deployment: how many positions beyond
 // its prompt an admitted sequence holds blocks for.
 //
-// [tgo.DefaultReserve], capped at half the context. The cap is what keeps the
+// [forma.DefaultReserve], capped at half the context. The cap is what keeps the
 // promise payable on a short context: a reserve larger than the context admits
 // nobody, because ceil((T+R)/B) is then more blocks than one sequence's share
 // of the pool. It is one number for the whole deployment, which
 // [022-D7](../../specs/022-batched-serving.md) makes per request in a later
 // pass.
 func serveReserve(context int) int {
-	r := tgo.DefaultReserve
+	r := forma.DefaultReserve
 	if half := context / 2; r > half {
 		r = half
 	}
-	if r < tgo.CacheBlock {
-		r = tgo.CacheBlock
+	if r < forma.CacheBlock {
+		r = forma.CacheBlock
 	}
 	return r
 }
@@ -501,7 +501,7 @@ func shapeOf(o serveOptions, context int) admissionShape {
 //	N_max = floor((M_available - M_weights) / M_kv(C))
 //
 // M_available is the device's MaxPoolBytes, which is the same quantity
-// `tgo info` prints as the budget and is a cap on one allocation rather than a
+// `forma info` prints as the budget and is a cap on one allocation rather than a
 // report of free memory -- accel exposes no such report. It therefore
 // overstates what is free on a machine running anything else, which is why the
 // derivation is printed rather than the answer alone. See this package's
@@ -601,7 +601,7 @@ func cmdServe(args []string, stdout, stderr io.Writer) error {
 	return serveUntil(ctx, stop, sv.ln, sv.srv, shutdownGrace, stderr)
 }
 
-// startServe does everything `tgo serve` does before it blocks: it parses the
+// startServe does everything `forma serve` does before it blocks: it parses the
 // command line, loads the model, computes the admission limit, binds the
 // address and prints the report.
 //
@@ -702,7 +702,7 @@ func serveUntil(ctx context.Context, stop func(), ln net.Listener, h http.Handle
 	}
 	stop()
 
-	_, _ = fmt.Fprintf(stderr, "\ntgo: stopping; in-flight requests have %s to finish\n", humanDuration(grace))
+	_, _ = fmt.Fprintf(stderr, "\nforma: stopping; in-flight requests have %s to finish\n", humanDuration(grace))
 	// ctx is already cancelled -- that is how we got here -- so the grace
 	// period hangs off a copy with the cancellation stripped and the values
 	// kept. context.Background() would drop the values too, and a shutdown
@@ -713,7 +713,7 @@ func serveUntil(ctx context.Context, stop func(), ln net.Listener, h http.Handle
 		// A stream still open when the grace expires is cut, and the reason is
 		// stated: the alternative is a process that does not exit, and an
 		// operator who cannot tell a hung shutdown from a slow one.
-		_, _ = fmt.Fprintf(stderr, "tgo: %s passed with requests still in flight; closing them\n", humanDuration(grace))
+		_, _ = fmt.Fprintf(stderr, "forma: %s passed with requests still in flight; closing them\n", humanDuration(grace))
 		_ = hs.Close()
 	}
 	if err := <-errs; err != nil && !errors.Is(err, http.ErrServerClosed) {
@@ -745,7 +745,7 @@ func renderServe(w io.Writer, rep modelReport, o serveOptions, srv *server.Serve
 			"positions of context\n", weights.HumanBytes(adm.Reserved), adm.Positions,
 			rep.Memory.Context)
 		_, _ = fmt.Fprintf(w, "  chunk and reserve %d prompt tokens a step, and %d positions held "+
-			"beyond a prompt at admission\n", tgo.DefaultChunk,
+			"beyond a prompt at admission\n", forma.DefaultChunk,
 			serveReserve(rep.Memory.Context))
 	} else {
 		_, _ = fmt.Fprintf(w, "\nslots      %d pooled sessions, reserved now and held until this "+
@@ -788,13 +788,13 @@ func batchingNote(batched bool) string {
 // request gets in distribution rather than bit for bit (016-D6). Off, every
 // request prefills its whole prompt and two identical requests give identical
 // answers.
-func prefixCacheLine(scope tgo.CacheScope) string {
+func prefixCacheLine(scope forma.CacheScope) string {
 	switch scope {
-	case tgo.CacheSession:
+	case forma.CacheSession:
 		return "on, scoped to one pooled session; a turn prefills only what is new, and a " +
 			"warm\n                    answer matches a cold one in distribution rather than " +
 			"bit for bit"
-	case tgo.CacheProcess:
+	case forma.CacheProcess:
 		return "on, shared across every session; two conversations with the same system\n" +
 			"                    prompt prefill it once between them, a request's " +
 			"cache_salt is what\n                    keeps tenants apart, and --sessions " +

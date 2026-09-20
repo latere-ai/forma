@@ -14,7 +14,7 @@ import (
 	"golang.design/x/accel"
 	"golang.design/x/accel/quant"
 
-	"github.com/latere-ai/tgo/bench"
+	"latere.ai/x/forma/bench"
 )
 
 func TestFirstDifferenceFindsWhereTwoRunsPart(t *testing.T) {
@@ -358,7 +358,7 @@ func TestPublishIsTheGeneratedDocument(t *testing.T) {
 		t.Error("the published document does not carry the measurements")
 	}
 	for _, want := range []string{"# Conformance", "## The register",
-		"## Numbers tgo reports back", "register.go"} {
+		"## Numbers forma reports back", "register.go"} {
 		if !strings.Contains(doc, want) {
 			t.Errorf("the published document has no %q", want)
 		}

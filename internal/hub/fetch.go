@@ -18,7 +18,7 @@ import (
 // A local ref is checked and returned; nothing is copied, because a directory
 // on this machine is already what safetensors.OpenRepo wants (013-D4). A repo
 // id is resolved to a commit sha, and the files that revision lists are
-// downloaded into $TGO_CACHE/models/{org}/{repo}/{sha}.
+// downloaded into $FORMA_CACHE/models/{org}/{repo}/{sha}.
 //
 // Fetch is resumable and re-entrant: a file already in the directory at the
 // published length is left alone, a partial download continues from where it

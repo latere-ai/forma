@@ -8,26 +8,26 @@ import (
 	"strings"
 	"testing"
 
-	tgo "github.com/latere-ai/tgo"
-	"github.com/latere-ai/tgo/weights"
+	forma "latere.ai/x/forma"
+	"latere.ai/x/forma/weights"
 )
 
-// TestDescribeAgreesWithTheLoadedModel is the pin under `tgo info`.
+// TestDescribeAgreesWithTheLoadedModel is the pin under `forma info`.
 //
-// `tgo info` reports the precision and the memory from config.json and the
+// `forma info` reports the precision and the memory from config.json and the
 // declared weight map alone, without loading a byte, because the alternative is
 // uploading 1.4 GiB to the device in order to print a table. That makes two
 // implementations of the same arithmetic: [describe] here and
-// specs/004-model-graph.md's own inside a loaded [tgo.Model]. Nothing makes
+// specs/004-model-graph.md's own inside a loaded [forma.Model]. Nothing makes
 // them agree, so this compares them on a real checkpoint.
 //
-// It reads the model TGO_MODEL names and is skipped otherwise
+// It reads the model FORMA_MODEL names and is skipped otherwise
 // (specs/000-decisions.md decision 8): the smallest Qwen3 is over a gigabyte,
 // and a test suite that downloads one is a suite nobody runs.
 func TestDescribeAgreesWithTheLoadedModel(t *testing.T) {
-	dir := os.Getenv("TGO_MODEL")
+	dir := os.Getenv("FORMA_MODEL")
 	if dir == "" {
-		t.Skip("TGO_MODEL is not set; this test loads a real checkpoint")
+		t.Skip("FORMA_MODEL is not set; this test loads a real checkpoint")
 	}
 	const context = 1024
 
@@ -36,9 +36,9 @@ func TestDescribeAgreesWithTheLoadedModel(t *testing.T) {
 		t.Fatalf("openAndDescribe: %v", err)
 	}
 
-	m, err := tgo.Open(dir, tgo.WithPrecision(tgo.F16), tgo.WithContext(context))
+	m, err := forma.Open(dir, forma.WithPrecision(forma.F16), forma.WithContext(context))
 	if err != nil {
-		t.Fatalf("tgo.Open: %v", err)
+		t.Fatalf("forma.Open: %v", err)
 	}
 	defer func() { _ = m.Close() }()
 	got := m.Info()
@@ -64,7 +64,7 @@ func TestDescribeAgreesWithTheLoadedModel(t *testing.T) {
 			t.Errorf("%s: the model says %d and info printed %d", tc.name, tc.got, tc.print)
 		}
 	}
-	// The footprint `tgo info` prints without loading, against what the loaded
+	// The footprint `forma info` prints without loading, against what the loaded
 	// weights occupy. Equal, not close: both count the same declared planes at
 	// the same width, and a difference means one of them counts a tensor the
 	// other does not -- which for a tied checkpoint is the largest tensor in
@@ -104,26 +104,26 @@ func TestDescribeAgreesWithTheLoadedModel(t *testing.T) {
 //     was still running after thirty-five minutes and was abandoned rather than
 //     finished.
 //
-// So `tgo run` and `tgo bench` are exercised end to end against a fake engine
+// So `forma run` and `forma bench` are exercised end to end against a fake engine
 // (see bench_test.go and runcmd_test.go), and against a real checkpoint only up
 // to the point this machine can reach. Writing a generation test that has never
 // passed and calling it proof of the wiring would be the decoration 017-D4
 // refuses, one layer down. See this package's reported discrepancies.
 func TestLiveEngineOpensTheRealCheckpoint(t *testing.T) {
-	dir := os.Getenv("TGO_MODEL")
+	dir := os.Getenv("FORMA_MODEL")
 	if dir == "" {
-		t.Skip("TGO_MODEL is not set; this test loads a real checkpoint")
+		t.Skip("FORMA_MODEL is not set; this test loads a real checkpoint")
 	}
 	const context = 256
 
 	predicted, err := openAndDescribe(dir, describeOptions{
-		Policy: weights.F16, Context: context, Device: tgo.CPU})
+		Policy: weights.F16, Context: context, Device: forma.CPU})
 	if err != nil {
 		t.Fatalf("openAndDescribe: %v", err)
 	}
 
 	e, err := openEngine(dir, engineOptions{
-		Precision: weights.F16, Context: context, Device: tgo.CPU})
+		Precision: weights.F16, Context: context, Device: forma.CPU})
 	if err != nil {
 		t.Fatalf("openEngine: %v", err)
 	}
@@ -140,7 +140,7 @@ func TestLiveEngineOpensTheRealCheckpoint(t *testing.T) {
 	if got.Context != context {
 		t.Errorf("the engine reserved %d positions, want %d", got.Context, context)
 	}
-	// The footprint `tgo info` prints without loading a byte, against what the
+	// The footprint `forma info` prints without loading a byte, against what the
 	// loaded weights occupy. Equal, not close: both count the same declared
 	// planes at the same widths, and a difference means one of them prices a
 	// tensor the other does not -- which for a tied checkpoint is the largest

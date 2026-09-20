@@ -7,7 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/latere-ai/tgo/chat"
+	"latere.ai/x/forma/chat"
 )
 
 // Qwen3Architecture is the architectures[0] value Qwen3 checkpoints carry, and

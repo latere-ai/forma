@@ -7,11 +7,11 @@ import (
 	"context"
 	"time"
 
-	tgo "github.com/latere-ai/tgo"
-	"github.com/latere-ai/tgo/bench"
-	"github.com/latere-ai/tgo/chat"
-	"github.com/latere-ai/tgo/sample"
-	"github.com/latere-ai/tgo/weights"
+	forma "latere.ai/x/forma"
+	"latere.ai/x/forma/bench"
+	"latere.ai/x/forma/chat"
+	"latere.ai/x/forma/sample"
+	"latere.ai/x/forma/weights"
 )
 
 // engine is what the command line needs in order to generate: one call that
@@ -24,7 +24,7 @@ import (
 // aggregation and both reports be exercised without a checkpoint and without
 // minutes of load time.
 //
-// The interface is narrower than 007 §1 on purpose. `tgo run` and `tgo bench`
+// The interface is narrower than 007 §1 on purpose. `forma run` and `forma bench`
 // are one conversation each, so sessions, typed events and tool specs are
 // surface the command line does not use, and naming them here would be a
 // prediction rather than a requirement.
@@ -78,7 +78,7 @@ type genRequest struct {
 
 	// Recorder receives the per-step breakdown and the time to first token. A
 	// nil Recorder disables the instrument, which is 017-D3's default:
-	// `tgo run` passes nil so that the path a user runs is not the path a
+	// `forma run` passes nil so that the path a user runs is not the path a
 	// measurement perturbs.
 	//
 	// [liveEngine] records only the time to first token into it. The four-way
@@ -107,9 +107,9 @@ type engineOptions struct {
 	Context   int
 
 	// Device is the accelerator the model runs on. It is the same choice
-	// [openDevice] uses to describe the machine, so that the limits `tgo info`
+	// [openDevice] uses to describe the machine, so that the limits `forma info`
 	// prints and the device the weights land on are one device.
-	Device tgo.Device
+	Device forma.Device
 
 	// PrefixCache turns on reuse of the key/value state a conversation has
 	// already paid for (specs/016-prefix-cache.md), scoped to one session.
@@ -118,9 +118,9 @@ type engineOptions struct {
 	// and, in the last decimal places, what it says: the reused prefix was
 	// computed under a different prefill shape and floating point is not
 	// associative, so a warm answer equals a cold one in distribution rather
-	// than bit for bit (016-D6). Only `tgo serve` reads it, because only a
+	// than bit for bit (016-D6). Only `forma serve` reads it, because only a
 	// pooled session sees a second turn (019 §1).
-	PrefixCache tgo.CacheScope
+	PrefixCache forma.CacheScope
 
 	// Recorder instruments the engine's decode loop, which is where the
 	// host/submit/device/readback breakdown comes from.
@@ -128,7 +128,7 @@ type engineOptions struct {
 	// It belongs on the engine rather than on a request because the session
 	// owns the loop: specs/017-benchmarks.md 017-D1 makes that breakdown the
 	// deliverable, and a throughput number without it cannot say whether a
-	// regression is tgo's or accel's. Nil disables the instrument (017-D3).
+	// regression is forma's or accel's. Nil disables the instrument (017-D3).
 	Recorder *bench.Recorder
 
 	// Batched puts every in-flight request in one forward pass, rather than
@@ -148,7 +148,7 @@ type engineOptions struct {
 	Slots int
 
 	// KV is the shared block pool's size in positions, and is read only under
-	// [tgo.CacheProcess]. Zero takes Slots x Context, which is the bytes a
+	// [forma.CacheProcess]. Zero takes Slots x Context, which is the bytes a
 	// pool of that many sessions reserves today.
 	KV int
 }
@@ -156,27 +156,27 @@ type engineOptions struct {
 // livePrecision maps the loader's precision onto the engine's.
 //
 // Two enumerations name the same three choices: weights.Precision is what the
-// loader takes and tgo.Precision is what specs/007-engine.md §1 exports, so a
+// loader takes and forma.Precision is what specs/007-engine.md §1 exports, so a
 // caller who parsed a flag into one has to hand the other to Open. The engine
 // keeps its own copy of this table internally; this is the third, and it exists
 // because the flag is parsed against the loader's vocabulary, which is the one
 // specs/001-weights.md §5 names.
-func livePrecision(p weights.Precision) tgo.Precision {
+func livePrecision(p weights.Precision) forma.Precision {
 	switch p {
 	case weights.F16:
-		return tgo.F16
+		return forma.F16
 	case weights.Int8:
-		return tgo.Int8
+		return forma.Int8
 	case weights.Int4:
-		return tgo.Int4
+		return forma.Int4
 	default:
-		return tgo.AutoPrecision
+		return forma.AutoPrecision
 	}
 }
 
 // liveEngine is the adapter onto specs/007-engine.md's public surface.
 //
-// One model and one session, because both `tgo run` and `tgo bench` are one
+// One model and one session, because both `forma run` and `forma bench` are one
 // conversation: run sends a single request, and bench sends a warm-up and a
 // measured window that must not accumulate. The session is reset at the top of
 // every Generate for exactly that reason -- a Session carries its position in
@@ -184,14 +184,14 @@ func livePrecision(p weights.Precision) tgo.Precision {
 // the first and the prompt length in the record would be the conversation's
 // rather than the prompt's.
 type liveEngine struct {
-	m *tgo.Model
-	s *tgo.Session
+	m *forma.Model
+	s *forma.Session
 }
 
 // Generate runs one request and streams its text.
 func (e *liveEngine) Generate(ctx context.Context, req genRequest) (genResult, error) {
 	e.s.Reset()
-	p := tgo.Policy{
+	p := forma.Policy{
 		Temperature:       req.Policy.Temperature,
 		TopK:              req.Policy.TopK,
 		TopP:              req.Policy.TopP,
@@ -237,7 +237,7 @@ func (e *liveEngine) Generate(ctx context.Context, req genRequest) (genResult, e
 
 // stream starts the request, through the model's chat template unless the
 // caller asked for the prompt as typed.
-func (e *liveEngine) stream(ctx context.Context, req genRequest, p tgo.Policy) (*tgo.Stream, error) {
+func (e *liveEngine) stream(ctx context.Context, req genRequest, p forma.Policy) (*forma.Stream, error) {
 	if req.Raw {
 		return e.s.Complete(ctx, req.Prompt, p)
 	}
@@ -247,7 +247,7 @@ func (e *liveEngine) stream(ctx context.Context, req genRequest, p tgo.Policy) (
 	}}, p)
 }
 
-// Info reports what tgo.Open resolved.
+// Info reports what forma.Open resolved.
 func (e *liveEngine) Info() engineInfo {
 	i := e.m.Info()
 	return engineInfo{
@@ -271,7 +271,7 @@ func (e *liveEngine) Close() error {
 // caller can see the tokens and the budget and nothing else, so a completion
 // that ended on a stop string and one that ended on the end-of-sequence token
 // are the same observation. See this package's reported discrepancies.
-func stopReason(u tgo.Usage, maxTokens int) string {
+func stopReason(u forma.Usage, maxTokens int) string {
 	if maxTokens > 0 && u.CompletionTokens >= maxTokens {
 		return "the token budget"
 	}
@@ -284,16 +284,16 @@ func stopReason(u tgo.Usage, maxTokens int) string {
 // lets every other line of `run` and `bench` be exercised without a checkpoint
 // and without minutes of load time.
 var openEngine = func(dir string, o engineOptions) (engine, error) {
-	m, err := tgo.Open(dir,
-		tgo.WithPrecision(livePrecision(o.Precision)),
-		tgo.WithContext(o.Context),
-		tgo.WithDevice(o.Device))
+	m, err := forma.Open(dir,
+		forma.WithPrecision(livePrecision(o.Precision)),
+		forma.WithContext(o.Context),
+		forma.WithDevice(o.Device))
 	if err != nil {
 		return nil, err
 	}
-	var sopts []tgo.SessionOption
+	var sopts []forma.SessionOption
 	if o.Recorder != nil {
-		sopts = append(sopts, tgo.WithRecorder(o.Recorder))
+		sopts = append(sopts, forma.WithRecorder(o.Recorder))
 	}
 	s, err := m.NewSession(sopts...)
 	if err != nil {

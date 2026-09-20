@@ -107,25 +107,25 @@ func TestSafePathRefusesEverythingThatEscapes(t *testing.T) {
 	}
 }
 
-func TestCacheDirPrefersTgoCacheThenXdgThenHome(t *testing.T) {
+func TestCacheDirPrefersFormaCacheThenXdgThenHome(t *testing.T) {
 	// t.Setenv forbids t.Parallel, which is why this is one test with three
 	// phases rather than three parallel ones.
-	t.Setenv("TGO_CACHE", filepath.FromSlash("/var/tgo"))
+	t.Setenv("FORMA_CACHE", filepath.FromSlash("/var/forma"))
 	t.Setenv("XDG_CACHE_HOME", filepath.FromSlash("/var/xdg"))
 	got, err := CacheDir()
 	if err != nil {
 		t.Fatal(err)
 	}
-	if want := filepath.FromSlash("/var/tgo"); got != want {
-		t.Errorf("with TGO_CACHE: %q, want %q", got, want)
+	if want := filepath.FromSlash("/var/forma"); got != want {
+		t.Errorf("with FORMA_CACHE: %q, want %q", got, want)
 	}
 
-	t.Setenv("TGO_CACHE", "")
+	t.Setenv("FORMA_CACHE", "")
 	got, err = CacheDir()
 	if err != nil {
 		t.Fatal(err)
 	}
-	if want := filepath.Join(filepath.FromSlash("/var/xdg"), "tgo"); got != want {
+	if want := filepath.Join(filepath.FromSlash("/var/xdg"), "forma"); got != want {
 		t.Errorf("with XDG_CACHE_HOME: %q, want %q", got, want)
 	}
 
@@ -134,7 +134,7 @@ func TestCacheDirPrefersTgoCacheThenXdgThenHome(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.HasSuffix(got, filepath.Join(".cache", "tgo")) {
-		t.Errorf("with neither: %q, want a path ending in .cache/tgo", got)
+	if !strings.HasSuffix(got, filepath.Join(".cache", "forma")) {
+		t.Errorf("with neither: %q, want a path ending in .cache/forma", got)
 	}
 }

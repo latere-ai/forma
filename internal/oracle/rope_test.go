@@ -17,7 +17,7 @@ import (
 // This is exactly the load-time permutation of
 // specs/004-model-graph.md §2.5.2, written here from the spec rather than
 // called from the loader, so that the test below is a statement about the
-// mathematics and not about tgo's code. Channels past rotaryDim are copied.
+// mathematics and not about forma's code. Channels past rotaryDim are copied.
 func permute(x []float64, rows, width, rotaryDim int) []float64 {
 	half := rotaryDim / 2
 	out := make([]float64, len(x))

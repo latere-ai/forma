@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Latere AI
 // SPDX-License-Identifier: Apache-2.0
 
-package tgo
+package forma
 
 import (
 	"fmt"
@@ -9,7 +9,7 @@ import (
 	"golang.design/x/accel"
 	"golang.design/x/accel/tensor"
 
-	"github.com/latere-ai/tgo/model"
+	"latere.ai/x/forma/model"
 )
 
 // defaultBuckets is specs/007-engine.md §3's prefill bucket set.
@@ -106,11 +106,11 @@ func (m *Model) plan(tokens, capacity, block, batch int, cache accel.DType) (*te
 	// The recording error first: model.Record refuses a step the graph cannot
 	// hold before it records anything, and an empty graph compiles.
 	if recErr != nil {
-		return nil, fmt.Errorf("tgo: recording the %s graph at T=%d, C=%d, B=%d: %w",
+		return nil, fmt.Errorf("forma: recording the %s graph at T=%d, C=%d, B=%d: %w",
 			label, tokens, capacity, max(batch, 1), recErr)
 	}
 	if err != nil {
-		return nil, fmt.Errorf("tgo: compiling the %s graph at T=%d, C=%d, B=%d: %w",
+		return nil, fmt.Errorf("forma: compiling the %s graph at T=%d, C=%d, B=%d: %w",
 			label, tokens, capacity, max(batch, 1), err)
 	}
 	return p, nil
@@ -214,14 +214,14 @@ func (d *stepData) fill(c *model.Config, rows int, tokens []int, first int,
 
 	t := len(tokens)
 	if t == 0 || t > rows {
-		return fmt.Errorf("tgo: a %d-row plan cannot score %d tokens", rows, t)
+		return fmt.Errorf("forma: a %d-row plan cannot score %d tokens", rows, t)
 	}
 	if first < 0 || first+t > lay.limit {
-		return fmt.Errorf("tgo: %d tokens at position %d do not fit a %d-position cache",
+		return fmt.Errorf("forma: %d tokens at position %d do not fit a %d-position cache",
 			t, first, lay.limit)
 	}
 	if t > 0 && !lay.reaches(first+t-1) {
-		return fmt.Errorf("tgo: %d tokens at position %d reach position %d, which this "+
+		return fmt.Errorf("forma: %d tokens at position %d reach position %d, which this "+
 			"sequence holds no block for; the write would land in a block another "+
 			"sequence owns", t, first, first+t-1)
 	}
@@ -234,7 +234,7 @@ func (d *stepData) fill(c *model.Config, rows int, tokens []int, first int,
 	for i := range t {
 		id := tokens[i]
 		if id < 0 || id >= c.VocabSize {
-			return fmt.Errorf("tgo: token id %d is outside the model's vocabulary of %d",
+			return fmt.Errorf("forma: token id %d is outside the model's vocabulary of %d",
 				id, c.VocabSize)
 		}
 		p := uint32(first + i)

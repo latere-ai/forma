@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Latere AI
 // SPDX-License-Identifier: Apache-2.0
 
-package tgo
+package forma
 
 import (
 	"errors"
@@ -9,8 +9,8 @@ import (
 
 	"golang.design/x/accel"
 
-	"github.com/latere-ai/tgo/internal/prefix"
-	"github.com/latere-ai/tgo/model"
+	"latere.ai/x/forma/internal/prefix"
+	"latere.ai/x/forma/model"
 )
 
 // CacheBlock is how many positions one physical block holds.
@@ -76,14 +76,14 @@ func newBlockPool(dev *accel.Device, c *model.Config, scope prefix.Scope,
 
 	blocks := positions / CacheBlock
 	if blocks < 1 {
-		return nil, fmt.Errorf("tgo: a shared prefix cache of %d positions holds no "+
+		return nil, fmt.Errorf("forma: a shared prefix cache of %d positions holds no "+
 			"whole block of %d; it needs at least one", positions, CacheBlock)
 	}
 	p, err := prefix.New(prefix.Config{
 		Block: CacheBlock, Blocks: blocks, Scope: scope,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("tgo: %w", err)
+		return nil, fmt.Errorf("forma: %w", err)
 	}
 	bp := &blockPool{pool: p, positions: blocks * CacheBlock, dtype: accel.F16}
 
@@ -106,7 +106,7 @@ func newBlockPool(dev *accel.Device, c *model.Config, scope prefix.Scope,
 			// produced it is theirs: the pool is sessions x context positions,
 			// and a device that cannot hold it is answered by lowering one of
 			// the two rather than by reading an allocator's error.
-			return nil, fmt.Errorf("tgo: the shared prefix cache needs %s for its %s "+
+			return nil, fmt.Errorf("forma: the shared prefix cache needs %s for its %s "+
 				"state at %d positions, and the device refused it: %w; lower "+
 				"--sessions or --context, which are the two numbers that produced "+
 				"the pool", bytesText(int64(n)*int64(bp.dtype.Size())), a.label,
@@ -128,12 +128,12 @@ func newBlockPool(dev *accel.Device, c *model.Config, scope prefix.Scope,
 	for _, b := range []*accel.Buffer{bp.keys, bp.values} {
 		if err := dev.Queue().WriteBuffer(b, 0, zero); err != nil {
 			_ = bp.close()
-			return nil, fmt.Errorf("tgo: clearing the shared cache: %w", err)
+			return nil, fmt.Errorf("forma: clearing the shared cache: %w", err)
 		}
 	}
 	if err := dev.Queue().Flush().Wait(); err != nil {
 		_ = bp.close()
-		return nil, fmt.Errorf("tgo: clearing the shared cache: %w", err)
+		return nil, fmt.Errorf("forma: clearing the shared cache: %w", err)
 	}
 	return bp, nil
 }

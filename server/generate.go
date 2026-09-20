@@ -14,9 +14,9 @@ import (
 	"latere.ai/x/pkg/llmdialect"
 	"latere.ai/x/pkg/llmdialect/ir"
 
-	"github.com/latere-ai/tgo"
-	"github.com/latere-ai/tgo/bench"
-	"github.com/latere-ai/tgo/chat"
+	"latere.ai/x/forma"
+	"latere.ai/x/forma/bench"
+	"latere.ai/x/forma/chat"
 )
 
 // One canonical event sequence, three wire formats.
@@ -27,7 +27,7 @@ import (
 //	MessageStart (BlockStart (TextDelta|ArgsDelta|ThinkingDelta)* BlockStop)*
 //	MessageDelta MessageStop
 //
-// so this file emits that sequence once and the dialects fall out. [tgo.Event]
+// so this file emits that sequence once and the dialects fall out. [forma.Event]
 // maps onto it directly, which is what keeps this a translation rather than a
 // state machine (specs/009-server.md §3.2).
 
@@ -66,7 +66,7 @@ func (s *Server) generate(w http.ResponseWriter, r *http.Request, front llmdiale
 			// taken from the context rather than from it; writeError writes the
 			// status and no body.
 			s.fail(w, req.dialect, &apiError{kind: errClientGone,
-				reason: "client_gone", msg: "tgo: the client hung up while queued"})
+				reason: "client_gone", msg: "forma: the client hung up while queued"})
 			return
 		}
 		s.fail(w, req.dialect, s.sessionError(err))
@@ -74,7 +74,7 @@ func (s *Server) generate(w http.ResponseWriter, r *http.Request, front llmdiale
 	}
 	defer func() {
 		if err := sess.Close(); err != nil {
-			s.notice("tgo: closing a session: %v", err)
+			s.notice("forma: closing a session: %v", err)
 		}
 		s.report(rec)
 	}()
@@ -133,14 +133,14 @@ func (s *Server) stream(w http.ResponseWriter, ctx context.Context, front llmdia
 	// (specs/030-logprobs.md §4). A streaming request must serve them wherever
 	// the whole-body one does, or a caller gets a number that depends on a
 	// flag about delivery.
-	var probs []tgo.TokenProb
+	var probs []forma.TokenProb
 	emit := func(ev ir.Event) bool {
 		if ev.Type == ir.EventTextDelta {
 			ev.LogProbs = irLogProbs(probs)
 		}
 		probs = nil
 		if err := enc.Encode(ev); err != nil {
-			s.notice("tgo: encoding a %s event: %v", ev.Type, err)
+			s.notice("forma: encoding a %s event: %v", ev.Type, err)
 			return false
 		}
 		flush()
@@ -198,7 +198,7 @@ func (s *Server) whole(w http.ResponseWriter, ctx context.Context, front llmdial
 	req *request, st Stream) {
 
 	var blocks []ir.Block
-	var probs []tgo.TokenProb
+	var probs []forma.TokenProb
 	for st.Next() {
 		// Appended rather than kept: LogProbs is valid only until the next
 		// Next (specs/030-logprobs.md §2), and the backing array is reused.
@@ -216,9 +216,9 @@ func (s *Server) whole(w http.ResponseWriter, ctx context.Context, front llmdial
 		}
 		ev := st.Event()
 		switch ev.Kind {
-		case tgo.BlockStart:
+		case forma.BlockStart:
 			blocks = append(blocks, ir.Block{Type: irBlockType(ev.Block)})
-		case tgo.TextDelta, tgo.ThinkingDelta, tgo.ToolArgsDelta:
+		case forma.TextDelta, forma.ThinkingDelta, forma.ToolArgsDelta:
 			if len(blocks) == 0 {
 				blocks = append(blocks, ir.Block{Type: irBlockType(ev.Block)})
 			}
@@ -247,7 +247,7 @@ func (s *Server) whole(w http.ResponseWriter, ctx context.Context, front llmdial
 	body, err := front.EncodeResponse(resp)
 	if err != nil {
 		s.fail(w, req.dialect, &apiError{kind: errInternal, reason: "internal",
-			msg: fmt.Sprintf("tgo: encoding the response: %v", err)})
+			msg: fmt.Sprintf("forma: encoding the response: %v", err)})
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
@@ -256,7 +256,7 @@ func (s *Server) whole(w http.ResponseWriter, ctx context.Context, front llmdial
 }
 
 // blockIndex numbers the output blocks, which is the one piece of state the
-// translation needs: ir.Event carries an ordinal and [tgo.Event] does not.
+// translation needs: ir.Event carries an ordinal and [forma.Event] does not.
 type blockIndex struct {
 	index int
 	open  bool
@@ -264,21 +264,21 @@ type blockIndex struct {
 
 // translate turns one engine event into one IR event.
 //
-// The mapping is one to one except for a tool call. tgo yields the model's
+// The mapping is one to one except for a tool call. forma yields the model's
 // tool-call text as a tool_use block, and 009-D6 says what comes back is what
 // the model emitted rather than a parsed call: nothing has checked that the
-// JSON is well formed, [tgo.Event] carries neither a call id nor a name, and
+// JSON is well formed, [forma.Event] carries neither a call id nor a name, and
 // all three encoders dereference both. So a tool block goes out as text, and a
 // client sees the model's own output instead of a call this server would have
 // had to invent.
-func (b *blockIndex) translate(ev tgo.Event) (ir.Event, bool) {
+func (b *blockIndex) translate(ev forma.Event) (ir.Event, bool) {
 	switch ev.Kind {
-	case tgo.BlockStart:
+	case forma.BlockStart:
 		t := irBlockType(ev.Block)
 		b.open = true
 		out := ir.Event{Type: ir.EventBlockStart, Index: b.index, Block: &ir.Block{Type: t}}
 		return out, true
-	case tgo.BlockStop:
+	case forma.BlockStop:
 		if !b.open {
 			return ir.Event{}, false
 		}
@@ -286,9 +286,9 @@ func (b *blockIndex) translate(ev tgo.Event) (ir.Event, bool) {
 		out := ir.Event{Type: ir.EventBlockStop, Index: b.index}
 		b.index++
 		return out, true
-	case tgo.ThinkingDelta:
+	case forma.ThinkingDelta:
 		return ir.Event{Type: ir.EventThinkingDelta, Index: b.index, Delta: ev.Text}, true
-	case tgo.TextDelta, tgo.ToolArgsDelta:
+	case forma.TextDelta, forma.ToolArgsDelta:
 		return ir.Event{Type: ir.EventTextDelta, Index: b.index, Delta: ev.Text}, true
 	}
 	return ir.Event{}, false
@@ -307,7 +307,7 @@ func (b *blockIndex) closeOpen() (ir.Event, bool) {
 	return out, true
 }
 
-// irBlockType maps tgo's block types onto the IR's. A tool block becomes text;
+// irBlockType maps forma's block types onto the IR's. A tool block becomes text;
 // see [blockIndex.translate].
 func irBlockType(t chat.BlockType) ir.BlockType {
 	if t == chat.BlockThinking {
@@ -317,10 +317,10 @@ func irBlockType(t chat.BlockType) ir.BlockType {
 }
 
 // irLogProbs converts the engine's per-token report into the IR's shape, so
-// every Frontend, tgo's own and llmdialect's alike, reads logprobs from the
+// every Frontend, forma's own and llmdialect's alike, reads logprobs from the
 // response or event it encodes. nil in, nil out: a choice that did not ask
 // answers `logprobs: null` on both surfaces.
-func irLogProbs(probs []tgo.TokenProb) []ir.TokenLogProb {
+func irLogProbs(probs []forma.TokenProb) []ir.TokenLogProb {
 	if len(probs) == 0 {
 		return nil
 	}
@@ -335,7 +335,7 @@ func irLogProbs(probs []tgo.TokenProb) []ir.TokenLogProb {
 }
 
 // usageOf converts one request's token counts.
-func usageOf(u tgo.Usage) *ir.Usage {
+func usageOf(u forma.Usage) *ir.Usage {
 	return &ir.Usage{InputTokens: int64(u.PromptTokens), OutputTokens: int64(u.CompletionTokens)}
 }
 
@@ -344,7 +344,7 @@ func usageOf(u tgo.Usage) *ir.Usage {
 // The stream is the authority and the policy is the fallback. A stop string
 // need not align to a token boundary and the matched text is never emitted
 // (006-D4), so "ended on a stop string" cannot be reconstructed out here --
-// which is why [tgo.Stream] reports it and this translates rather than
+// which is why [forma.Stream] reports it and this translates rather than
 // recomputes.
 //
 // StopRunning falls through to end_turn. A stream that ended in an error never
@@ -352,14 +352,14 @@ func usageOf(u tgo.Usage) *ir.Usage {
 // rather than of Policy.MaxTokens is a budget the caller did not set: the
 // policy branch below is what still answers max_tokens there.
 //
-// StopToolUse and StopRefusal stay unreachable, and neither is a gap. tgo emits
+// StopToolUse and StopRefusal stay unreachable, and neither is a gap. forma emits
 // a tool call as text (009-D6) and has no refusal classifier, so a stop reason
 // naming either would be a claim about output nothing checked.
-func stopReason(st Stream, p tgo.Policy, u tgo.Usage) ir.StopReason {
+func stopReason(st Stream, p forma.Policy, u forma.Usage) ir.StopReason {
 	switch st.StopReason() {
-	case tgo.StopSequence:
+	case forma.StopSequence:
 		return ir.StopStopSequence
-	case tgo.StopMaxTokens:
+	case forma.StopMaxTokens:
 		return ir.StopMaxTokens
 	}
 	if p.MaxTokens > 0 && u.CompletionTokens >= p.MaxTokens {
@@ -379,20 +379,20 @@ func stopReason(st Stream, p tgo.Policy, u tgo.Usage) ir.StopReason {
 // §10). A client that hung up while queued is a 499 and not a failure.
 func (s *Server) sessionError(err error) *apiError {
 	switch {
-	case errors.Is(err, tgo.ErrQueueFull):
+	case errors.Is(err, forma.ErrQueueFull):
 		return s.overloaded("queue_full", err)
-	case errors.Is(err, tgo.ErrQueueTimeout):
+	case errors.Is(err, forma.ErrQueueTimeout):
 		return s.overloaded("queue_timeout", err)
 	case errors.Is(err, context.Canceled), errors.Is(err, context.DeadlineExceeded):
 		return &apiError{kind: errClientGone, reason: "client_gone",
-			msg: fmt.Sprintf("tgo: %v", err)}
-	case errors.Is(err, tgo.ErrContextExhausted):
+			msg: fmt.Sprintf("forma: %v", err)}
+	case errors.Is(err, forma.ErrContextExhausted):
 		// The engine's error already names itself, so this does not prefix it
 		// again.
 		return badRequest("%v: the request does not fit, and is refused rather "+
 			"than truncated", err)
 	}
-	return &apiError{kind: errInternal, reason: "internal", msg: fmt.Sprintf("tgo: %v", err)}
+	return &apiError{kind: errInternal, reason: "internal", msg: fmt.Sprintf("forma: %v", err)}
 }
 
 // overloaded is a 429 from inside the engine, with the Retry-After the engine's
@@ -403,7 +403,7 @@ func (s *Server) overloaded(reason string, err error) *apiError {
 		wait = q.AdmissionWait()
 	}
 	// The engine's errors already name themselves, so this does not prefix them
-	// again: "tgo: tgo: the admission queue's wait budget elapsed" is what a
+	// again: "forma: forma: the admission queue's wait budget elapsed" is what a
 	// second one reads like.
 	return &apiError{kind: errOverloaded, reason: reason, retryAfter: retryAfter(wait),
 		msg: err.Error()}
@@ -413,9 +413,9 @@ func (s *Server) overloaded(reason string, err error) *apiError {
 func streamError(err error) *apiError {
 	if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
 		return &apiError{kind: errClientGone, reason: "client_gone",
-			msg: fmt.Sprintf("tgo: %v", err)}
+			msg: fmt.Sprintf("forma: %v", err)}
 	}
-	return &apiError{kind: errInternal, reason: "device", msg: fmt.Sprintf("tgo: %v", err)}
+	return &apiError{kind: errInternal, reason: "device", msg: fmt.Sprintf("forma: %v", err)}
 }
 
 // report feeds one request's decode timings to the metrics.

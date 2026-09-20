@@ -8,7 +8,7 @@ depends_on:
 
 # Conformance
 
-This is the primary output of the project. [000 D1](000-decisions.md) makes tgo
+This is the primary output of the project. [000 D1](000-decisions.md) makes Forma
 accel's validating consumer; this spec is the machinery, the register, and the
 evidence.
 
@@ -17,11 +17,11 @@ evidence.
 **Downward — does accel do what it says?** A real model exercises accel's
 operators at real shapes with real weights, which no unit test inside accel
 does. A 2560-wide RMSNorm over a tensor whose values span six orders of
-magnitude is not the same test as a 64-wide one over seeded noise. Where tgo's
+magnitude is not the same test as a 64-wide one over seeded noise. Where Forma's
 host oracle and accel's device result disagree, one of them is wrong, and the
 finding goes upstream with a reproducer.
 
-**Upward — what does accel not have?** Every place tgo cannot express something
+**Upward — what does accel not have?** Every place Forma cannot express something
 gets a named test that skips with the reason and the owning accel spec. The
 suite prints them as a table. **The table is the deliverable**, and §2 is it.
 
@@ -29,7 +29,7 @@ suite prints them as a table. **The table is the deliverable**, and §2 is it.
 
 
 
-| # | what tgo cannot do | accel spec | filed | state | workaround, and what it costs |
+| # | what Forma cannot do | accel spec | filed | state | workaround, and what it costs |
 | --- | --- | --- | --- | --- | --- |
 | C1 | a **batched** decode | 040 | [#12](https://github.com/golang-design/accel/issues/12) | **closed** | none needed. Verified: two sequences of lengths 96 and 32 batched match two single runs to `0.00e+00` |
 | C2 | RoPE at per-row positions | 025, 043 | [#2](https://github.com/golang-design/accel/issues/2) | **closed** | none needed |
@@ -37,7 +37,7 @@ suite prints them as a table. **The table is the deliverable**, and §2 is it.
 | C4 | a paged KV **decode** | 030, 043 | [#1](https://github.com/golang-design/accel/issues/1) | **closed** | none needed |
 | C5 | an f16 KV cache that can be **written**, or paged | 007, 010 | [#13](https://github.com/golang-design/accel/issues/13) | **closed** | none needed; `ScatterRows`, prefill and paged decode all take f16. **Halves the cache** |
 | C6 | penalties and temperature on device | 039 | [#6](https://github.com/golang-design/accel/issues/6) | **closed** | none needed. The policy runs on the device, so a step can return a token id rather than reading back 608 KB of logits |
-| C7 | a **bf16 GEMM** | 002, 010 | — | won't fix, correctly | convert on the host at load, which is the right answer and not a workaround. [001 §3](001-weights.md): bf16 is the top half of an f32, so widening is a shift — exact, free, and done once. A bf16 GEMM would let tgo keep bf16 *on the device*, which costs the same two bytes as f16 and buys nothing. Filed inside [#14](https://github.com/golang-design/accel/issues/14) and answered with the mixed GEMM that closed [C8](#2-the-register); re-audited 2026-08-27 and reclassified rather than re-filed, because a capability tgo would not use is not a gap |
+| C7 | a **bf16 GEMM** | 002, 010 | — | won't fix, correctly | convert on the host at load, which is the right answer and not a workaround. [001 §3](001-weights.md): bf16 is the top half of an f32, so widening is a shift — exact, free, and done once. A bf16 GEMM would let Forma keep bf16 *on the device*, which costs the same two bytes as f16 and buys nothing. Filed inside [#14](https://github.com/golang-design/accel/issues/14) and answered with the mixed GEMM that closed [C8](#2-the-register); re-audited 2026-08-27 and reclassified rather than re-filed, because a capability Forma would not use is not a gap |
 | C8 | f32 activations against f16 or int8 weights | 010 | [#14](https://github.com/golang-design/accel/issues/14) | **closed** | none needed. **The cast chain is gone**: 1013 selections → 760 on the Qwen3 graph |
 | C9 | a strided view into `MatMul` | 025 | — | won't fix, correctly | host-side transpose at load ([001 §4](001-weights.md)) |
 | C10 | avoiding a host copy of every converted weight | 001 | [#7](https://github.com/golang-design/accel/issues/7) | **closed** | none needed; `Buffer.Access` |
@@ -50,7 +50,7 @@ suite prints them as a table. **The table is the deliverable**, and §2 is it.
 | C17 | GGUF's K-quant super-blocks | 010 | [#15](https://github.com/golang-design/accel/issues/15), not planned | **open, not scheduled** | read safetensors and quantize at load ([012](012-gguf.md)) |
 | C18 | `Contiguous` on Metal | 010, 021 | [#19](https://github.com/golang-design/accel/issues/19) | **closed** | none needed. It was the only kernel in the corpus with no MSL artifact, so every graph that slices — which [004 §3.2](004-model-graph.md) requires — was refused at compile. Fixed upstream the day it was filed |
 | C19 | a CPU backend that dispatches in parallel | 006 | [#20](https://github.com/golang-design/accel/issues/20) | **closed** | none needed. The worker pool landed: 19.5x per prompt token on a real model, and device is 99.98% of a step, so nothing measurable remains between dispatches. The residual gap to Metal is kernel throughput rather than a missing capability |
-| C21 | **4-bit weights** | 027, 048, 010 | [#22](https://github.com/golang-design/accel/issues/22) | **closed** | none needed. `quant.Int4Quantize` and `Int4MatMul` landed against this report, verified twice — against a reconstruction reference, and against the weights the checkpoint held within `quant.Int4ErrorBound`. tgo stores them since 2026-08-27, so a 27B checkpoint resolves to **13.4 GiB** rather than 26.7 ([001 §5.1](001-weights.md)). The embedding table is capped at int8, because it is gathered and there is no int4 gather |
+| C21 | **4-bit weights** | 027, 048, 010 | [#22](https://github.com/golang-design/accel/issues/22) | **closed** | none needed. `quant.Int4Quantize` and `Int4MatMul` landed against this report, verified twice — against a reconstruction reference, and against the weights the checkpoint held within `quant.Int4ErrorBound`. Forma stores them since 2026-08-27, so a 27B checkpoint resolves to **13.4 GiB** rather than 26.7 ([001 §5.1](001-weights.md)). The embedding table is capped at int8, because it is gathered and there is no int4 gather |
 | C22 | a **ragged step over an f16 cache** | 046, 010 | [#23](https://github.com/golang-design/accel/issues/23) | **closed** | none needed. `AttentionRaggedF16` landed against this report, so batching keeps [C5](#2-the-register)'s halving instead of giving it back. Per-sequence traffic $A$ stays halved, and [008 §1](008-scheduler.md) makes both the batch size worth reaching and the throughput ceiling proportional to $1/A$ |
 | C23 | a **ragged step that tolerates a query row belonging to no sequence** | 046, 010 | [#24](https://github.com/golang-design/accel/issues/24) | **closed** | none needed. A row past the last extent is padding and reaches nothing, which is the shape this report argued for over clamping it into the last sequence — clamping would have turned an out-of-bounds read into a wrong answer. A batched step pads `q` to its plan shape freely |
 | C24 | a **paged prefill over an f16 cache** | 010, 030 | [#25](https://github.com/golang-design/accel/issues/25) | **closed** | none needed. `AttentionPrefillPagedF16` landed against this report **the same day**, and the shared block pool is f16: twice the blocks, twice the prefixes worth keeping, and by [008 §1](008-scheduler.md) twice the batch size worth reaching. It was [C5](#2-the-register)'s pattern a third time — each of "`ScatterRows`, prefill and paged decode all take f16" is true and the combination was not, because the width and the paging selected separately. accel fixed the *pair* |
@@ -123,17 +123,17 @@ its behaviour, which is the reading [010-D7](#decision-record) removed.
 C9 is not filed and should not be. accel refusing a strided view into `MatMul`
 is the **correct** refusal: silently copying one would hide a real cost behind an
 operator that looks free. The host-side transpose is the right answer, not a
-workaround. It stays in the table because it constrains what tgo can do at graph
+workaround. It stays in the table because it constrains what Forma can do at graph
 time, which is what this table is for.
 
 **C11 closed on 2026-08-24.** It was the tree's headline blocker — a cache
 capped at 128 positions, shorter than a system prompt. accel
 [044](https://github.com/golang-design/accel/blob/main/specs/044-unbounded-context.md)
 shipped the tiling loop and a 4096-position cache is verified working. Nothing
-in tgo is blocked on cache size any more.
+in Forma is blocked on cache size any more.
 
 **C13 replaced it as the blocking row on 2026-08-24, and it was worse in
-kind.** Every other row in this table is a *refusal*: tgo asks for something and
+kind.** Every other row in this table is a *refusal*: Forma asks for something and
 is told no. C13 was an **acceptance**. `Attention` took `Pages` on a prefill,
 dropped it, read the cache contiguously, and returned a fluent wrong answer —
 measured at a worst absolute difference of 0.74 between an identity and a
@@ -151,7 +151,7 @@ closes, not when a spec is written, and never because it was worked around.
 
 ### 2.2.0 The re-audit when the tracker went to zero
 
-**On 2026-08-27 every issue tgo had filed was closed, and four rows were not.**
+**On 2026-08-27 every issue Forma had filed was closed, and four rows were not.**
 §2.3 rule 1 says an open row cites an *open* issue, so that state is either a
 register behind its evidence or a tracker ahead of its capabilities, and
 [§2.2.1](#221-the-earlier-audit-kept-because-the-lesson-stands) is the reason it
@@ -159,9 +159,9 @@ cannot be assumed to be the second. Each of the four was probed.
 
 | row | verdict | what settled it |
 | --- | --- | --- |
-| [C21](#2-the-register) 4-bit weights | **closed** | `Int4MatMul` computes to within a reconstruction reference at a transformer's shape. What remained was `weights.Precision` naming only f16 and int8, which was tgo's own work and shipped the same day |
+| [C21](#2-the-register) 4-bit weights | **closed** | `Int4MatMul` computes to within a reconstruction reference at a transformer's shape. What remained was `weights.Precision` naming only f16 and int8, which was Forma's own work and shipped the same day |
 | [C20](#2-the-register) submit cost | **closed** | a measurement, not a probe: 15.61% → 3.34%, +43% throughput, p99 −84% ([017 §4.1](017-benchmarks.md)) |
-| [C7](#2-the-register) bf16 GEMM | **won't fix, correctly** | [001 §3](001-weights.md) widens bf16 to f32 with a shift, exactly and once. A bf16 GEMM would let tgo hold bf16 on the device, which costs what f16 costs and buys nothing |
+| [C7](#2-the-register) bf16 GEMM | **won't fix, correctly** | [001 §3](001-weights.md) widens bf16 to f32 with a shift, exactly and once. A bf16 GEMM would let Forma hold bf16 on the device, which costs what f16 costs and buys nothing |
 | [C17](#2-the-register) K-quant super-blocks | **stays open** | `quant` registers one level of scale; a Q4_K super-block is two levels over eight sub-blocks with a minimum each. Nothing reads one |
 
 **Two of the four moved for reasons the tracker could not have told anyone.**
@@ -169,11 +169,11 @@ cannot be assumed to be the second. Each of the four was probed.
 - **C21 did not close where its issue closed.** The issue said "no 4-bit
   representation" and accel shipped one; the *row* is about a 27B model fitting
   a 24 GiB device, and that needs a loader storing int4. The row closes because
-  what is left is tgo's, and the register is the register of accel's gaps —
+  what is left is Forma's, and the register is the register of accel's gaps —
   which is the [C8](#2-the-register) lesson read the other way round.
 - **C7 was never a gap.** It sat open for a week as "narrowed to what would
   actually close it: a bf16 GEMM", and re-reading [001 §3](001-weights.md)
-  says tgo would not use one. Re-filing it under §2.3 rule 2 would have asked
+  says Forma would not use one. Re-filing it under §2.3 rule 2 would have asked
   accel for a kernel no consumer wants. It is [C9](#2-the-register)'s kind of
   row and is recorded as one.
 
@@ -200,7 +200,7 @@ C7 was reclassified as a correct refusal by
 today: C17 alone**, out of twenty-six rows; the correct refusals are C7, C9 and
 C26.
 
-**The two that closed most recently are the ones tgo had carried longest.**
+**The two that closed most recently are the ones Forma had carried longest.**
 `tensor.Sample` now composes the entire policy on the device — penalties,
 temperature, softmax, top-k, top-p and the categorical walk, eight kernels — and
 returns a token id. That closes **C3** (no sampling operator at all) and **C6**
@@ -214,23 +214,23 @@ order of magnitude smaller than the submit cost beside it.
 > distinct logits equal probabilities, so a top-$k$ over logits keeps a
 > different boundary entry than the cumulative walk later sees. 006 was
 > corrected rather than the divergence recorded, since
-> [006-D1](006-sampling.md) makes tgo the *reference* for the device path and a
+> [006-D1](006-sampling.md) makes Forma the *reference* for the device path and a
 > reference that composes differently is not one.
 
-Three earlier closures changed what tgo builds:
+Three earlier closures changed what Forma builds:
 
 - **row C1** — continuous batching is expressible. [008](008-scheduler.md) was
   `blocked` from the day it was written and is not any more.
 - **row C8** — **the cast chain is gone.** f32 activations now multiply f16 and
   int8 weights directly: 1013 kernel selections on the Qwen3-4B graph became 760.
 - **row C5** — an f16 cache can be written *and* paged, so
-  [005 §3](005-kv-cache.md)'s f16 column is the one tgo builds against.
+  [005 §3](005-kv-cache.md)'s f16 column is the one Forma builds against.
 
 ### 2.2.1 The earlier audit, kept because the lesson stands
 
 
 
-On 2026-08-24 accel closed ten of the eleven issues tgo filed. A re-audit of
+On 2026-08-24 accel closed ten of the eleven issues Forma filed. A re-audit of
 every row at HEAD `cb82904`, asserting values and reading `Selections()` rather
 than checking that a graph compiles:
 
@@ -256,9 +256,9 @@ capability, and only the second one is testable.
 
 ### 2.3 Commenting on a closed issue is not reporting
 
-There was a second failure here, and it was tgo's.
+There was a second failure here, and it was Forma's.
 
-When C5 and C8 turned out to be unfixed, tgo **commented on the closed issues**
+When C5 and C8 turned out to be unfixed, Forma **commented on the closed issues**
 and left the register's `filed` column pointing at them. A comment on a closed
 thread creates no work item and appears in nobody's queue. For a week the
 register read as though six rows were tracked upstream while exactly one open
@@ -270,7 +270,7 @@ no issue at all — a blocker that existed only in this repository.
 **The rule, from now on:**
 
 1. an open register row cites an **open** issue;
-2. when accel closes an issue whose capability is still absent, tgo **files a
+2. when accel closes an issue whose capability is still absent, Forma **files a
    new one** rather than commenting, and says in it why it is a re-file;
 3. a spec with `status: blocked` names a **durable upstream record** in
    `blocked_on` — an issue, or the named thing upstream that records the gap —
@@ -283,7 +283,7 @@ as not planned and recorded the gap as a `quant_matmul_superblock` row in its
 kernel corpus, carrying the layout, the formula and both workarounds. That is a
 **better** record than an issue with no plan, because the corpus is what someone
 adding a kernel reads and an issue is what someone opening the tracker reads.
-tgo accepted the closure and widened the rule. See
+Forma accepted the closure and widened the rule. See
 [012 §3](012-gguf.md).
 
 `make spec-lint` enforces (3) over the spec text, which is the one a linter can see
@@ -315,7 +315,7 @@ which is where the gap surfaced.
 > asked for by name. C5's issue asked for an f16 *cache* and got the read path;
 > C8's asked for an *f32 GEMM* and got one. **The reports named the symptom and
 > the fix matched the name rather than the cost**, which is a failure of the
-> reporting, not the fixing. C8's is squarely tgo's fault and is now refiled as
+> reporting, not the fixing. C8's is squarely Forma's fault and is now refiled as
 > a mixed GEMM.
 >
 > The general lesson is why this table exists: an issue tracker records what was
@@ -346,14 +346,14 @@ still invisible, until something tries to do the real job.** That is what a
 validating consumer is for, and it is worth more than the five rows that shared
 one cause.
 
-## 3. Numbers tgo reports back
+## 3. Numbers Forma reports back
 
 Measured, not asserted, and re-measured each release. Each of these is a
 question accel cannot answer about itself.
 
 | measurement | why accel cannot self-report it | what it decides |
 | --- | --- | --- |
-| **CPU/Metal divergence** — greedy, same prompt: the first differing token index and the logit gap there | needs a real model long enough to accumulate reduction-order differences | whether "same result on both backends" is a claim tgo can make |
+| **CPU/Metal divergence** — greedy, same prompt: the first differing token index and the logit gap there | needs a real model long enough to accumulate reduction-order differences | whether "same result on both backends" is a claim Forma can make |
 | **readback share of a decode step** | needs a $V = 151936$ vocabulary | the size of C6 in one number |
 | **quantization error against `Int8ErrorBound`** on real blocks | needs trained weights; synthetic ones have no outliers, and the bound is driven by the largest weight in a block | whether int8 is usable, and where |
 | **plan compile time per bucket**, and cache hit rate over a session | needs a real graph of ~500 nodes | whether [007-D2](007-engine.md)'s bucket set is right |
@@ -370,7 +370,7 @@ reporting.
 
 ### 3.0 Measured 2026-09-02
 
-Qwen3-0.6B on an Apple M2, `tgo bench --device metal --prompt-tokens 64
+Qwen3-0.6B on an Apple M2, `forma bench --device metal --prompt-tokens 64
 --tokens 32 --warmup 4`, against accel at the day's head.
 
 | measurement | result |
@@ -383,28 +383,28 @@ Qwen3-0.6B on an Apple M2, `tgo bench --device metal --prompt-tokens 64
 | plan compile time per bucket, cache hit rate | not measured: the plan cache is unexported and a Model reports no statistics (`plan_stats.available: false` in the record) |
 | transient bytes | not measured: `Plan.Memory()` is not surfaced by the engine |
 
-Two of the five remain tgo's to build before they can be reported: a cache
+Two of the five remain Forma's to build before they can be reported: a cache
 statistics surface and `Plan.Memory()` in the record.
 
 ## 3.1 Performance against vLLM, and which axes are winnable
 
-tgo's goal is to be **faster than vLLM**, and this section says on what and how
+Forma's goal is to be **faster than vLLM**, and this section says on what and how
 it is measured, because an ambition with no measurement is a slogan.
 
-**The axes tgo should win, and why:**
+**The axes Forma should win, and why:**
 
-| axis | why tgo can win |
+| axis | why Forma can win |
 | --- | --- |
 | **host overhead per decode token** — scheduling, sampling, detokenizing, deciding what runs next | none of it is matrix multiplication, all of it runs every token, and it is compiled Go against a Python interpreter with a global lock |
-| **time to first token, cold** | tgo builds a plan in milliseconds; a Python stack loads for tens of seconds |
+| **time to first token, cold** | Forma builds a plan in milliseconds; a Python stack loads for tens of seconds |
 | **resident footprint of the runtime itself** | one static binary against an interpreter and its dependency tree |
 | **hardware vLLM serves poorly** | CPU, Metal, and whatever accel adds |
 
-**The axis tgo will lose for a long time, stated plainly:** raw GEMM and
+**The axis Forma will lose for a long time, stated plainly:** raw GEMM and
 attention throughput on NVIDIA. vLLM's kernels are years of hand-tuned CUDA —
 FlashAttention, CUTLASS-derived quantized GEMMs — and accel's are portable
-kernels written in a Go subset. **That gap is accel's to close, not tgo's**, and
-[000 D1](000-decisions.md) means tgo's contribution to closing it is
+kernels written in a Go subset. **That gap is accel's to close, not Forma's**, and
+[000 D1](000-decisions.md) means Forma's contribution to closing it is
 measurement: a kernel that is slower than it should be is a report, exactly like
 a kernel that is missing.
 
@@ -413,14 +413,14 @@ a kernel that is missing.
 - **decode tokens per second**, single sequence and at batch, which is the
   headline;
 - **host time per token** — the step minus the device time — which is the axis
-  above and the one tgo expects to win first;
+  above and the one Forma expects to win first;
 - **time to first token**, cold and warm;
 - **resident memory** at the same context and batch;
 - **the readback share** ([C6](#2-the-register)), because it is host overhead
-  tgo currently cannot remove.
+  Forma currently cannot remove.
 
 **Losses are published.** A framework that reports only the benchmarks it wins
-is not reporting. The register already commits tgo to naming what it cannot do;
+is not reporting. The register already commits Forma to naming what it cannot do;
 the same rule covers what it does slowly.
 
 ## 4. How the suite runs
@@ -428,8 +428,8 @@ the same rule covers what it does slowly.
 | tier | needs | when | on failure |
 | --- | --- | --- | --- |
 | 1 | nothing | every push | red |
-| 2 | a Metal device | every push on macOS, `TGO_REQUIRE_METAL=1` | red — a missing device is a **failure**, not a skip |
-| 3 | real weights, `TGO_MODEL=/path` | by hand, before a release | blocks the release |
+| 2 | a Metal device | every push on macOS, `FORMA_REQUIRE_METAL=1` | red — a missing device is a **failure**, not a skip |
+| 3 | real weights, `FORMA_MODEL=/path` | by hand, before a release | blocks the release |
 
 Tier 2's environment variable is the mechanism accel uses and the reason is the
 same: a job that promises a backend and skips when it finds no device is a job
@@ -448,15 +448,15 @@ against it.
 
 **It is not a duplicate implementation to keep in sync.** It is written from the
 model's mathematics — the equations in [004](004-model-graph.md) — rather than
-from tgo's graph code. That is the entire point: if both were written from the
+from Forma's graph code. That is the entire point: if both were written from the
 same source, agreement would prove only that the source was copied correctly.
 Two independent derivations of the same mathematics agreeing is evidence; one
 derivation compared against itself is not.
 
 The practical rules that keep it independent:
 
-- it imports nothing from tgo's `nn` or `model` packages;
-- it takes weights as `[]float64` and shapes as integers, not as tgo types;
+- it imports nothing from Forma's `nn` or `model` packages;
+- it takes weights as `[]float64` and shapes as integers, not as Forma types;
 - it is written by reading the spec, not the code;
 - when it disagrees with the device, **the oracle is presumed right** until
   shown otherwise, because it is the simpler program.
@@ -524,17 +524,17 @@ measured.
 
 | section | what landed | where |
 | --- | --- | --- |
-| 1 | both directions: a device result compared against the oracle, and every place tgo cannot express something as a register row | `internal/conformance/conformance.go:4`, `internal/conformance/parity_test.go:52` |
+| 1 | both directions: a device result compared against the oracle, and every place Forma cannot express something as a register row | `internal/conformance/conformance.go:4`, `internal/conformance/parity_test.go:52` |
 | 2 | `Register()` and `Document()`, and the drift test that pins §2's table to them line by line | `internal/conformance/register.go:112`, `:429`, `internal/conformance/register_test.go:127` |
 | 2 (010-D1) | one skipping subtest per open row, generated from the register, each naming the row, the capability, the owning accel spec and what the workaround costs | `internal/conformance/register_test.go:177` |
 | 2, how a row's state is decided (010-D7) | `Rig.Parity`: bind real buffers, compare the output against the float64 reference under a `Terms` budget, read `Plan.Selections()`, and vary the optional binding to require the output to move | `internal/conformance/rig.go:222`, `internal/conformance/ragged_test.go:343` |
 | 2.2.0 | the re-audited rows are standing probes rather than a one-time check; six run on every test run | `internal/conformance/reaudit_test.go:36` |
 | 2.3 | `Validate`: an open row cites something upstream, a correct refusal cites no issue, every row names an accel spec and fills both prose cells. Rule 3 is the spec linter's | `internal/conformance/register.go:451`, `.lateregate.yaml`'s `register` rule |
 | 3 | `Measurements` and its five types, each with a `Value()` renderer and a JSON form, and a nil pointer meaning *not measured* rather than zero | `internal/conformance/measure.go:31` |
-| 4 (010-D4) | `decide` over the three tiers, every branch tested as data including the two unreachable on one machine, `TGO_REQUIRE_METAL` in CI, and `ModelPath` for tier 3 | `internal/conformance/tier.go:74`, `internal/conformance/tier_test.go:19`, `.github/workflows/ci-metal.yml:19` |
-| 5 (010-D2, 010-D5) | `internal/oracle`, float64 throughout, depending on `math` and nothing of tgo's; the whole forward pass composed from it | `internal/oracle/oracle.go:27`, `model/graph_rig_test.go:332` |
+| 4 (010-D4) | `decide` over the three tiers, every branch tested as data including the two unreachable on one machine, `FORMA_REQUIRE_METAL` in CI, and `ModelPath` for tier 3 | `internal/conformance/tier.go:74`, `internal/conformance/tier_test.go:19`, `.github/workflows/ci-metal.yml:19` |
+| 5 (010-D2, 010-D5) | `internal/oracle`, float64 throughout, depending on `math` and nothing of Forma's; the whole forward pass composed from it | `internal/oracle/oracle.go:27`, `model/graph_rig_test.go:332` |
 | 5.1 (010-D3) | `Terms` with nine constructors, `And` composing them, `Explain()` printing the derivation, and no way to write a tolerance down as a number | `internal/conformance/tolerance.go:62`, `internal/conformance/tolerance_test.go:20` |
-| 6 | `Publish` emits the register and the numbers as one Markdown document; a verbose run logs it and `TGO_EMIT_TABLE` writes it to a file | `internal/conformance/measure.go:402`, `internal/conformance/emit_test.go:11` |
+| 6 | `Publish` emits the register and the numbers as one Markdown document; a verbose run logs it and `FORMA_EMIT_TABLE` writes it to a file | `internal/conformance/measure.go:402`, `internal/conformance/emit_test.go:11` |
 
 **What diverged** from the design, and why the code is right:
 
@@ -554,9 +554,9 @@ measured.
   twenty-six rows are closed and a closure nobody re-runs is a claim about an
   accel HEAD that has moved.
 - §3.1's measurements moved to [017 §3](017-benchmarks.md), which owns the
-  comparison table. The honesty rule stayed here and `tgo record` honours it: a
+  comparison table. The honesty rule stayed here and `forma record` honours it: a
   record with no vLLM row names the missing row rather than omitting it
-  (`cmd/tgo/record.go:138`).
+  (`cmd/forma/record.go:138`).
 - §2.3 attributed rules 1 and 2 to the manual re-audit alone. `Validate` turns
   the half of rule 1 a program can see into a lint, which is cheaper than an
   audit and runs more often.
@@ -568,7 +568,7 @@ session cache hit rate, and transient bytes from `Plan.Memory()` against the
 hand-computed working set. Every `Measurements` outside `measure_test.go`'s
 fixtures is the empty struct, so every document `Publish` emits today prints
 five "not measured" lines. Taking them needs three things that do not exist
-yet: a tier-3 checkpoint under `TGO_MODEL`, a Metal device in the same loop as
+yet: a tier-3 checkpoint under `FORMA_MODEL`, a Metal device in the same loop as
 a CPU run for the divergence number, and a §4 in [011](011-sequencing.md) to
 record the dated result in, which [§4](#4-how-the-suite-runs) already points
 at. The quantization
@@ -586,7 +586,7 @@ score's accumulated error scaled by the exponential. The gated delta oracle
 beside the probe it judges and say what keeps it independent. `Rig` and the
 generated block's extent are the machinery a contributor writing the next probe
 reads, and no section describes either. And seven call sites in four packages
-read `TGO_MODEL` with `os.Getenv` directly (`cmd/tgo/engine_test.go:28`,
+read `FORMA_MODEL` with `os.Getenv` directly (`cmd/forma/engine_test.go:28`,
 `nn/checkpoint_test.go:31`, `weights/model_test.go:68`,
 `model/qwen3_real_test.go:24`) instead of `conformance.ModelPath`, which
 `e2e_test.go:55` uses, so §4's tier rule — a path that cannot be read is a
@@ -597,12 +597,12 @@ failure, not a skip — is bypassed wherever the package is not imported.
 | id | decision | rejected | consequence |
 | --- | --- | --- | --- |
 | 010-D1 | one skipping test per register row | a prose list | the table cannot go stale silently |
-| 010-D2 | the oracle is written from the mathematics, not from tgo's graph | share code with the builder | agreement becomes evidence rather than tautology |
+| 010-D2 | the oracle is written from the mathematics, not from Forma's graph | share code with the builder | agreement becomes evidence rather than tautology |
 | 010-D3 | tolerances are derived and commented with their term; a raised tolerance is a finding | tune until green | a numerics regression cannot be absorbed |
 | 010-D4 | tier 3 never runs in CI | a nightly with a download | CI stays offline and under a minute |
 | 010-D5 | the oracle is float64 and presumed right on disagreement | float32, matching the device | it is the simpler program; matching the device would import the device's bugs |
-| 010-D6 | the register is generated from the tests **at M10** | maintained by hand forever | it is the exact drift tgo exists to catch upstream. **Amended 2026-08-24:** generation needs tests, so until M10 the spec linter stands in — it checks the rows are numbered without gaps and that nothing in the tree cites a row that does not exist. A decision nothing enforces, in the spec about decisions nothing enforces, was the wrong thing to leave standing. **Superseded 2026-08-25 by [010-D10](#decision-record):** `internal/conformance` emits the table from `Register()` and a drift test fails when the two disagree, so the interim ended at Wave 4 rather than at M10. the spec linter keeps the numbering and citation checks, which read the spec text and are not what the generator does. **Amended 2026-08-30:** those checks moved out of this repository with the rest of the gates and are now `.lateregate.yaml`'s `register` rule, run by `make spec-lint` |
+| 010-D6 | the register is generated from the tests **at M10** | maintained by hand forever | it is the exact drift Forma exists to catch upstream. **Amended 2026-08-24:** generation needs tests, so until M10 the spec linter stands in — it checks the rows are numbered without gaps and that nothing in the tree cites a row that does not exist. A decision nothing enforces, in the spec about decisions nothing enforces, was the wrong thing to leave standing. **Superseded 2026-08-25 by [010-D10](#decision-record):** `internal/conformance` emits the table from `Register()` and a drift test fails when the two disagree, so the interim ended at Wave 4 rather than at M10. the spec linter keeps the numbering and citation checks, which read the spec text and are not what the generator does. **Amended 2026-08-30:** those checks moved out of this repository with the rest of the gates and are now `.lateregate.yaml`'s `register` rule, run by `make spec-lint` |
 | 010-D7 | a probe asserts a value against the oracle and varies optional bindings | record the graph and read the refusal | the refusal-based rule was blind to C13 and reported a false green in its own spec |
 | 010-D8 | an open row cites an open issue; a blocked spec names a durable upstream record, issue **or** named artifact; a closed issue with an absent capability is **re-filed**, not commented on | comment on the closed thread; demand an open issue for every blocker | a comment creates no work item, and the register read as tracked while one issue was open ([§2.3](#23-commenting-on-a-closed-issue-is-not-reporting)) |
-| 010-D9 | performance against vLLM is a measured table per axis, losses included | a headline throughput claim | tgo will lose raw NVIDIA kernel throughput for a long time and should win host overhead first; one number hides both ([§3.1](#31-performance-against-vllm-and-which-axes-are-winnable)) |
+| 010-D9 | performance against vLLM is a measured table per axis, losses included | a headline throughput claim | Forma will lose raw NVIDIA kernel throughput for a long time and should win host overhead first; one number hides both ([§3.1](#31-performance-against-vllm-and-which-axes-are-winnable)) |
 | 010-D10 | the generator is the source of truth; §2's table is its output | edit the table and reconcile the code later | **Demonstrated 2026-08-25.** A hand-edit adding two rows to §2 was caught by the drift test within one CI run, including a row-order difference nobody would have noticed by eye. Adding a row means editing `Register()`, which is one place rather than two |

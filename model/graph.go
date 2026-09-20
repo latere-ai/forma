@@ -9,7 +9,7 @@ import (
 	"golang.design/x/accel"
 	"golang.design/x/accel/tensor"
 
-	"github.com/latere-ai/tgo/nn"
+	"latere.ai/x/forma/nn"
 )
 
 // The ports and scalars specs/004-model-graph.md §3 declares, by name.
@@ -235,7 +235,7 @@ type Inputs struct {
 	ConvRows int
 
 	// ConvWrite, ConvTaps, ConvCarry and ConvCarryWrite are the window's index
-	// ports, which [github.com/latere-ai/tgo/nn.ConvIndex] fills. One set for
+	// ports, which [latere.ai/x/forma/nn.ConvIndex] fills. One set for
 	// the whole stack: every gated-delta layer's window has the same layout.
 	ConvWrite, ConvCarry, ConvCarryWrite *tensor.Tensor
 	ConvTaps                             []*tensor.Tensor

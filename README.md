@@ -1,4 +1,4 @@
-<h1 align="center">tgo</h1>
+<h1 align="center">Forma</h1>
 
 <p align="center">
   <strong>Run open-weight LLMs from Go. No cgo, no Python, no vendor runtime.</strong>
@@ -13,21 +13,32 @@
 
 ---
 
-tgo runs open-weight language models from Go. It builds to **one static binary**
+Forma runs open-weight language models from Go. It builds to **one static binary**
 with `CGO_ENABLED=0` — no C++ runtime, no Python, no vendor SDK, and nothing to
 install beside it. You cross-compile it the way you cross-compile any Go
 program.
 
 > [!IMPORTANT]
-> **Early, and it works.** tgo loads a real Qwen3 checkpoint and generates text
+> **Early, and it works.** Forma loads a real Qwen3 checkpoint and generates text
 > on Apple silicon today — about 18 tokens a second on a 0.6B model, with a
 > 170ms wait for the first one.
 >
-> One caveat worth knowing before you plan around it. `tgo serve` holds many
+> One caveat worth knowing before you plan around it. `forma serve` holds many
 > conversations at once but still gives each request its own forward pass, so
 > its total throughput is close to what one conversation gets. The engine below
 > it does batch — see the table — and connecting the two is the next thing.
 > [`docs/orientation.md`](docs/orientation.md) explains what runs where.
+
+## Install
+
+```sh
+go get latere.ai/x/forma@main
+go install latere.ai/x/forma/cmd/forma@main
+```
+
+Import `latere.ai/x/forma` as package `forma`. Upgrading from tgo? See the
+[migration guide](docs/migration.md) for imports, commands, configuration, and
+cache reuse.
 
 ## Why you might want it
 
@@ -36,19 +47,19 @@ you cannot install a toolchain on, cross-compile it for a platform you do not
 build on. No runtime, no version matrix, no container to keep in step with a
 driver.
 
-**Speed, and this is the goal rather than a claim.** tgo aims to be **faster
+**Speed, and this is the goal rather than a claim.** Forma aims to be **faster
 than vLLM**, not to trade speed for convenience. The parts of serving that are
 not matrix multiplication — scheduling a step, sampling a token, turning it back
 into text, deciding what runs next — are pure overhead on every token, and they
 are where a compiled language with no interpreter and no global lock should win.
-Starting up is the same story: tgo builds its compute plan in milliseconds
+Starting up is the same story: Forma builds its compute plan in milliseconds
 rather than loading a Python stack.
 
-Today [vLLM](https://github.com/vllm-project/vllm) is faster, because tgo does
+Today [vLLM](https://github.com/vllm-project/vllm) is faster, because Forma does
 not run yet. When it does, the honest position will be a table of measurements
 rather than a claim, and we will publish the ones we lose.
 
-**Hardware.** vLLM serves NVIDIA extremely well and other hardware less so. tgo
+**Hardware.** vLLM serves NVIDIA extremely well and other hardware less so. Forma
 runs wherever its compute layer runs, which today means CPU everywhere and Metal
 on Apple silicon.
 
@@ -64,7 +75,7 @@ on Apple silicon.
 | **Reuse** | a conversation's next turn prefills only what is new, and with `--prefix-cache process` two conversations sharing a system prompt prefill it once between them; `cache_salt` bounds who shares with whom |
 | **As a library** | open a model, hold a conversation, stream tokens, reuse the prompt a conversation has already paid for, and run several conversations in one forward pass |
 
-**Continuous batching runs, and `tgo serve` does not use it yet.** The engine
+**Continuous batching runs, and `forma serve` does not use it yet.** The engine
 puts several conversations in one forward pass, and puts a long prompt's next
 chunk in that same pass rather than making everyone wait for it — so the weights
 are read once for all of them, which is where a server gets most of its
@@ -75,7 +86,7 @@ conversation gets; wiring the two together is the next thing.
 ## What using it will look like
 
 ```go
-m, err := tgo.Open("./Qwen3-4B", tgo.WithPrecision(tgo.Int8))
+m, err := forma.Open("./Qwen3-4B", forma.WithPrecision(forma.Int8))
 if err != nil {
 	log.Fatal(err)
 }
@@ -86,7 +97,7 @@ defer s.Close()
 
 stream, _ := s.Chat(ctx, []chat.Message{
 	{Role: chat.User, Blocks: []chat.Block{{Type: chat.BlockText, Text: "Why is the sky blue?"}}},
-}, tgo.Policy{Temperature: 0.7, TopP: 0.8, MaxTokens: 512})
+}, forma.Policy{Temperature: 0.7, TopP: 0.8, MaxTokens: 512})
 
 for stream.Next() {
 	fmt.Print(stream.Text())
@@ -99,8 +110,8 @@ if err := stream.Err(); err != nil {
 Or as a server, which speaks three APIs on the same model:
 
 ```sh
-tgo pull Qwen/Qwen3-0.6B     # fetch a checkpoint into the cache
-tgo serve ./Qwen3-0.6B       # then serve it
+forma pull Qwen/Qwen3-0.6B     # fetch a checkpoint into the cache
+forma serve ./Qwen3-0.6B       # then serve it
 ```
 
 It answers OpenAI Chat Completions, Anthropic Messages and OpenAI Responses on
@@ -112,30 +123,30 @@ paid for. `--prefix-cache process` goes further and shares that state *between*
 conversations, so a fleet of agents on one system prompt pays for it once — for
 the same memory, because the pool replaces the per-session caches rather than
 adding to them. Both cost memory that is reserved at startup and held for the
-life of the process; `tgo serve` prints the arithmetic before it listens.
+life of the process; `forma serve` prints the arithmetic before it listens.
 [Session pooling](docs/orientation.md#session-pooling-and-what-it-costs) has the
 numbers.
 
 ## How it is built, and why that matters to you
 
-tgo does the model; [accel](https://github.com/golang-design/accel) does the
-GPU. tgo contains no GPU code at all — when it needs something accel cannot do,
+Forma does the model; [accel](https://github.com/golang-design/accel) does the
+GPU. Forma contains no GPU code at all — when it needs something accel cannot do,
 it reports the gap upstream and waits rather than working around it.
 
-That is worth knowing for two reasons. It is why tgo gains a backend the moment
+That is worth knowing for two reasons. It is why Forma gains a backend the moment
 accel does, without changes. And it is why the status above is honest: a limit
-you meet in tgo is a real limit, written down with the reason, rather than a
+you meet in Forma is a real limit, written down with the reason, rather than a
 sharp edge nobody mapped.
 
 ## Documentation
 
-- **[Orientation](docs/orientation.md)** — what tgo is, what runs where, and what
+- **[Orientation](docs/orientation.md)** — what Forma is, what runs where, and what
   it costs in memory. Written for people running models.
 - **[docs/](docs/)** — the index. Quickstart, model and serving guides arrive
   with the code they describe.
 - **[specs/](specs/)** — the design, written for contributors: what was decided,
   what was rejected, and why.
-- **[CONTRIBUTING.md](CONTRIBUTING.md)** — start here to work on tgo.
+- **[CONTRIBUTING.md](CONTRIBUTING.md)** — start here to work on Forma.
 
 ## License
 
