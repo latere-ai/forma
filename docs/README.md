@@ -13,8 +13,6 @@ reader — they argue about tradeoffs, and this does not.
 
 ## Now
 
-- **[Migration](migration.md)** — update imports, commands, and configuration from tgo.
-
 - **[Orientation](orientation.md)** — what Forma is, what runs where, what it
   costs in memory, and how it relates to accel.
 - **[README](../README.md)** — installing it, pulling a model, generating, and

@@ -36,9 +36,7 @@ go get latere.ai/x/forma@main
 go install latere.ai/x/forma/cmd/forma@main
 ```
 
-Import `latere.ai/x/forma` as package `forma`. Upgrading from tgo? See the
-[migration guide](docs/migration.md) for imports, commands, configuration, and
-cache reuse.
+Import `latere.ai/x/forma` as package `forma`.
 
 ## Why you might want it
 
