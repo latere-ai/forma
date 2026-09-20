@@ -55,7 +55,7 @@ spec lint, and the cgo-free gate pass. GitHub is renamed to `latere-ai/forma`,
 the vanity metadata resolves it, and installing
 `latere.ai/x/forma/cmd/forma@main` from the published repository succeeds.
 Reference updates are published in the organization profile, specs, pkg, ci,
-ci-gate, llmops, and accel repositories. Historical snapshots and original
+ci-gate, fornax, and accel repositories. Historical snapshots and original
 copyright notices retain their original wording.
 
 **Not built.** Nothing in this naming migration. A release tag and new hardware
