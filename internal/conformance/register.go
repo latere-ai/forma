@@ -64,7 +64,7 @@ type Row struct {
 	// drift test carry the enforcement here.
 	ID string
 
-	// Cannot is what forma cannot do, in the register's voice: a capability,
+	// Cannot is what Forma cannot do, in the register's voice: a capability,
 	// not a symptom. §2.2 is about the difference -- four rows closed
 	// upstream against issues whose titles named a symptom, and the
 	// capability stayed absent.
@@ -166,12 +166,12 @@ func Register() []Row {
 		Cost: "convert on the host at load, which is the right answer and not a " +
 			"workaround. [001 §3](001-weights.md): bf16 is the top half of an " +
 			"f32, so widening is a shift — exact, free, and done once. A bf16 " +
-			"GEMM would let forma keep bf16 *on the device*, which costs the same " +
+			"GEMM would let Forma keep bf16 *on the device*, which costs the same " +
 			"two bytes as f16 and buys nothing. Filed inside " +
 			"[#14](https://github.com/golang-design/accel/issues/14) and answered " +
 			"with the mixed GEMM that closed [C8](#2-the-register); re-audited " +
 			"2026-08-27 and reclassified rather than re-filed, because a " +
-			"capability forma would not use is not a gap",
+			"capability Forma would not use is not a gap",
 	}, {
 		ID:     "C8",
 		Cannot: "f32 activations against f16 or int8 weights",
@@ -278,7 +278,7 @@ func Register() []Row {
 		Cost: "none needed. `quant.Int4Quantize` and `Int4MatMul` landed against " +
 			"this report, verified twice — against a reconstruction reference, " +
 			"and against the weights the checkpoint held within " +
-			"`quant.Int4ErrorBound`. forma stores them since 2026-08-27, so a 27B " +
+			"`quant.Int4ErrorBound`. Forma stores them since 2026-08-27, so a 27B " +
 			"checkpoint resolves to **13.4 GiB** rather than 26.7 " +
 			"([001 §5.1](001-weights.md)). The embedding table is capped at int8, " +
 			"because it is gathered and there is no int4 gather",
@@ -448,7 +448,7 @@ func (r Row) SkipReason() string {
 
 // header and divider are the register table's two fixed lines.
 const (
-	header  = "| # | what forma cannot do | accel spec | filed | state | workaround, and what it costs |"
+	header  = "| # | what Forma cannot do | accel spec | filed | state | workaround, and what it costs |"
 	divider = "| --- | --- | --- | --- | --- | --- |"
 )
 
