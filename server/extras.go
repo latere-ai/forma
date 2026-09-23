@@ -32,7 +32,7 @@ type extras struct {
 	// carried the same one, and a request carrying none only to a session that
 	// had none. It is not a sampling knob and reaches no
 	// [latere.ai/x/forma.Policy] field, which is why it is subtracted
-	// from the loss report by [honouredSession] rather than by [honored].
+	// from the loss report by [honoredSession] rather than by [honored].
 	cacheSalt string
 
 	// logProbs and topLogProbs are specs/030-logprobs.md §4's two wire shapes,

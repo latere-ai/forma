@@ -449,7 +449,7 @@ second, which is how the gap was found.
 `TestQueueDepthDefaultsToEightPerSlot` ($D = 8N$ as a multiple),
 `TestQueueReturnsARefusalWaitingCannotFix` (a refusal that is neither
 `ErrNoSlot` nor an exhausted pool is the request's answer, not a wait), and
-`TestNewQueueRefusesWhatItCannotHonour`.
+`TestNewQueueRefusesWhatItCannotHonor`.
 
 **Coming, and named here so it is not a surprise:** [022-D7](022-batched-serving.md)
 makes the reserve an argument to `Scheduler.Admit`, taken from the request's

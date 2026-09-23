@@ -18,8 +18,8 @@ import (
 // and each direction has a way of being wrong that the other's test does not
 // catch.
 
-// honourCase is one wire member forma implements, and what it must do.
-type honourCase struct {
+// honorCase is one wire member forma implements, and what it must do.
+type honorCase struct {
 	// field is the [forma.Policy] field it sets, which is the key into
 	// [honored].
 	field string
@@ -37,11 +37,11 @@ type honourCase struct {
 	want any
 }
 
-// honourCases covers every wire name in [honored]. §4.1 asks for one test per
+// honorCases covers every wire name in [honored]. §4.1 asks for one test per
 // Policy field; this is that, plus one per additional spelling, because
 // max_output_tokens and max_completion_tokens are different bugs from
 // max_tokens.
-var honourCases = []honourCase{
+var honorCases = []honorCase{
 	// specs/030-logprobs.md §4: two routes serve logprobs, /v1/chat/completions
 	// through llmdialect's ir and /v1/completions through forma's own codec. The
 	// bool `logprobs` and the `top_logprobs` count parse on every route, which
@@ -110,15 +110,15 @@ var honourCases = []honourCase{
 // the grammar admits and everything about which member carried it.
 const wireSchema = `{"type":"object"}`
 
-// TestAnHonouredFieldIsAppliedAndNotReportedAsLost is §4.1 in both directions.
+// TestAnHonoredFieldIsAppliedAndNotReportedAsLost is §4.1 in both directions.
 //
 // A field parsed and not subtracted reports as unhonoured the knob that was
 // honored. A field subtracted and not parsed reports as honored the knob that
 // was dropped, which is the worse of the two: nothing downstream can tell.
 // Each case asserts both.
-func TestAnHonouredFieldIsAppliedAndNotReportedAsLost(t *testing.T) {
+func TestAnHonoredFieldIsAppliedAndNotReportedAsLost(t *testing.T) {
 	t.Parallel()
-	for _, c := range honourCases {
+	for _, c := range honorCases {
 		r := routes[c.route]
 		t.Run(c.wire+" on "+r.name, func(t *testing.T) {
 			t.Parallel()
@@ -147,17 +147,17 @@ func TestAnHonouredFieldIsAppliedAndNotReportedAsLost(t *testing.T) {
 // it as lost the moment the first caller sends it: the frontend files it as an
 // unknown member and nothing takes it back out. §4.1 asks for exactly this
 // test.
-func TestEveryPolicyFieldIsHonoured(t *testing.T) {
+func TestEveryPolicyFieldIsHonored(t *testing.T) {
 	t.Parallel()
 	typ := reflect.TypeFor[forma.Policy]()
 	for field := range typ.Fields() {
 		name := field.Name
-		if _, ok := honoured[name]; !ok {
+		if _, ok := honored[name]; !ok {
 			t.Errorf("forma.Policy.%s is not in the honored table, so a request that sets it "+
 				"would be told the field was dropped", name)
 		}
 	}
-	for name := range honoured {
+	for name := range honored {
 		if _, ok := typ.FieldByName(name); !ok {
 			t.Errorf("the honored table names %q, which forma.Policy does not have: the "+
 				"subtraction would hide a field nothing applies", name)
@@ -167,17 +167,17 @@ func TestEveryPolicyFieldIsHonoured(t *testing.T) {
 
 // Every wire name the table subtracts is a name some case actually sends,
 // which is what keeps the subtraction from covering a field nothing parses.
-func TestEveryHonouredWireNameIsExercised(t *testing.T) {
+func TestEveryHonoredWireNameIsExercised(t *testing.T) {
 	t.Parallel()
 	seen := map[string]bool{}
-	for _, c := range honourCases {
+	for _, c := range honorCases {
 		seen[c.wire] = true
-		if !slices.Contains(honoured[c.field], c.wire) {
+		if !slices.Contains(honored[c.field], c.wire) {
 			t.Errorf("the case for %q claims Policy.%s, which honored does not map to it",
 				c.wire, c.field)
 		}
 	}
-	for _, wire := range slices.Sorted(maps.Keys(honouredWire)) {
+	for _, wire := range slices.Sorted(maps.Keys(honoredWire)) {
 		if !seen[wire] {
 			t.Errorf("no case sends %q, so nothing proves it is parsed rather than only "+
 				"subtracted", wire)
@@ -196,13 +196,13 @@ func TestEveryHonouredWireNameIsExercised(t *testing.T) {
 // completion as one that honored its limit.
 func TestAWireNameIsSubtractedExactlyWhereItIsApplied(t *testing.T) {
 	t.Parallel()
-	// The cases come from honourCases so the two cannot drift: one entry per
+	// The cases come from honorCases so the two cannot drift: one entry per
 	// wire name, sent on every route rather than only on its own.
-	byWire := map[string]honourCase{}
-	for _, c := range honourCases {
+	byWire := map[string]honorCase{}
+	for _, c := range honorCases {
 		byWire[c.wire] = c
 	}
-	for _, wire := range slices.Sorted(maps.Keys(honouredWire)) {
+	for _, wire := range slices.Sorted(maps.Keys(honoredWire)) {
 		c, ok := byWire[wire]
 		if !ok {
 			t.Fatalf("no case sends %q, so nothing says which routes apply it", wire)
@@ -219,7 +219,7 @@ func TestAWireNameIsSubtractedExactlyWhereItIsApplied(t *testing.T) {
 				reported := slices.Contains(
 					strings.Split(w.Header().Get("X-Forma-Loss"), ", "), wire)
 
-				if want := honouredOn[r.dialect][wire]; applied != want {
+				if want := honoredOn[r.dialect][wire]; applied != want {
 					t.Errorf("%s reached Policy.%s = %v on %s, and the table says %v: the "+
 						"subtraction is reading a dialect this member does not belong to",
 						wire, c.field, applied, r.name, want)
@@ -241,28 +241,28 @@ func TestAWireNameIsSubtractedExactlyWhereItIsApplied(t *testing.T) {
 
 // The per-dialect tables and the Policy table describe the same set of names.
 //
-// A name in honouredOn that Policy does not have would subtract a field nothing
+// A name in honoredOn that Policy does not have would subtract a field nothing
 // applies; a name in honored that no dialect claims would be a knob no route
 // can reach, which is a knob that is always reported as lost.
 func TestTheDialectTablesAgreeWithThePolicyTable(t *testing.T) {
 	t.Parallel()
 	union := map[string]bool{}
-	for d, names := range honouredOn {
+	for d, names := range honoredOn {
 		for n := range names {
-			if !honouredWire[n] {
+			if !honoredWire[n] {
 				t.Errorf("%s claims to honor %q, which no forma.Policy field is mapped to", d, n)
 			}
 			union[n] = true
 		}
 	}
-	for _, n := range slices.Sorted(maps.Keys(honouredWire)) {
+	for _, n := range slices.Sorted(maps.Keys(honoredWire)) {
 		if !union[n] {
 			t.Errorf("no dialect applies %q, so every request carrying it would be told it "+
 				"was dropped", n)
 		}
 	}
 	for _, r := range routes {
-		if _, ok := honouredOn[r.dialect]; !ok {
+		if _, ok := honoredOn[r.dialect]; !ok {
 			t.Errorf("%s has no subtraction table, so every sampling knob sent to it is "+
 				"reported as lost", r.name)
 		}
@@ -285,7 +285,7 @@ func TestAnAdvisoryFieldRunsAndIsReported(t *testing.T) {
 		{"user on responses", 2, `,"user":"u-1"`, "user"},
 		{"metadata on anthropic", 1, `,"metadata":{"user_id":"u-1"}`, "metadata"},
 		// logprobs is not here for routes 0 and 3: specs/030-logprobs.md §4
-		// serves it on both, and honourCases holds that half. It stays a loss
+		// serves it on both, and honorCases holds that half. It stays a loss
 		// on the Anthropic and Responses routes, whose members cannot carry
 		// one; the frontends report it as an unknown field there.
 		{"logprobs on anthropic", 1, `,"logprobs":true`, "logprobs"},

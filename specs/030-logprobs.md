@@ -106,7 +106,7 @@ because the draw walks the kept set.
 ## 4. The wire, and the loss table
 
 `logprobs` comes off the loss table **for the routes that serve it and no
-other**: `server/loss.go`'s `honoured` set names it, and `honouredHere` lists it
+other**: `server/loss.go`'s `honoured` set names it, and `honoredHere` lists it
 under `dialectLegacy` and `ir.DialectOpenAIChat`. A field reported as a loss
 where it is served is worse than one that was never claimed; a field
 subtracted where it is *not* served is [009-D12](009-server.md)'s defect,

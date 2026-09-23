@@ -387,11 +387,11 @@ func synthQwen35(edit func(top, text map[string]any)) json.RawMessage {
 	return b
 }
 
-// TestQwen35RefusesWhatItCannotHonour is §7's table. Each row names the field,
+// TestQwen35RefusesWhatItCannotHonor is §7's table. Each row names the field,
 // which is [004 §7](../specs/004-model-graph.md)'s precedent: refuse at parse,
 // name the field, and refuse anything the graph cannot honor rather than
 // approximating it.
-func TestQwen35RefusesWhatItCannotHonour(t *testing.T) {
+func TestQwen35RefusesWhatItCannotHonor(t *testing.T) {
 	// The fixture itself must be accepted, or every row below passes for the
 	// wrong reason.
 	if _, err := New(synthQwen35(nil)); err != nil {

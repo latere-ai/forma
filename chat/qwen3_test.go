@@ -399,12 +399,12 @@ func TestQwen3TemplateChecksum(t *testing.T) {
 
 	// The negative half: a checker that cannot tell a changed template from an
 	// unchanged one is the failure it exists to catch. One byte is enough.
-	customised := strings.Replace(string(tpl), "You may call one or more functions",
+	customized := strings.Replace(string(tpl), "You may call one or more functions",
 		"You may call exactly one function", 1)
-	if customised == string(tpl) {
+	if customized == string(tpl) {
 		t.Fatal("the template no longer contains the sentence this test edits")
 	}
-	other := Checksum(customised)
+	other := Checksum(customized)
 	if other == Qwen3TemplateChecksum {
 		t.Errorf("a customized template hashed to the built-in checksum: %s", other)
 	}

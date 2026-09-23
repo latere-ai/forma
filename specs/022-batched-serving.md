@@ -338,7 +338,7 @@ Nothing in this list may change, and each has a test that says so today.
 - **`X-Forma-Loss`.** Set before anything is written (`server/server.go:123`),
   from `lossReport` (`server/loss.go:155`). `honoured`'s invariant is that its
   keys are exactly `forma.Policy`'s, checked by reflection, and
-  `honouredSession` carries `cache_salt` (`server/loss.go:67`). §7's synthesized
+  `honoredSession` carries `cache_salt` (`server/loss.go:67`). §7's synthesized
   salt is a server-side value and does not change what a request is told: a
   request that sent `cache_salt` still has it subtracted, and one that sent none
   has nothing to report.

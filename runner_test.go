@@ -175,7 +175,7 @@ func TestEachRequestKeepsItsOwnSeed(t *testing.T) {
 	r := newRunner(t, batchModel(t), RunnerOptions{Slots: 2, Chunk: 8,
 		Reserve: CacheBlock})
 	var wg sync.WaitGroup
-	var got, neighbour string
+	var got, neighbor string
 	for i, pol := range []Policy{hot, other} {
 		wg.Add(1)
 		go func(i int, pol Policy) {
@@ -189,7 +189,7 @@ func TestEachRequestKeepsItsOwnSeed(t *testing.T) {
 			if i == 0 {
 				got = text
 			} else {
-				neighbour = text
+				neighbor = text
 			}
 		}(i, pol)
 	}
@@ -198,7 +198,7 @@ func TestEachRequestKeepsItsOwnSeed(t *testing.T) {
 	if got != want {
 		t.Errorf("seeded 1 in a batch produced %q and alone produced %q", got, want)
 	}
-	if neighbour == want {
+	if neighbor == want {
 		t.Errorf("two seeds produced the same completion %q, so the fixture cannot "+
 			"tell a shared generator from a per-request one", want)
 	}
@@ -570,12 +570,12 @@ func TestPenaltiesReadOnlyTheirOwnSlot(t *testing.T) {
 		Reserve: CacheBlock})
 
 	base := Policy{MaxTokens: 6, Temperature: 0.9, Seed: 11}
-	penalised := base
-	penalised.RepetitionPenalty = 1.8
+	penalized := base
+	penalized.RepetitionPenalty = 1.8
 
 	out := make([]string, 2)
 	var wg sync.WaitGroup
-	for i, pol := range []Policy{base, penalised} {
+	for i, pol := range []Policy{base, penalized} {
 		wg.Add(1)
 		go func(i int, pol Policy) {
 			defer wg.Done()

@@ -480,8 +480,8 @@ GET routes are live.
   loss tables and one error encoder instead of a fourth copy of each.
 - §4.1 asks for the subtraction list as one named constant. It is four tables
   in `server/loss.go`: `honoured` (:41), keyed by `Policy` field and pinned by
-  the reflect test at `server/loss_test.go:136`, `honouredEverywhere` (:86) and
-  `honouredHere` (:104) for the per-dialect split, and `honouredSession` (:67)
+  the reflect test at `server/loss_test.go:136`, `honoredEverywhere` (:86) and
+  `honoredHere` (:104) for the per-dialect split, and `honoredSession` (:67)
   for `cache_salt`, which is honored and reaches no `Policy` field at all. One
   table cannot hold a name that configures the session rather than the sampler.
 - 009-D14 asked for "the non-stdlib build list", and there is no such thing:

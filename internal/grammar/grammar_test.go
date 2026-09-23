@@ -226,17 +226,17 @@ func TestRequiredPropertiesCannotBeSkipped(t *testing.T) {
 func TestEnumAndConst(t *testing.T) {
 	v := newVocab(append(crossers, `red`, `green`, `"red"`, `"green"`, `"blue"`)...)
 	g := compile(t, v, `{"type":"object","properties":{`+
-		`"colour":{"type":"string","enum":["red","green"]},`+
+		`"color":{"type":"string","enum":["red","green"]},`+
 		`"kind":{"const":"fixed"}},`+
-		`"required":["colour","kind"],"additionalProperties":false}`)
+		`"required":["color","kind"],"additionalProperties":false}`)
 
 	st := g.Start()
-	typeText(t, v, st, `{"colour":"red","kind":"fixed"}`)
+	typeText(t, v, st, `{"color":"red","kind":"fixed"}`)
 	if !st.Accepting() {
 		t.Error("an enum member and the const were rejected")
 	}
 
-	for _, s := range []string{`{"colour":"blue"`, `{"colour":"redd"`, `{"colour":"re"`} {
+	for _, s := range []string{`{"color":"blue"`, `{"color":"redd"`, `{"color":"re"`} {
 		st := g.Start()
 		if at := rejects(v, st, s); at < 0 {
 			t.Errorf("%q was admitted, so the enum is not enforced", s)

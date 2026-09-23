@@ -346,7 +346,7 @@ func TestQKNormRunsBeforeRoPE(t *testing.T) {
 // The two agree when every head has the same root mean square, which is why
 // attWeights scales the trailing heads by 8 -- in wk as well as wq, or the k
 // side of the property has no test.
-func TestQKNormNormalisesOverTheHeadDimension(t *testing.T) {
+func TestQKNormNormalizesOverTheHeadDimension(t *testing.T) {
 	r, out := attentionRig(t, 0, attT, []int{0, 1, 2, 3}, nil, nil)
 	got, _ := r.run(out)
 

@@ -300,7 +300,7 @@ than a depth Forma guesses. The `X-Forma-Loss` entry stays exactly as it is, and
 
 None of the three dialects Forma serves defines a grammar member. `schemaField`
 (`server/adapt.go:114`) enumerates what each one calls its schema —
-`response_format`, `output_format`, `text.format` — and `honouredHere`
+`response_format`, `output_format`, `text.format` — and `honoredHere`
 (`server/loss.go:104`) enumerates every wire name any route applies. Neither
 list has a grammar in it, so any spelling Forma picks would be Forma's own.
 
@@ -322,7 +322,7 @@ half to add later.
 
 **This is not free, and the consequence is checkable.** `honoured`
 (`server/loss.go:40`) maps a `Policy` field to the wire names that set it, and
-`TestEveryPolicyFieldIsHonoured` reflects over `Policy` and fails on a field the
+`TestEveryPolicyFieldIsHonored` reflects over `Policy` and fails on a field the
 map does not name. `Policy.Grammar` has no wire name. It gets an entry with an
 empty wire list, and the test learns that an empty list means "library-only, no
 route sets it" rather than "somebody forgot" — one named table, so the next
@@ -370,7 +370,7 @@ the machine is, and a fake engine cannot exercise a byte walk.
 | `TestSchemaFrontEndIsUnchanged` | the whole existing `internal/grammar` suite passes with no edits after §3's refactors. §3's claim is that the machine does not change, and a diff to a schema test would falsify it |
 | `TestNFAStateBoundIsEnforcedByTheMachine` | a front end that allocates past the limit gets the sink and the `over` flag, and `newGrammar` refuses. Proves the bound is on the `nfa` and not on a parser's discipline (§4) |
 | `TestGrammarWithStopOrSchemaIsRefused` | root package: `Policy.check` refuses `Grammar` beside `Stop`, and beside `Schema`, each naming both fields |
-| `TestEveryPolicyFieldIsHonoured` | `server`, existing: extended so `Policy.Grammar`'s empty wire list is accepted as library-only and a missing entry still fails |
+| `TestEveryPolicyFieldIsHonored` | `server`, existing: extended so `Policy.Grammar`'s empty wire list is accepted as library-only and a missing entry still fails |
 | `TestJSONObjectModeRunsAndIsReported` | `server`, existing, unchanged: `json_object` sets no schema, runs, and is reported. §7's decision is that this test does not change |
 
 Property tests extend `property_test.go`'s existing shape: for a randomly
@@ -411,4 +411,4 @@ fails the independent matcher.
 | 029-D5 | regex is its own parser over the same machine | a regex-to-GBNF translation; regex as GBNF sugar | `\d`, `\w` and a negated class are byte-range sets GBNF cannot spell over well-formed UTF-8, and a translation would report constructs the caller never wrote |
 | 029-D6 | a regex is fully anchored, `.` is one UTF-8 code point, and `{m,n}` counts runes | ECMA-262's unanchored `pattern` semantics; a byte-wise `.` | an unanchored pattern admits every output, because every string is a prefix of one containing a match, so it would constrain nothing while appearing to. Rune counting comes free from the UTF-8 builder, which internal/grammar/json.go:58 already relies on |
 | 029-D7 | `json_object` keeps its `X-Forma-Loss` entry and gets no grammar | a depth-bounded permissive JSON grammar; a 400 | "any JSON" is not regular, and a document cut at a depth Forma chose is a wrong answer with a nil error. By 009 §4's own criterion the mode is advisory today, and any grammar moves it to the refuse row without the caller asking. §2's front end is how a caller says "JSON to depth 8" themselves |
-| 029-D8 | library-only: `Policy.Grammar` plus `Model.CheckGrammar`, no wire field | a `response_format: {"type": "grammar"}` extension; a top-level `grammar` member | neither `schemaField` (server/adapt.go:114) nor `honouredHere` (server/loss.go:104) has a grammar in it, so any spelling is Forma's own, and 009 §4 requires an unhonoured field to be reported — Forma cannot report a field it invented. 000-D10 keeps the surface small. The cost is checkable: `honoured` (server/loss.go:40) needs a library-only entry, and `Policy.check` refuses `Grammar` with `Stop` and with `Schema` |
+| 029-D8 | library-only: `Policy.Grammar` plus `Model.CheckGrammar`, no wire field | a `response_format: {"type": "grammar"}` extension; a top-level `grammar` member | neither `schemaField` (server/adapt.go:114) nor `honoredHere` (server/loss.go:104) has a grammar in it, so any spelling is Forma's own, and 009 §4 requires an unhonoured field to be reported — Forma cannot report a field it invented. 000-D10 keeps the surface small. The cost is checkable: `honoured` (server/loss.go:40) needs a library-only entry, and `Policy.check` refuses `Grammar` with `Stop` and with `Schema` |

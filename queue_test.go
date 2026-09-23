@@ -783,10 +783,10 @@ func TestQueueUnderRace(t *testing.T) {
 	}
 }
 
-// TestNewQueueRefusesWhatItCannotHonour is the constructor's negatives: an
+// TestNewQueueRefusesWhatItCannotHonor is the constructor's negatives: an
 // option that cannot be met is refused at build time rather than surprising a
 // request.
-func TestNewQueueRefusesWhatItCannotHonour(t *testing.T) {
+func TestNewQueueRefusesWhatItCannotHonor(t *testing.T) {
 	t.Parallel()
 	negative := -1
 	for _, c := range []struct {

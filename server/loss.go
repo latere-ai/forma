@@ -33,12 +33,12 @@ import (
 // honored maps a [latere.ai/x/forma.Policy] field to the wire fields
 // that set it, across all four dialects.
 //
-// TestEveryPolicyFieldIsHonoured reflects over Policy and fails on a field
+// TestEveryPolicyFieldIsHonored reflects over Policy and fails on a field
 // this map does not name, and TestHonouredFieldsAreParsed fails on a wire name
 // this map claims that [parseExtras] and [applyRequest] do not actually read.
 // The two together are the invariant: a name is here if and only if a request
 // carrying it changes what the sampler does.
-var honoured = map[string][]string{
+var honored = map[string][]string{
 	"Temperature":       {"temperature"},
 	"TopK":              {"top_k"},
 	"TopP":              {"top_p"},
@@ -59,7 +59,7 @@ var honoured = map[string][]string{
 	"TopLogProbs": {"logprobs", "top_logprobs"},
 }
 
-// honouredSession are the wire names that configure the *session* rather than
+// honoredSession are the wire names that configure the *session* rather than
 // the sampler, so they are honored without being
 // [latere.ai/x/forma.Policy] fields and cannot go in [honored], whose
 // invariant is that its keys are exactly Policy's.
@@ -73,12 +73,12 @@ var honoured = map[string][]string{
 // gets a minted one (specs/022-batched-serving.md §7). It is honored on every
 // route, because [parseExtras] reads it from the raw body and does not know
 // which dialect sent it.
-var honouredSession = map[string]bool{"cache_salt": true}
+var honoredSession = map[string]bool{"cache_salt": true}
 
-// honouredWire is honored flattened: every wire name some dialect applies.
-var honouredWire = func() map[string]bool {
+// honoredWire is honored flattened: every wire name some dialect applies.
+var honoredWire = func() map[string]bool {
 	m := map[string]bool{}
-	for _, names := range honoured {
+	for _, names := range honored {
 		for _, n := range names {
 			m[n] = true
 		}
@@ -86,18 +86,18 @@ var honouredWire = func() map[string]bool {
 	return m
 }()
 
-// honouredEverywhere are the names that reach Policy on any route.
+// honoredEverywhere are the names that reach Policy on any route.
 //
 // The penalties, the seed, the bias and the window are read from the raw body
 // by [parseExtras], which does not know which dialect sent them; temperature,
 // top_p and top_k reach ir.Request or [extras] under one spelling on all four
 // surfaces.
-var honouredEverywhere = []string{
+var honoredEverywhere = []string{
 	"temperature", "top_p", "top_k", "seed", "logit_bias",
 	"presence_penalty", "frequency_penalty", "repetition_penalty", "penalty_window",
 }
 
-// honouredHere are the names one dialect spells its own way.
+// honoredHere are the names one dialect spells its own way.
 //
 // The subtraction has to be per dialect or it is the very bug 009-D12 names,
 // from the other side: max_output_tokens sent to /v1/chat/completions sets
@@ -110,7 +110,7 @@ var honouredEverywhere = []string{
 // names reach the same [latere.ai/x/forma.Policy] field, so subtracting
 // the union would report a schema as enforced on the three routes that never
 // saw one.
-var honouredHere = map[ir.Dialect][]string{
+var honoredHere = map[ir.Dialect][]string{
 	// specs/030-logprobs.md §4: two routes serve logprobs. This one carries
 	// them through llmdialect's ir, on the response and on each text delta.
 	ir.DialectOpenAIChat: {"max_tokens", "max_completion_tokens", "stop", "response_format",
@@ -125,13 +125,13 @@ var honouredHere = map[ir.Dialect][]string{
 	dialectLegacy: {"max_tokens", "stop", "logprobs", "top_logprobs"},
 }
 
-// honouredOn is what the subtraction reads: for one dialect, the wire names a
+// honoredOn is what the subtraction reads: for one dialect, the wire names a
 // request carrying them actually applies.
-var honouredOn = func() map[ir.Dialect]map[string]bool {
-	out := make(map[ir.Dialect]map[string]bool, len(honouredHere))
-	for d, own := range honouredHere {
-		m := make(map[string]bool, len(own)+len(honouredEverywhere))
-		for _, n := range honouredEverywhere {
+var honoredOn = func() map[ir.Dialect]map[string]bool {
+	out := make(map[ir.Dialect]map[string]bool, len(honoredHere))
+	for d, own := range honoredHere {
+		m := make(map[string]bool, len(own)+len(honoredEverywhere))
+		for _, n := range honoredEverywhere {
 			m[n] = true
 		}
 		for _, n := range own {
@@ -170,10 +170,10 @@ const (
 // subtraction is the caller's dialect's, because a name is honored only on the
 // surfaces that define it.
 func lossReport(d ir.Dialect, req *ir.Request, raw map[string]bool) []string {
-	honours := honouredOn[d]
+	honors := honoredOn[d]
 	var out ir.Loss
 	for _, f := range req.Loss.Fields() {
-		if honours[string(f)] || honouredSession[string(f)] {
+		if honors[string(f)] || honoredSession[string(f)] {
 			continue
 		}
 		out.Add(f)
@@ -186,10 +186,10 @@ func lossReport(d ir.Dialect, req *ir.Request, raw map[string]bool) []string {
 	// loss, because its IR carries it; forma serves it only where the encoder
 	// can (specs/030-logprobs.md §4), so the ask is reported here on the
 	// routes that cannot.
-	if req.LogProbs && !honours["logprobs"] {
+	if req.LogProbs && !honors["logprobs"] {
 		out.Add(ir.LossLogProbs)
 	}
-	if req.TopLogProbs > 0 && !honours["top_logprobs"] {
+	if req.TopLogProbs > 0 && !honors["top_logprobs"] {
 		out.Add(ir.LossTopLogProbs)
 	}
 	return out.Strings()

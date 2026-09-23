@@ -351,7 +351,7 @@ raw body beside the other members `ir.Request` has no room for, and it becomes
 `SessionSpec.Key` and then the pool's affinity key.
 
 It is honored without being a `Policy` field, so it is subtracted from the loss
-report by a second table, `honouredSession`, rather than by `honoured` — whose
+report by a second table, `honoredSession`, rather than by `honoured` — whose
 invariant is that its keys are exactly `forma.Policy`'s, checked by reflection.
 Without the subtraction a caller who isolated their cache would be told the
 field was dropped, which is the 009-D12 failure from the quiet side.
