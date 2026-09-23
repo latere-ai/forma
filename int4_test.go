@@ -170,7 +170,7 @@ func equalInts(a, b []int) bool {
 // becoming an accuracy decision nobody made.
 //
 // accel's own tests show int4 beating int8 on a group of weights clustered away
-// from zero and losing on one centred on it. It is not uniformly better, so
+// from zero and losing on one centered on it. It is not uniformly better, so
 // auto reaches for it only where int8 does not fit and the alternative is not
 // loading at all.
 func TestAutoNeverPrefersInt4ToInt8(t *testing.T) {

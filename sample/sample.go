@@ -89,7 +89,7 @@ type Policy struct {
 
 	// PenaltyWindow is how many tokens back the penalties read. Zero means the
 	// whole context. The window covers prompt and generated tokens together:
-	// penalising only what the model produced lets it repeat the prompt
+	// penalizing only what the model produced lets it repeat the prompt
 	// verbatim, which is the failure users report as "it echoes my question".
 	PenaltyWindow int
 

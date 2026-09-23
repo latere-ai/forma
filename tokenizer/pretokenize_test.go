@@ -16,7 +16,7 @@ import (
 func qwenSplitter() splitPattern   { return knownPatterns[patternDigest(qwenPattern)] }
 func cl100kSplitter() splitPattern { return knownPatterns[patternDigest(cl100kPattern)] }
 
-// TestSplitGolden is the hand-checked behaviour of the pattern, alternative by
+// TestSplitGolden is the hand-checked behavior of the pattern, alternative by
 // alternative. Each case names the alternative it exercises, because a split
 // that looks reasonable and is wrong is the failure mode section 4 describes.
 func TestSplitGolden(t *testing.T) {
@@ -112,7 +112,7 @@ func TestSplitBytesSurvive(t *testing.T) {
 // --- the oracle -------------------------------------------------------------
 //
 // specs/002-tokenizer.md section 7 asks for the splitter to be checked against
-// the reference pattern's behaviour on a corpus. There is no reference engine
+// the reference pattern's behavior on a corpus. There is no reference engine
 // here, so the check is against a second implementation built a different way:
 // one anchored regexp per alternative, tried in written order, with the
 // lookahead alternative done by explicit backtracking.

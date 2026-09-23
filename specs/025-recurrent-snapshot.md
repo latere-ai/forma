@@ -305,7 +305,7 @@ because of it.
 The convolution carry copies narrowly rather than as a whole window: reshape the
 window to `[slots·(K−1+T), C]`, gather the $K-1$ carry rows by global index, and
 scatter them into a `[rows, K−1, C]` store. Probed, 2 selections, passes with the
-same neighbour checks.
+same neighbor checks.
 
 **So there is no upstream row and no issue.** [018-D5](018-hybrid-models.md) —
 check what composes before asking for a kernel — applies, and
@@ -329,7 +329,7 @@ so the boundary a snapshot names is a boundary that graph has computed — and t
 snapshot is therefore taken before `Stream.finish` releases the lease
 (`session.go:89`), which is host-side and has no graph of its own.
 
-**The inert path relies on documented silent behaviour**, and silence does not
+**The inert path relies on documented silent behavior**, and silence does not
 distinguish an intentional no-op from a wrong id. §9 tests both directions: a
 wrong id moves the result, and an inert id leaves both states untouched.
 
@@ -350,7 +350,7 @@ device copy and a host round trip is a number, not a preference:
 | wall time of the prefill both replace, at the same token count | the copy is only worth doing while it is cheaper than recomputing |
 
 The composed copy is the design until a measurement says otherwise. The host
-round trip is not merely slower; it also serialises against the step, because
+round trip is not merely slower; it also serializes against the step, because
 `ReadBuffer` needs the queue flushed. It is kept in the table because ollama
 pages snapshots to host deliberately ([016 §10.1](016-prefix-cache.md)) and that
 is the right answer on a desktop, where host memory is plentiful and no second
@@ -367,7 +367,7 @@ request's latency pays for the transfer. Under concurrency it inverts, which is
 | restore-then-scan is bit-identical to scan-without-stopping, same inputs | §7's exact half, separated from the shape-dependent half so a GEMM change cannot mask a broken copy |
 | a partial hit whose match ends inside a block rounds down to whole blocks and then walks down to the last snapshotted boundary | §4 |
 | a match whose snapshot was evicted reuses **zero**, not the blocks alone | §4's refusal. Reusing the blocks alone is the two-prefixes bug and it produces fluent output |
-| `Reused()` never exceeds the snapshot's boundary, over randomised prefixes | §3's invariant, as a property rather than a case |
+| `Reused()` never exceeds the snapshot's boundary, over randomized prefixes | §3's invariant, as a property rather than a case |
 | salt isolation: two requests with the same ids and different salts share no snapshot | §6. Asserted at *publish*, because a match loop stops at the first miss and never looks the second one up (016 §8's lesson) |
 | scope isolation: `ScopeSession`, two sessions, same prefix, no shared snapshot | §6 |
 | an evicted snapshot's entry is gone: force eviction, request the prefix, assert a miss | §5, tested directly rather than through the paths that would produce it |
@@ -430,5 +430,5 @@ because neither blocks it:
 | 025-D6 | a snapshot inherits scope and salt by construction, because its key *is* a block hash | a salt of its own; no salt, on the grounds that a state is not a cache | `seed` puts the scope, domain and salt in $h_{-1}$ (`internal/prefix/hash.go:28`) and the chain carries it. A restore hit covers 48 of 64 layers where a block covers 16, so it is 016 §7's membership oracle with a stronger signal, not a weaker one. Two keys for one question is two answers to it (016-D13) |
 | 025-D7 | the copy is bit-exact and is asserted so; the end-to-end result is measured against a float64 reference with a budget derived from the scan length | assert bit-exact reuse end to end; assert nothing and test the copy alone | the restore is f32 into f32 and the scan is sequential ([018 §2](018-hybrid-models.md)), so the mechanism is exact and a test may say so. What is not exact is the projection GEMM under a different row count, which is 016-D6's divergence one operator earlier. Testing them separately is what stops a GEMM change from masking a broken copy |
 | 025-D8 | the recurrence and the convolution carry are snapshotted and restored as one unit | snapshot the recurrent state alone | restoring the recurrence without the $K-1$ carry rows convolves the first restored token against zeros ([§1](#1-what-is-being-copied-and-it-is-two-states)). It runs, it is plausible, and [018 §4.1.1](018-hybrid-models.md) already records that a prefill-only test cannot see it. The carry is a tenth of the snapshot's bytes or less |
-| 025-D9 | the copy nodes are unconditional in the step graph, made inert by an out-of-range index | a second compiled plan; a separate submission around the step | a plan per shape is compiled once and submitted every step (`session.go:70`), so a second plan doubles the plan cache and a separate submission serialises against the step. An out-of-range `ScatterRows` index writes nothing by documented behaviour, which costs two idle dispatches per layer per step. The price is that the no-op is as silent as a wrong id, so [§9](#9-tests) tests both |
+| 025-D9 | the copy nodes are unconditional in the step graph, made inert by an out-of-range index | a second compiled plan; a separate submission around the step | a plan per shape is compiled once and submitted every step (`session.go:70`), so a second plan doubles the plan cache and a separate submission serializes against the step. An out-of-range `ScatterRows` index writes nothing by documented behavior, which costs two idle dispatches per layer per step. The price is that the no-op is as silent as a wrong id, so [§9](#9-tests) tests both |
 | 025-D10 | the snapshot store is f32, the same width as the live state | f16, halving 48 MiB to 24 and [§5](#5-eviction)'s budget with it | [C5](010-conformance.md)'s argument does not carry over. K and V are operands read once, so narrow storage costs one rounding at one position; a snapshot is the **initial condition** of a recurrence that then folds thousands more tokens, and rounding it makes [§7](#7-correctness-what-same-means)'s exact half untrue. It would also cost a `Cast` per layer in each direction, because `tensor.GatherRows` returns f32 whatever the table holds and `tensor.ScatterRows` refuses a width it did not expect |

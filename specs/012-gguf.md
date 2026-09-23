@@ -87,7 +87,7 @@ produce both where accel cannot:
 | measurement | why it decides the case |
 | --- | --- |
 | **which K-quant formats actually circulate** for the models Forma targets — a count over real checkpoints | the corpus should register the two that matter, not six. That `Q4_K` and `Q6_K` cover most of what circulates is a **guess**: this spec has never counted. Producing the count over real checkpoint listings is the work |
-| **int4-at-load against `Q4_K` on real weight blocks**, checked against `quant.Int4ErrorBound` | int4 is the deciding comparand, not int8: `Q4_K` is 4-bit with a per-sub-block minimum, so accel's asymmetric int4 is the near neighbour and carries its own bound ([001 §5.4](001-weights.md)). int8 stays the wider reference point. If the two are within noise on trained weights, **GGUF stops being a quality argument and becomes a download-size argument** — a much weaker case for a new kernel family, and worth knowing before anyone writes one |
+| **int4-at-load against `Q4_K` on real weight blocks**, checked against `quant.Int4ErrorBound` | int4 is the deciding comparand, not int8: `Q4_K` is 4-bit with a per-sub-block minimum, so accel's asymmetric int4 is the near neighbor and carries its own bound ([001 §5.4](001-weights.md)). int8 stays the wider reference point. If the two are within noise on trained weights, **GGUF stops being a quality argument and becomes a download-size argument** — a much weaker case for a new kernel family, and worth knowing before anyone writes one |
 
 Both belong with [010 §3](010-conformance.md)'s numbers, and the second is a
 variant of one already there. That row measures int8 against

@@ -151,11 +151,11 @@ fence — not a data race, which means a `-race` test stays green while the serv
 returns errors under load.
 
 **`Model` therefore holds a submission lock across submit-and-wait.** It
-serialises what accel already serialises, and turns a runtime failure into
+serializes what accel already serializes, and turns a runtime failure into
 waiting.
 
 **A `Session` is still not concurrency-safe, and says so**: two goroutines
-decoding one session would interleave writes into one cache, and serialising
+decoding one session would interleave writes into one cache, and serializing
 that internally would hide a caller's bug rather than report it. The two are not
 in tension — the `Model` lock protects a resource accel shares, and the
 `Session`'s absence of one reports a mistake only the caller can make.
@@ -217,7 +217,7 @@ The obvious answers are a mask input (accel has none) or a scratch row outside
 the sequence's window (an extra allocation, and a row that must be proven never
 read).
 
-Neither is needed. `tensor.ScatterRows` documents its own behaviour:
+Neither is needed. `tensor.ScatterRows` documents its own behavior:
 
 > *the scatter variant; an index at or above capacity writes nothing, because a
 > GPU cannot report one*
@@ -237,7 +237,7 @@ pad slots are `rows`. No mask, no scratch buffer, no extra allocation.
 
 This is worth recording as a decision rather than a trick, because it depends on
 a guarantee that could change, and because the "index out of range writes
-nothing" behaviour is the kind of thing a reader assumes is undefined. §8 has
+nothing" behavior is the kind of thing a reader assumes is undefined. §8 has
 the test that pins it.
 
 ## 5. The decode loop

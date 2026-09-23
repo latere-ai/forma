@@ -9,7 +9,7 @@ import (
 	"strings"
 )
 
-// The subset of the Hugging Face tokenizer.json serialisation this package
+// The subset of the Hugging Face tokenizer.json serialization this package
 // reads. Fields it does not read are fields whose values it refuses to vary
 // from, and applyModel names each one in its refusal.
 
@@ -22,7 +22,7 @@ type tokenizerFile struct {
 	Model         *modelJSON       `json:"model"`
 }
 
-// nodeJSON reads only the discriminator of a serialisation node this package
+// nodeJSON reads only the discriminator of a serialization node this package
 // reproduces rather than interprets. See applyPostProcessor.
 type nodeJSON struct {
 	Type string `json:"type"`
@@ -65,7 +65,7 @@ type modelJSON struct {
 	Merges                  []mergeJSON    `json:"merges"`
 }
 
-// mergeJSON is one merge-list entry. The serialisation changed: tokenizers
+// mergeJSON is one merge-list entry. The serialization changed: tokenizers
 // wrote "left right" for years and writes ["left","right"] now, and both forms
 // are in circulation on the hub, so both are read. The pair form is
 // unambiguous; the string form splits on the first space, which is safe because

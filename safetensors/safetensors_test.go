@@ -62,7 +62,7 @@ func good() (map[string]any, []byte) {
 	return hdr, data
 }
 
-// write serialises a header and a data region into dir/name and returns the
+// write serializes a header and a data region into dir/name and returns the
 // path. A negative lenOverride writes the true header length; any other value
 // is written in its place, which is how the truncated-header rows are built.
 func write(t *testing.T, dir, name string, hdr map[string]any, data []byte, lenOverride int64) string {

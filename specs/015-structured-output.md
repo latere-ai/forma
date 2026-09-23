@@ -86,7 +86,7 @@ have written, while a widening costs them a document that does not validate.
 | narrowing | what it excludes | why |
 | --- | --- | --- |
 | properties appear in the order the schema declares them | `{"age":36,"name":"Ada"}` under `{name, age}` (`grammar_test.go:190`) | admitting every permutation needs a state per subset already emitted, $2^n$ of them |
-| objects are closed | any property outside the schema (`grammar_test.go:191`) | an explicit `"additionalProperties": true` is **refused** rather than narrowed (`schema_test.go:90`): that one is the caller stating something this cannot honour |
+| objects are closed | any property outside the schema (`grammar_test.go:191`) | an explicit `"additionalProperties": true` is **refused** rather than narrowed (`schema_test.go:90`): that one is the caller stating something this cannot honor |
 | `"integer"` admits the plain spelling | `1e2`, which JSON Schema counts as an integer (`grammar_test.go:132`) | the automaton counts characters and cannot evaluate an exponent |
 
 **One thing is not narrowed, and a caller has to know it**: a number's
@@ -187,11 +187,11 @@ sites, and the wire mapping for three dialects.
   hold. It is the one hole in §1's "parses by construction", and a caller who
   needs the bound checks it after decoding.
 
-**Not built.** Nothing that 015 owns. The four behaviours that lived only in
+**Not built.** Nothing that 015 owns. The four behaviors that lived only in
 `internal/grammar/doc.go` are described here as of 2026-08-28:
 [§4.1](#41-what-the-language-narrows-and-the-one-thing-it-does-not) gives the
 three narrowings with the test that pins each, and
-[§1](#1-the-idea) gives the unbounded magnitude, which is the one behaviour that
+[§1](#1-the-idea) gives the unbounded magnitude, which is the one behavior that
 widens rather than narrows and therefore the one a caller has to know.
 
 Owned elsewhere: `json_object` mode. `response_format: {"type":"json_object"}`

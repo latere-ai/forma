@@ -99,7 +99,7 @@ type Config struct {
 	// Block-1 tokens to rounding — a rounding error against a prefix of
 	// hundreds, and the alternative is two sequences writing one block at
 	// different offsets, which is a correctness problem rather than an
-	// optimisation.
+	// optimization.
 	Block int
 
 	// Blocks is the pool capacity, in blocks. Blocks*Block positions of KV

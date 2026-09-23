@@ -42,7 +42,7 @@ The cache is keyed on **token ids, not text**.
 
 Text is the wrong key in both directions. Two different strings can tokenize to
 the same ids (they cannot, for a bijective byte-level BPE — but two *renderings*
-differing in whitespace the template normalises can), and more importantly one
+differing in whitespace the template normalizes can), and more importantly one
 string can be rendered into different ids by different template options. What
 the model consumed is the id sequence, so that is what identifies the state.
 
@@ -81,7 +81,7 @@ and up to $B-1$ tokens of a genuine common prefix are re-prefilled. With
 $B = 32$ that is at most 31 tokens against a prefix of hundreds — a rounding
 error against the win, and the alternative (sharing partial blocks) would mean
 two sequences writing into one block at different offsets, which is a
-correctness problem rather than an optimisation.
+correctness problem rather than an optimization.
 
 Each block gets a hash chained over its predecessor, so a block's identity
 includes everything before it:
@@ -511,7 +511,7 @@ accepted `Pages` on a prefill, dropped it, and read the cache contiguously;
 Forma's probe recorded it as working and this spec claimed cross-request sharing
 was expressible when it was not. Forma filed it as
 [accel#10](https://github.com/golang-design/accel/issues/10), accel shipped the
-kernel, and the same test now shows the table being honoured.
+kernel, and the same test now shows the table being honored.
 
 That episode is why [010-D7](010-conformance.md) exists, and it is left visible
 rather than tidied away: **the spec was confidently wrong because its evidence
@@ -525,7 +525,7 @@ Three constraints remain, and the third is Forma's own.
   in it while `nn.Attention` bound no `tensor.AttentionOptions.Pages` or
   `Block`. Nothing in Forma could pass a page table however capable C13 was.
   **That was the same defect as the one this section records below, one layer
-  in**: the evidence was accel's behaviour and the question was about Forma's.
+  in**: the evidence was accel's behavior and the question was about Forma's.
 
   `PortPages` landed on 2026-08-26, verified by a prefill over a *permuted*
   table required to agree bit for bit with a contiguous run, with a negative
@@ -639,7 +639,7 @@ block design does not extend to those 48 layers as written.
 
 That is worth recording now: [004-D2](004-model-graph.md) says a new
 architecture is additive at the registry, and for a hybrid model **that is not
-true of the cache**. ollama had to generalise its trie; Forma does the same in
+true of the cache**. ollama had to generalize its trie; Forma does the same in
 [025](025-recurrent-snapshot.md), which reuses such a state by copying a
 snapshot back rather than by addressing it.
 

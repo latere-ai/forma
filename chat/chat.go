@@ -47,7 +47,7 @@ const (
 // Blocks rather than a string: a renderer must drop a prior turn's thinking, and
 // with a string it would have to find the thinking by matching text. That is the
 // textual boundary 003-D4 rejects for control tokens, and it fails the same way.
-// A user who asks the model to summarise a document containing "<think>" would
+// A user who asks the model to summarize a document containing "<think>" would
 // have their own words deleted from the next turn (003-D6, specs/003 3.1).
 type Message struct {
 	Role   Role
@@ -76,7 +76,7 @@ type Block struct {
 
 // ToolUse is one call the assistant made.
 //
-// Args is written into the prompt verbatim. Re-marshalling a parsed object
+// Args is written into the prompt verbatim. Re-marshaling a parsed object
 // reorders keys and changes the bytes the model was trained on (003-D7), so the
 // renderer checks that Args is valid JSON and then copies it through. ID has no
 // place in the Qwen3 format and is not rendered; it exists so a caller can match

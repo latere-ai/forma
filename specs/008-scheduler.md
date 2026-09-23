@@ -49,7 +49,7 @@ Both forms **require** `Pages`: members have different lengths, so a contiguous
 cache would pad every sequence to the longest. That is not a restriction to
 work around — it is the reason paging exists, and it means
 [016](016-prefix-cache.md)'s block pool is a **prerequisite** for this spec
-rather than a neighbour of it. It is a `depends_on` edge, the pool work landed
+rather than a neighbor of it. It is a `depends_on` edge, the pool work landed
 there rather than here, and `NewBatch` refuses outright without one.
 
 **One cost the ragged step carried, and no longer does.** The first ragged
@@ -139,7 +139,7 @@ every slot occupied, the pool empty, and no sequence able to grow — so nothing
 finishes and nothing can be evicted into progress.
 
 $R$ is a policy number, not a derived one. Setting it to the request's
-`max_tokens` is safe and admits too little; setting it to zero maximises
+`max_tokens` is safe and admits too little; setting it to zero maximizes
 occupancy and deadlocks. The design first took $R$ as configuration with a
 documented default. **That reversed in the build**: `SchedulerOptions.Reserve`
 has no default, and a zero or negative reserve is refused with the argument in
@@ -313,7 +313,7 @@ admission that 008-D9 hands to [019](019-session-affinity.md)'s `Pool`; and
 with a scheduler engine.
 
 **Description debt**, which is a spec that is thinner than the code rather than
-work nobody did. Five behaviours are built and tested and no section states
+work nobody did. Five behaviors are built and tested and no section states
 them: `Produced.Sampleable` and `Feed`'s refusal of a token fed before the
 prompt is scored (`scheduler.go:188`, `scheduler.go:239`), which §5 owns; that a
 slot left out of a step is not evicted (`schedule.go:76`), which is §5's

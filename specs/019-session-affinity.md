@@ -78,7 +78,7 @@ and takes the longest agreement.
 Matching is $O(N \cdot L)$ integer comparisons on the host, where $L$ is the
 prompt length, against a prefill of $O(L)$ **forward passes**. At $N = 8$ and
 $L = 2000$ that is 16k comparisons to decide whether to skip up to 2000
-transformer steps, so the routing cost is not a term worth modelling.
+transformer steps, so the routing cost is not a term worth modeling.
 
 ### 3.1 When a conversation keeps its session
 
@@ -127,7 +127,7 @@ never returned, so:
   For a 32B model at f16 that is the dominant resident cost, and it is paid
   whether or not a second request ever arrives.
 
-This is a real trade, not an optimisation with no downside: **the server stops
+This is a real trade, not an optimization with no downside: **the server stops
 being able to run one large request that would not fit alongside $N-1$ idle
 peers.**
 
@@ -350,7 +350,7 @@ nothing reached from the server. `server` now parses `cache_salt` from the
 raw body beside the other members `ir.Request` has no room for, and it becomes
 `SessionSpec.Key` and then the pool's affinity key.
 
-It is honoured without being a `Policy` field, so it is subtracted from the loss
+It is honored without being a `Policy` field, so it is subtracted from the loss
 report by a second table, `honouredSession`, rather than by `honoured` — whose
 invariant is that its keys are exactly `forma.Policy`'s, checked by reflection.
 Without the subtraction a caller who isolated their cache would be told the

@@ -236,7 +236,7 @@ func TestKVAdmission(t *testing.T) {
 			a.Fits, a.Sessions, defaultSessions)
 	}
 
-	// And an explicit ask is honoured up to what fits, and refused above it
+	// And an explicit ask is honored up to what fits, and refused above it
 	// rather than at the allocation that would fail part way through.
 	if a, err := kvAdmission(1000, 280, 150, 3, admissionShape{}); err != nil || a.Sessions != 3 {
 		t.Errorf("kvAdmission(..., 3, admissionShape{}) = %+v, %v; three of four sessions fit", a, err)
@@ -738,7 +738,7 @@ func TestCmdServeServesUntilInterrupted(t *testing.T) {
 	useFakeServable(t, fakeInfo(1024))
 	interrupt, stopped := useInterrupts(t)
 
-	// A synchronised buffer, because the report is written by the goroutine
+	// A synchronized buffer, because the report is written by the goroutine
 	// below and read by awaitAddr while it is still running.
 	stdout, stderr := &syncBuilder{}, &syncBuilder{}
 	done := make(chan error, 1)

@@ -786,7 +786,7 @@ func TestASecondConstrainedRequestStartsANewDocument(t *testing.T) {
 // different reasons: the grammar ends a generation where the document is
 // complete, and a stop string ends it where a substring appeared.
 //
-// The refusal is asserted next to the behaviour it replaces: without it this
+// The refusal is asserted next to the behavior it replaces: without it this
 // request returns `{"city":"` with st.Err() nil, which is why silently ignoring
 // Stop is not the answer either. A caller who sent one and had it dropped got a
 // different request than the one they wrote.

@@ -209,7 +209,7 @@ func (m *qwen35) Template() chat.Renderer { return chat.Qwen3() }
 // Weights is §4.5's map with the layer templating expanded.
 func (m *qwen35) Weights() []WeightSpec { return qwen35Weights(m.cfg) }
 
-// parseQwen35Config reads both levels, refuses what the graph cannot honour,
+// parseQwen35Config reads both levels, refuses what the graph cannot honor,
 // and fills 004 §5's table plus this architecture's own fields.
 func parseQwen35Config(raw json.RawMessage) (*qwen35Config, error) {
 	if err := onlyKeys(raw, qwen35TopKeys, "the config"); err != nil {

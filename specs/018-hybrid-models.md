@@ -226,7 +226,7 @@ a reference over all six at once.
 
 **Two costs the dispatch count did not show.** The tap row needs `Contiguous`
 *twice* — once because a slice at row $i$ is a view at an offset, and once
-because `Mul` takes operands and not views — so every tap materialises a
+because `Mul` takes operands and not views — so every tap materializes a
 $[T, C]$ copy. And the tap order is
 
 $$y_t = \sum_i \texttt{taps}_i \cdot x_{t-K+1+i}$$
@@ -246,7 +246,7 @@ shipped over the undifferentiated `State`, which the KV path and
 
 What Forma needs from a recurrent state, in order:
 
-| operation | analogue today |
+| operation | analog today |
 | --- | --- |
 | **carry** across submissions — a decode step is one submission per token, so the state must survive from $t$ to $t+1$ | `State` does this |
 | **snapshot** a sequence's state somewhere it can be kept | **none** |

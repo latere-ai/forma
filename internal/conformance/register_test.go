@@ -106,7 +106,7 @@ func TestSplicedOutputIsInsideTheTable(t *testing.T) {
 
 // TestTheRegisterTableIsTerminated is the other end of the same reading: a
 // generated block with no blank line after it has no end, and reading to EOF
-// would make the last row's neighbour a matter of luck.
+// would make the last row's neighbor a matter of luck.
 func TestTheRegisterTableIsTerminated(t *testing.T) {
 	unterminated := []string{header, "| C1 | a thing | 040 | — | closed | none |"}
 	if _, err := registerBlock(unterminated); err == nil {

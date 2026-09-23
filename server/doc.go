@@ -31,7 +31,7 @@
 //
 // A field whose absence changes what the model computes is refused by name --
 // n > 1, an image, a logit_bias id outside the vocabulary, a JSON schema the
-// grammar compiler will not compile. A schema it will compile is honoured
+// grammar compiler will not compile. A schema it will compile is honored
 // instead: response_format, output_format and text.format all reach
 // [latere.ai/x/forma.Policy]'s Schema, and the refusal that remains
 // carries the compiler's own reason -- the keyword and the obstruction --
@@ -42,7 +42,7 @@
 // input to that list and not the output of it: ir.Request carries no seed,
 // logit_bias or penalties, so its frontends report each as unrepresentable
 // while forma implements every one, and the subtraction takes them back out, per
-// dialect, because a name is honoured only on the surfaces that define it
+// dialect, because a name is honored only on the surfaces that define it
 // (009-D12). See loss.go for the tables.
 //
 // # Concurrency

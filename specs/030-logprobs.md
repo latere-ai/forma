@@ -89,7 +89,7 @@ p(v) = \frac{\exp\!\left((\ell_v + b_v)'/\tau\right)}{\sum_{u \in \mathcal{K}} \
 \qquad p(v) = 0 \quad v \notin \mathcal{K}
 $$
 
-with $(\cdot)'$ the penalised logit. The alternative — reporting the raw softmax
+with $(\cdot)'$ the penalized logit. The alternative — reporting the raw softmax
 over the untruncated vocabulary — describes a distribution **nothing sampled
 from**, and would tell a caller a token had a 3% chance when top-*k* had already
 given it zero.
@@ -228,7 +228,7 @@ IR, so `/v1/chat/completions` now serves them whole-body and streaming
 ([030-D6](#decision-record)). The side interfaces Forma's codec alone
 implemented are gone: `server/generate.go` converts once to `ir.TokenLogProb`,
 `server/legacy.go` reads `resp.LogProbs` and `ev.LogProbs` like the dialect
-encoders do, and `server/loss.go` honours `logprobs` and `top_logprobs` on both
+encoders do, and `server/loss.go` honors `logprobs` and `top_logprobs` on both
 routes while adding the loss on the Responses route, whose frontend reads
 `top_logprobs` into the IR without filing one. `/v1/messages` and
 `/v1/responses` keep the loss entry, because their wire has no member for a

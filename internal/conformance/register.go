@@ -54,7 +54,7 @@ const issueURL = "https://github.com/golang-design/accel/issues/"
 //
 // The prose cells are opaque Markdown and not structured text. They carry
 // inline links, backticked identifiers, bold spans and LaTeX, and a type that
-// modelled them would be a Markdown parser with a register attached. What has
+// modeled them would be a Markdown parser with a register attached. What has
 // structure here is the id, the accel specs, the issue and the state, and those
 // are the fields anything programmatic reads.
 type Row struct {
@@ -350,7 +350,7 @@ func Register() []Row {
 			"axis is [023](023-cache-kinds.md)'s work",
 	}, {
 		ID:     "C20",
-		Cannot: "a decode step whose submit cost is amortised",
+		Cannot: "a decode step whose submit cost is amortized",
 		Specs:  []string{"021"},
 		Issue:  21,
 		State:  Closed,

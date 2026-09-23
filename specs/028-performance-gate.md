@@ -55,7 +55,7 @@ A `benchcheck` subcommand of `latere.ai/x/ci-gate`, not a program in this
 repository.
 
 **This section was rewritten on 2026-08-30.** It used to say
-`internal/benchcheck`, modelled on `internal/covercheck` and citing it by line
+`internal/benchcheck`, modeled on `internal/covercheck` and citing it by line
 number (both since deleted). Those files are gone: the gates left this repository, and a spec whose
 plan is to copy something deleted is a plan nobody can follow. What the
 original argued for survives, because it was never about where the code sat.
@@ -170,7 +170,7 @@ What that produces from today's record:
 | axis | JSON path | a loss is | gates |
 | --- | --- | --- | --- |
 | decode throughput, wall clock | `batches[].tokens_per_second` | lower | **yes** |
-| decode step, modelled p50 | sum of `batches[].report.decode.{host,submit,device,readback}.p50_ns` | higher | **yes**, `n=128` |
+| decode step, modeled p50 | sum of `batches[].report.decode.{host,submit,device,readback}.p50_ns` | higher | **yes**, `n=128` |
 | resident | `batches[].resident_bytes` | higher | **yes**, at zero |
 | decode step p90, p99 | the same four terms at `p90_ns`, `p99_ns` | higher | report |
 | prefill terms | `batches[].report.prefill.*` | higher | by rule one, from `report.prefill.host.n` |
@@ -183,9 +183,9 @@ What that produces from today's record:
 that rose 40% and a step time that fell 40% are both wins, and a gate that
 fired on either would be a check for equality with extra steps.
 
-The modelled step p50 is the sum of the four terms at that percentile, which is
+The modeled step p50 is the sum of the four terms at that percentile, which is
 the definition `cmd/forma/record.go:380` already renders and the reason it is a
-modelled step rather than a step that happened. Gating it beside the wall-clock
+modeled step rather than a step that happened. Gating it beside the wall-clock
 throughput is deliberate: the two are correlated by construction, and they
 disagree exactly when there is time in the run that the instrument does not
 account for, which is a finding rather than a duplicate gate.
@@ -229,7 +229,7 @@ a single run.
 | axis | provisional | what replaces it |
 | --- | ---: | --- |
 | decode throughput, wall clock | 10% | the $R=5$ spread from the first baseline commit |
-| decode step, modelled p50 | 10% | the same |
+| decode step, modeled p50 | 10% | the same |
 | resident | 0% | nothing. It is arithmetic |
 
 10% is not evidence, it is a starting band chosen to sit well inside the
@@ -414,7 +414,7 @@ release day.
 
 One person, one pass:
 
-| artefact | size |
+| artifact | size |
 | --- | --- |
 | `internal/benchcheck/benchcheck.go` | axis extraction, comparison, the refusals, the report. Takes a decoded record, returns findings |
 | `internal/benchcheck/main.go` | flags `-baseline`, `-check-baseline`, `-spread`, and the exit status. Nothing else |

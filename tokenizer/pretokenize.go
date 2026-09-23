@@ -35,7 +35,7 @@ const (
 	cl100kPattern = `(?i:'s|'t|'re|'ve|'m|'ll|'d)|[^\r\n\p{L}\p{N}]?\p{L}+|\p{N}{1,3}| ?[^\s\p{L}\p{N}]+[\r\n]*|\s*[\r\n]+|\s+(?!\S)|\s+`
 )
 
-// splitPattern is one recognised split pattern and the parameters the shared
+// splitPattern is one recognized split pattern and the parameters the shared
 // splitter needs to reproduce it.
 type splitPattern struct {
 	name string

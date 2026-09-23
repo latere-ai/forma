@@ -272,7 +272,7 @@ func TestQwen3ThinkingOffEmitsPreClosedBlock(t *testing.T) {
 	}
 }
 
-// 003-D7: arguments reach the prompt as the caller wrote them. Re-marshalling
+// 003-D7: arguments reach the prompt as the caller wrote them. Re-marshaling
 // reorders keys and changes the bytes the model was trained on, so the golden
 // here is deliberately in an order Go's encoder would not produce.
 func TestQwen3ToolArgumentsVerbatim(t *testing.T) {
@@ -307,7 +307,7 @@ func TestQwen3ToolResultsMergeIntoOneTurn(t *testing.T) {
 		t.Errorf("tool_response wrappers = %d, want 2", n)
 	}
 
-	// A user turn between two results splits the run, which is the behaviour the
+	// A user turn between two results splits the run, which is the behavior the
 	// merge rule has to keep: the second result opens its own turn.
 	split := []Message{
 		toolResult("a", "1"),
@@ -406,7 +406,7 @@ func TestQwen3TemplateChecksum(t *testing.T) {
 	}
 	other := Checksum(customised)
 	if other == Qwen3TemplateChecksum {
-		t.Errorf("a customised template hashed to the built-in checksum: %s", other)
+		t.Errorf("a customized template hashed to the built-in checksum: %s", other)
 	}
 
 	// Rendering does not consult either checksum, so a checkpoint that warns

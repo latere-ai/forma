@@ -1193,6 +1193,6 @@ func TestAStopStringStraddlingAUTF8Boundary(t *testing.T) {
 	// analysis rather than the surprise.
 	if keep := holdBack("a"+sigma, []string{"\x91z"}); keep != 1 {
 		t.Errorf("holdBack with a stop beginning mid-rune kept %d bytes, want 1; "+
-			"the byte-matching behaviour this documents has changed", keep)
+			"the byte-matching behavior this documents has changed", keep)
 	}
 }

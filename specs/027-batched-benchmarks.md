@@ -29,7 +29,7 @@ It also carried one live defect the same audit found, and **that half shipped on
 publishing wrong numbers meanwhile. `server/generate.go` said a completion
 longer than `recorderCapacity` "reports quantiles over its most recent steps"
 while `bench.Recorder.Step` kept the **first** `capacity` observations, so a
-2000-step completion published the device's behaviour from two thousand steps
+2000-step completion published the device's behavior from two thousand steps
 ago as its current one. `Recorder` is a ring now, per 027-D5 below, and
 `TestFullRecorderKeepsTheMostRecent` and `TestARingReportsOldestFirst` pin it.
 §6 records what that changed; the rest of this spec is unbuilt.
@@ -154,7 +154,7 @@ it is not changed with the enum:
 (`cmd/forma/bench.go:107-133` builds it), **all admitted before the first step**,
 each generating `--tokens` tokens. The run ends when every slot has finished.
 One row per requested batch size; `--batch 1,2,4,8` gives the curve four points,
-and `--batch 1` keeps the present behaviour.
+and `--batch 1` keeps the present behavior.
 
 **What this measures**: the steady-state ceiling of a saturated batch of equal
 work. That is exactly the quantity [008 §1](008-scheduler.md) predicts, so it is
@@ -235,7 +235,7 @@ other reader of a full recorder wrong.
 | `batch_axis.arrival` | §5's three limitations, as a note (027-D7) |
 
 **There is no reader of the record in `cmd/forma/record.go`.** `encodeRecord`
-(`:260-266`) only writes. Every reader today is a test unmarshalling into
+(`:260-266`) only writes. Every reader today is a test unmarshaling into
 `benchRecord` — `cmd/forma/bench_test.go:201`, `:288`, `cmd/forma/record_test.go:155`
 and `:200` — and 028's regression gate is the future one. Neither of those two
 breaks on the bump: `:155` decodes into a struct of named fields and `:200`
@@ -258,7 +258,7 @@ golden-fixture test decodes it into the current `benchRecord` and asserts every
 | `TestRecorderKeepsTheMostRecentSteps` | record `capacity + k` steps with strictly increasing `Device`; the report's quantiles come from the last `capacity` and none of the first `k` values appears. This is the defect in §6, and it fails against today's code |
 | `TestFullRecorderCountsDrops` (**amended**, `bench/bench_test.go:108`) | `Dropped` still counts every overwritten observation. The content assertion at `:121-125` — `Host.P99 == 2µs`, "the recorder keeps the prefix" — inverts to the newest window |
 | `TestEnabledRecorderAllocatesZero` (**confirmed**, `bench/bench_test.go:81`) | `AllocsPerRun` is still 0 with the modulo in the write path |
-| `TestReportJSONStable` (**amended**, `bench/bench_test.go:405`) | the marshalled report carries `mixed` beside `prefill` and `decode`, in declaration order. A field added to `Report` is not additive for a test that asserts bytes |
+| `TestReportJSONStable` (**amended**, `bench/bench_test.go:405`) | the marshaled report carries `mixed` beside `prefill` and `decode`, in declaration order. A field added to `Report` is not additive for a test that asserts bytes |
 | `TestEmptyReportMarshals` (**amended**, `bench/bench_test.go:454`) | the third phase's `share_of_step` is the four named keys and not `null`, for the same reason the first two are |
 | `TestServerPublishesTheRecentWindow` | drive `Server.report` with a recorder holding more than `recorderCapacity` steps whose device time changes partway; the published `forma_decode_step_seconds` reflects the recent steps. Fails today because the oldest steps are the ones kept |
 | `TestSchedulerRecordsAStepPerDispatch` | one `Scheduler.Step` emits exactly one `bench.Step`, with `Batch` equal to the slots that contributed and the four terms all non-zero |

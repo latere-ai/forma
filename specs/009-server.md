@@ -160,7 +160,7 @@ eliminated for control tokens, on the grounds that a textual boundary can be
 forged and a structural one cannot. The earlier draft committed to that
 principle for user content and broke it for assistant content in the same spec.
 A user who types `<think>` into a message they are asking the model to
-summarise would have their text stripped from the next turn.
+summarize would have their text stripped from the next turn.
 
 With blocks, the caller hands `[]Block{{Thinking, …}, {Text, …}}` and the
 renderer drops the thinking blocks by **type**. It composes with
@@ -243,7 +243,7 @@ constantly in that counter is a feature request with evidence attached.
 `frequency_penalty` or `repetition_penalty`, and its OpenAI Chat frontend adds
 each to `Loss` as unrepresentable. **Forma implements every one of them**
 ([007 §1](007-engine.md)'s `Policy`), so emitting that list verbatim would report
-as unhonoured exactly the knobs that were honoured — and §8's row "every advisory
+as unhonoured exactly the knobs that were honored — and §8's row "every advisory
 field appears in the loss header" would pass over the bug.
 
 So the handler parses those fields from the **raw body** alongside
@@ -251,18 +251,18 @@ So the handler parses those fields from the **raw body** alongside
 header.
 
 **The subtraction is per dialect, and getting that wrong is a real defect rather
-than a tidiness issue.** The set of names Forma honours is a *union* across four
+than a tidiness issue.** The set of names Forma honors is a *union* across four
 surfaces — `max_tokens`, `max_completion_tokens`, `max_output_tokens`, `stop`,
 `stop_sequences` — and subtracting the union everywhere reports a knob that set
-nothing as though it were honoured. Measured: `max_output_tokens` on
+nothing as though it were honored. Measured: `max_output_tokens` on
 `/v1/chat/completions` applied no bound, `X-Forma-Loss` came back empty, and the
 completion ran to context exhaustion **with nothing saying so**. False in 12 of
 56 name-by-route cells.
 
 So each route subtracts the names *that route* applies, and §8's test is the
-whole matrix: every honoured wire name against every route, applied if and only
+whole matrix: every honored wire name against every route, applied if and only
 if it is not reported. `top_k` is the same defect from the other side: it is in `ir.Request`, so
-`/v1/messages` honours it, while OpenAI Chat has no such field and it must not
+`/v1/messages` honors it, while OpenAI Chat has no such field and it must not
 appear as a loss at all.
 
 The missing IR fields are filed upstream on `latere.ai/x/pkg`. Until they land,
@@ -281,7 +281,7 @@ produce the same tokens.
 | `model` | must name the loaded model, else 404 |
 | `stream` | both; SSE per §5 |
 | `max_tokens` / `max_output_tokens`, `temperature`, `top_p`, `top_k`, `stop` | mapped to `Policy` |
-| `seed` | honoured as a **stream** seed, [006 §4](006-sampling.md) |
+| `seed` | honored as a **stream** seed, [006 §4](006-sampling.md) |
 | `presence_penalty`, `frequency_penalty`, `repetition_penalty` | mapped |
 | `logit_bias` | applied first, [006 §3](006-sampling.md) |
 | `logprobs`, `top_logprobs` | **advisory**: accepted, not served, and reported in `X-Forma-Loss` (`server/loss_test.go:273`). `sample.Sampler.Probs` does not move the stream and nothing in `server/` calls it; the legacy encoder answers `logprobs: null` on every choice |
@@ -290,7 +290,7 @@ produce the same tokens.
 
 **Amended 2026-08-26:** `response_format: json_schema` was in that row when
 [015](015-structured-output.md) had no implementation, and a schema that changes
-the answer had to be refused whole. It is now honoured: `response_format`,
+the answer had to be refused whole. It is now honored: `response_format`,
 `output_format` and `text.format` each map onto `Policy.Schema`, and the
 refusal narrowed to a schema the compiler will not compile, answered with the
 keyword and the obstruction it named (015-D4). The reasoning is unchanged --
@@ -482,7 +482,7 @@ GET routes are live.
   in `server/loss.go`: `honoured` (:41), keyed by `Policy` field and pinned by
   the reflect test at `server/loss_test.go:136`, `honouredEverywhere` (:86) and
   `honouredHere` (:104) for the per-dialect split, and `honouredSession` (:67)
-  for `cache_salt`, which is honoured and reaches no `Policy` field at all. One
+  for `cache_salt`, which is honored and reaches no `Policy` field at all. One
   table cannot hold a name that configures the session rather than the sampler.
 - 009-D14 asked for "the non-stdlib build list", and there is no such thing:
   the build list is per platform. `purego` is in it on darwin, where accel loads
@@ -541,7 +541,7 @@ counting the wait for cache blocks as well as the wait for a session slot.
 | 009-D6 | `tools` returns what the model emitted | parse into a dialect's `tool_calls` | without [015](015-structured-output.md) nothing checks validity; parsing would assert what was not verified |
 | 009-D7 | metrics expose the readback share, queue wait, and loss | throughput only | the numbers that name Forma's upstream costs are visible in production |
 | 009-D8 | loopback by default; a public bind needs a flag | bind `0.0.0.0` by default | an unauthenticated server is not exposed by omission |
-| 009-D12 | subtract the fields Forma honours from `llmdialect`'s loss list, **per dialect** | emit `Loss.Fields()` verbatim; subtract the union everywhere | the IR is narrower than `Policy`, so the header would report honoured knobs as dropped. **Amended 2026-08-26:** the first wording was dialect-blind and shipped a defect — a name honoured on *some* route was subtracted on *every* route, so a request that set nothing ran to context exhaustion reporting no loss ([§4.1](#41-irrequest-is-narrower-than-policy-so-the-loss-list-must-be-corrected)) |
+| 009-D12 | subtract the fields Forma honors from `llmdialect`'s loss list, **per dialect** | emit `Loss.Fields()` verbatim; subtract the union everywhere | the IR is narrower than `Policy`, so the header would report honored knobs as dropped. **Amended 2026-08-26:** the first wording was dialect-blind and shipped a defect — a name honored on *some* route was subtracted on *every* route, so a request that set nothing ran to context exhaustion reporting no loss ([§4.1](#41-irrequest-is-narrower-than-policy-so-the-loss-list-must-be-corrected)) |
 | 009-D13 | Forma owns a per-dialect error encoder | expect `Frontend` to cover errors | `Frontend` has no error path and the dialects genuinely differ; ollama hand-writes both ([§5.1](#51-errors-need-a-per-dialect-encoder-which-the-frontend-half-does-not-give)) |
 | 009-D9 | serve three dialects via `llmdialect`'s `Frontend` half | OpenAI Chat only; reimplement the dialects in Forma | three surfaces for one adapter. `Backend` is a gateway's half and Forma never uses it |
 | 009-D10 | `llmdialect` is a `forma/server` dependency, not a core one | make `ir.Request` the engine's argument | a library embedder inherits neither the IR types nor the dialect layer. **Verified 2026-08-24:** `latere.ai/x/pkg` is one module carrying golang-migrate, the OTEL SDK, goldmark and oauth2 — and none of it reaches a consumer. Go's module graph pruning keeps a consumer's `go.sum` at two lines and links **stdlib only** beside llmdialect's own packages ([§2.1](#21-what-the-dependency-actually-costs)) |

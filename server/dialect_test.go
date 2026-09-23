@@ -120,7 +120,7 @@ func TestAnUnknownModelIs404(t *testing.T) {
 // server's side: a textual boundary can be forged and a structural one cannot.
 func TestAUserMessageContainingThinkSurvives(t *testing.T) {
 	t.Parallel()
-	const typed = "summarise this: <think>a plan</think> and stop"
+	const typed = "summarize this: <think>a plan</think> and stop"
 	eng := &fakeEngine{script: text("ok")}
 	s := newTestServer(t, eng)
 	body, err := json.Marshal(map[string]any{

@@ -271,7 +271,7 @@ func TestAnUnsaltedRequestDoesNotReadASaltedSession(t *testing.T) {
 	}
 }
 
-// TestCacheSaltIsNotReportedAsLost is the other half of honouring it.
+// TestCacheSaltIsNotReportedAsLost is the other half of honoring it.
 //
 // llmdialect files every member its IR cannot carry, and cache_salt is one, so
 // without the subtraction a caller who isolated their cache would be told the
@@ -549,7 +549,7 @@ func TestAProcessPoolSharesAcrossConversations(t *testing.T) {
 // Under [forma.CacheProcess] every session draws from one block pool: two tenants
 // with the same system prompt seeded identically, the second one's first token
 // arrived fast, and that timing is a membership test over the first one's
-// prompt. §4's loss report told both of them cache_salt had been honoured.
+// prompt. §4's loss report told both of them cache_salt had been honored.
 func TestTheUnpooledEngineCarriesTheSalt(t *testing.T) {
 	m, err := forma.Open(writeCheckpoint(t), forma.WithDevice(forma.CPU), forma.WithContext(256),
 		forma.WithPrefixCache(forma.CacheProcess, 256))

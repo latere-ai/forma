@@ -56,7 +56,7 @@ suite prints them as a table. **The table is the deliverable**, and §2 is it.
 | C24 | a **paged prefill over an f16 cache** | 010, 030 | [#25](https://github.com/golang-design/accel/issues/25) | **closed** | none needed. `AttentionPrefillPagedF16` landed against this report **the same day**, and the shared block pool is f16: twice the blocks, twice the prefixes worth keeping, and by [008 §1](008-scheduler.md) twice the batch size worth reaching. It was [C5](#2-the-register)'s pattern a third time — each of "`ScatterRows`, prefill and paged decode all take f16" is true and the combination was not, because the width and the paging selected separately. accel fixed the *pair* |
 | C25 | declare a **reshaped** result as a graph output | 007, 025 | [#26](https://github.com/golang-design/accel/issues/26) | **closed** | none needed, and this row is why §2's rule is about values. It was the **accept-and-silently-wrong** class: correct shape, no refusal, all zeros, and `Contiguous` in front did not help. It cost an hour inside a recurrence that was correct, and it would have cost a wrong answer in production rather than a red build |
 | C26 | a **depthwise causal convolution** over rows the graph computed | 025 | — | won't fix, correctly | **none, and the refusal was the right one.** The composition [018 §4.1](018-hybrid-models.md) records needs a left-padded input and `tensor` joins no two tensors along an axis, so the padded input cannot be built — but a `Concat` was never the ask: a convolution running a token at a time needs the K−1 inputs of the *previous step*, not zeros, and a decode step has no earlier rows in its own tensor at all. `nn.DepthwiseCausalConv` runs over a rolling `[K−1+T, C]` state built from `ScatterRows`, `GatherRows` and `Slice`, all of which exist. It costs ~3K+5 dispatches and K−1 copies of a `[T, C]` tensor per layer, which over 48 layers is one kernel to *want* and none to be blocked on. The row said `[slots, K−1+T, C]` until 2026-08-27: the block slices axis 0 as the time axis, so what is built holds one sequence, and the slot axis is [023](023-cache-kinds.md)'s work |
-| C20 | a decode step whose submit cost is amortised | 021 | [#21](https://github.com/golang-design/accel/issues/21) | **closed** | none needed, and this row closes on a **measurement** rather than a probe because that is what it asked for. Submit went from 15.61% of a decode step to **3.34%**, throughput +43%, and p99 fell 84% — device is 94.62% of a step, which is the shape a decode step should have ([017 §4.1](017-benchmarks.md), Qwen3-0.6B f16 on Metal, 2026-08-25). The row's cost cell quoted the *before* number for two days after the spec it cites recorded the after |
+| C20 | a decode step whose submit cost is amortized | 021 | [#21](https://github.com/golang-design/accel/issues/21) | **closed** | none needed, and this row closes on a **measurement** rather than a probe because that is what it asked for. Submit went from 15.61% of a decode step to **3.34%**, throughput +43%, and p99 fell 84% — device is 94.62% of a step, which is the shape a decode step should have ([017 §4.1](017-benchmarks.md), Qwen3-0.6B f16 on Metal, 2026-08-25). The row's cost cell quoted the *before* number for two days after the spec it cites recorded the after |
 | C27 | a gated delta layer whose **decay is per head** | 047, 043 | [#27](https://github.com/golang-design/accel/issues/27) | **closed** | **48 dispatches per layer where one would do, or the wrong model.** `LinearOptions.Alpha` and `.Beta` are one f32 per token, while the state is `[slots, heads, valueDim, keyDim]` and the recurrence runs independently per head — every term carries a head index except the two gates. The published gated-delta formulation produces them per value head, and the target config reads `linear_num_value_heads: 48`. accel **refuses** the `[tokens, heads]` shape rather than reading the first heads-worth of it, which is the good answer and is why this row is a gap and not a defect: nothing computes a wrong decay quietly. The consumer's two workarounds are one call per head with a sliced `[T]` gate (3072 dispatches for a 64-layer model where 64 would do), or dropping the per-head decay, which is a different model. Closing it is one rank check: `[tokens]` keeps meaning every head shares a token's gate, so nothing existing moves. The shape was unconfirmed when the row was filed, because the checkpoint is a 50 GiB download. It is confirmed now without one: ollama's public `qwen3_5` loader permutes `in_proj_ba` through a permutation of length `2*valueHeads` and names the native layout as beta then alpha per key head (`x/models/qwen3_5/gdn_projections.go:64`, ollama/ollama `bd3f22e2`), and its forward pass hands the whole width to the gated delta kernel rather than reducing it (`qwen3_5.go:1091,1116`). Two independent readings of the architecture now say the gate has a head axis |
 
 **accel moves under this table fast.** Within a day of the first filing on
@@ -79,7 +79,7 @@ to the accept-and-silently-wrong class, which is the class that matters most.
 **The rule now:** a probe binds real buffers, asserts the **output** against the
 host oracle of [§5](#5-the-parity-oracle), records `Plan.Selections()`, and —
 where an option is optional — **varies it and checks the output moves.** An
-option that changes nothing is either honoured and irrelevant, or ignored.
+option that changes nothing is either honored and irrelevant, or ignored.
 
 An operator that accepts and computes the wrong thing is not a new register
 state. It is [§1](#1-two-directions)'s **downward** direction — accel not doing
@@ -118,7 +118,7 @@ This is [010-D1](#decision-record) in miniature, and it is why
 `open` — it does not, and the row cites the issue or the named upstream artifact
 that records the gap. `won't fix, correctly` — see below. A fourth state for a
 gap accel has *designed* and not built would record accel's intent rather than
-its behaviour, which is the reading [010-D7](#decision-record) removed.
+its behavior, which is the reading [010-D7](#decision-record) removed.
 
 C9 is not filed and should not be. accel refusing a strided view into `MatMul`
 is the **correct** refusal: silently copying one would hide a real cost behind an
@@ -240,7 +240,7 @@ than checking that a graph compiles:
 
 **Eight of those are real and two of them change this project's shape.** C12
 collapses the KV cache from 72 states to 2. C13 was the blocking row — a paged
-prefill now honours its page table, verified by reversing the table and watching
+prefill now honors its page table, verified by reversing the table and watching
 the output move — which unblocks [016](016-prefix-cache.md) entirely.
 
 **Four are not, and each closed against a report that named a symptom.** C1's
@@ -554,7 +554,7 @@ measured.
   twenty-six rows are closed and a closure nobody re-runs is a claim about an
   accel HEAD that has moved.
 - §3.1's measurements moved to [017 §3](017-benchmarks.md), which owns the
-  comparison table. The honesty rule stayed here and `forma record` honours it: a
+  comparison table. The honesty rule stayed here and `forma record` honors it: a
   record with no vLLM row names the missing row rather than omitting it
   (`cmd/forma/record.go:138`).
 - §2.3 attributed rules 1 and 2 to the manual re-audit alone. `Validate` turns

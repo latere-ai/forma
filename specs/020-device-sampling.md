@@ -146,8 +146,8 @@ Three things follow, and together they decide the shape.
    `draws == nil` when it is not (accel `tensor/policy.go:224`), so a batch
    mixing $T=0$ and $T=0.7$ cannot be one call whatever the bindings.
 3. `penaltyApplyFlat` is indexed by `i < d.Vocab` with no row axis, and the
-   counts state is `[V]u32` for one row. A penalised `Sample` over `[B,V]`
-   would penalise row 0 and leave the rest as whatever the buffer held.
+   counts state is `[V]u32` for one row. A penalized `Sample` over `[B,V]`
+   would penalize row 0 and leave the rest as whatever the buffer held.
 
 So the batch axis is **unrolled in the graph**: slot $r$'s row is
 `GatherRows(logits, [r])`, and each row gets its own `tensor.Sample` with its
@@ -162,7 +162,7 @@ What is *bound* per step, and therefore free: `prefix.invT`, `prefix.n`,
 What is *structural*, and therefore the sampling plan's cache key: the
 $B$-tuple of
 
-$$\big(\text{greedy}, \text{penalised}, k, p, W\big)_r, \quad r \in [0, B)$$
+$$\big(\text{greedy}, \text{penalized}, k, p, W\big)_r, \quad r \in [0, B)$$
 
 A slot's entry changes at admission, not per step, so the cache is hit on every
 step of a stable batch and missed once per admission that introduces a new
@@ -360,7 +360,7 @@ $u \times \text{total}$ in index order (`sample/stages.go:36`).
 `weightsAll` (`sample/stages.go:237`) sums ascending by id and says so; accel
 reduces over 128 lanes and then a tree. The totals differ in their last bits,
 $u \times \text{total}$ moves, and a draw landing within that distance of a
-cumulative boundary can select the neighbour. So (2) is a measurement with a
+cumulative boundary can select the neighbor. So (2) is a measurement with a
 margin attached — the same instrument [006-D3](006-sampling.md) already applies
 to cross-device greedy divergence — and a token disagreement whose boundary
 margin exceeds the budget is a **failure**, not a tolerance to widen
@@ -401,7 +401,7 @@ and a third implementation would be a third thing to keep in agreement.
 | `TestGreedyAndStochasticSlotsInOneStep` | §6 item 2: a batch mixing $T=0$ and $T>0$ steps, since one `Sample` call cannot express it |
 | `TestSamplingPlanCacheHitsOnAStableBatch` | §6: no compile after admission settles; one miss per new policy tuple |
 | `TestModelPlanIsNotRecompiledByAPolicyChange` | §5: changing a slot's top-$k$ does not touch the model plan's cache |
-| `TestConstrainedSlotOptsOut` | §7.1: a schema-constrained slot returns `Logits` and no token, and its neighbours in the same step return tokens and no logits |
+| `TestConstrainedSlotOptsOut` | §7.1: a schema-constrained slot returns `Logits` and no token, and its neighbors in the same step return tokens and no logits |
 | `TestLogitBiasOptsOut` | §7.1: a non-empty `LogitBias` takes the host path |
 | `TestProbsOptsOut` | §7.1: a request wanting logprobs takes the host path and does not disturb its own draw ([006-D7](006-sampling.md)) |
 | `TestFeedRefusesADeviceSampledSlot` | **negative**: `Feed` on a slot the step already fed returns an error rather than appending a second token to `st.prompt` |
@@ -460,7 +460,7 @@ needs either a scatter-add mask or a sample over a gathered sub-vocabulary
 | 020-D1 | the penalties, temperature, softmax, both truncations and the draw move to the device; logit bias, the grammar mask and stop strings stay on the host | move every stage; keep every stage | the split follows the shape of the state each stage reads, so it is decidable from the code rather than argued per stage. Two host stages are named as gaps rather than accepted as permanent |
 | 020-D2 | one opt-out rule with three triggers: a slot the device chain cannot express reads back its own row and samples on the host | three mechanisms — a `[B,V]` bias buffer, a per-step mask upload, a separate logprobs path | one lifetime rule and one test. The `[B,V]` bias buffer is 4.86 MB at $B=8$ uploaded to save a readback of the same size on the same slot |
 | 020-D3 | sampling is a **second plan** over the logits buffer | record the sampling nodes into the model graph | a policy change would otherwise join `model.GraphSpec` (`plan.go:86`) and recompile ~790 nodes; [017 §4.1](017-benchmarks.md) puts cold start at 27.6s. The price is a second submission per step, which §8 measures rather than assumes |
-| 020-D4 | the batch axis is unrolled: one `tensor.Sample` chain per slot with its own prefix, and the sampling plan is cached on the $B$-tuple of $(\text{greedy}, \text{penalised}, k, p, W)$ | one `Sample` over `[B,V]`; group slots into policy classes at admission | accel shares $k$ and $p$ across a batch by design and refuses a mixed greedy/stochastic call, and the penalty kernels have no row axis — so one call cannot carry eight policies. Grouping would make admission depend on a request's temperature, which is what §5's mix exists to avoid |
+| 020-D4 | the batch axis is unrolled: one `tensor.Sample` chain per slot with its own prefix, and the sampling plan is cached on the $B$-tuple of $(\text{greedy}, \text{penalized}, k, p, W)$ | one `Sample` over `[B,V]`; group slots into policy classes at admission | accel shares $k$ and $p$ across a batch by design and refuses a mixed greedy/stochastic call, and the penalty kernels have no row axis — so one call cannot carry eight policies. Grouping would make admission depend on a request's temperature, which is what §5's mix exists to avoid |
 | 020-D5 | a step returns a token id per sampleable slot and feeds it itself; `Logits` is nil except on opted-out slots, and `Feed` refuses an already-fed slot | return both a token and a row always; keep `Feed` mandatory | a caller cannot read a row that was not read back, and a double feed cannot append a second token to a slot's prompt. `Sampleable()` keeps its meaning, which is about prefill progress |
 | 020-D6 | the draw is accel's `tensor.Stream`, indexed by token position, seeded from the **request** | keep `math/rand/v2` PCG on the host and upload the draw; derive the stream from the slot index | [006-D2](006-sampling.md) becomes structural rather than disciplinary; a completion stops depending on which slot admitted it. Every pinned-token test changes once, deliberately |
 | 020-D7 | parity asserts set identity and **measures** token disagreement with its boundary margin | assert bit equality on the token; widen a tolerance until it passes | the tie rules agree by construction, so the only divergence source is the softmax total's summation order — and a disagreement outside the `conformance.Terms` budget is a finding, per [010-D3](010-conformance.md) |

@@ -84,7 +84,7 @@ disappear to earn that: it **moves to a spec that owns it**, which is why
 that keeps growing an open list instead of shedding one was scoped too large,
 and splitting it is the fix.
 
-Description debt is not build debt. A shipped behaviour the spec never wrote
+Description debt is not build debt. A shipped behavior the spec never wrote
 down is named in the Outcome and does not block `complete`; code the spec
 designs and nobody wrote does.
 

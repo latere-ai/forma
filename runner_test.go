@@ -593,7 +593,7 @@ func TestPenaltiesReadOnlyTheirOwnSlot(t *testing.T) {
 		t.Fatalf("a request produced nothing: %q and %q", out[0], out[1])
 	}
 	if out[0] == out[1] {
-		t.Errorf("the penalised and the unpenalised request both produced %q from "+
+		t.Errorf("the penalized and the unpenalised request both produced %q from "+
 			"the same seed, so the penalty did not reach one slot alone", out[0])
 	}
 }

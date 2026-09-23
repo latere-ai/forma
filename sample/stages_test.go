@@ -90,17 +90,17 @@ func TestPenaltyArithmeticIsExact(t *testing.T) {
 }
 
 // TestRepetitionPenaltyIsSignAsymmetric is the classic bug: dividing a negative
-// logit by r > 1 moves it toward zero and makes a penalised token more likely.
+// logit by r > 1 moves it toward zero and makes a penalized token more likely.
 func TestRepetitionPenaltyIsSignAsymmetric(t *testing.T) {
 	const r = 2
 	logits := []float32{-4, -4}
 	penalize(logits[:1], []int{0}, Policy{RepetitionPenalty: r})
 
 	if logits[0] >= logits[1] {
-		t.Fatalf("penalised negative logit %v is not below the unpenalised %v", logits[0], logits[1])
+		t.Fatalf("penalized negative logit %v is not below the unpenalised %v", logits[0], logits[1])
 	}
 	if want := float32(-8); logits[0] != want {
-		t.Errorf("penalised logit = %v, want %v (multiplied, not divided)", logits[0], want)
+		t.Errorf("penalized logit = %v, want %v (multiplied, not divided)", logits[0], want)
 	}
 }
 
@@ -136,7 +136,7 @@ func TestPenaltiesReadPromptTokens(t *testing.T) {
 	prompt := []int{0}
 	got := New(7).Next(logits, prompt, Policy{RepetitionPenalty: 4})
 	if got != 1 {
-		t.Fatalf("token %d; the prompt token 0 was not penalised", got)
+		t.Fatalf("token %d; the prompt token 0 was not penalized", got)
 	}
 }
 
@@ -173,7 +173,7 @@ func TestBiasBeforePenalties(t *testing.T) {
 		t.Fatalf("token %d, want 0: the penalty read an unbiased logit", got)
 	}
 	if logits[0] != 0.5 {
-		t.Errorf("penalised logit = %v, want 0.5", logits[0])
+		t.Errorf("penalized logit = %v, want 0.5", logits[0])
 	}
 }
 
@@ -461,7 +461,7 @@ func collapsingPair() (hi, lo float32, ok bool) {
 // line: a reference is an independent implementation, and internal/oracle is
 // where forma keeps them.
 //
-// The inputs are randomised over the shapes that make the rules differ from
+// The inputs are randomized over the shapes that make the rules differ from
 // each other: a token seen once against one seen many times separates presence
 // from frequency, and a negative logit separates dividing from multiplying. A
 // fixed seed keeps a failure reproducible.
@@ -528,7 +528,7 @@ func ulpOf(v float64) float64 {
 // The stages of §3 write in place: the bias is added, the penalties are applied
 // and the row is divided by the temperature, all on the caller's slice. So
 // after Next the slice is not the logits the token was drawn from, and a Probs
-// taken there would penalise and divide a second time -- reporting a sharper
+// taken there would penalize and divide a second time -- reporting a sharper
 // distribution than the one that produced the token, with no error anywhere.
 //
 // Probs itself copies (006-D7), which is what makes the ordering the only thing

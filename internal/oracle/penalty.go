@@ -16,7 +16,7 @@ package oracle
 //   - repetition applies **once per distinct token** in the window, not once
 //     per occurrence, and it divides a positive logit while it multiplies a
 //     non-positive one. Dividing a negative logit by r > 1 moves it toward
-//     zero and makes a penalised token more likely, which is the classic bug
+//     zero and makes a penalized token more likely, which is the classic bug
 //     the asymmetry exists to avoid;
 //   - presence subtracts once per distinct token;
 //   - frequency subtracts once per occurrence.

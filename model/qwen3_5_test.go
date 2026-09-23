@@ -389,7 +389,7 @@ func synthQwen35(edit func(top, text map[string]any)) json.RawMessage {
 
 // TestQwen35RefusesWhatItCannotHonour is §7's table. Each row names the field,
 // which is [004 §7](../specs/004-model-graph.md)'s precedent: refuse at parse,
-// name the field, and refuse anything the graph cannot honour rather than
+// name the field, and refuse anything the graph cannot honor rather than
 // approximating it.
 func TestQwen35RefusesWhatItCannotHonour(t *testing.T) {
 	// The fixture itself must be accepted, or every row below passes for the
@@ -455,7 +455,7 @@ func TestQwen35RefusesWhatItCannotHonour(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			_, err := New(synthQwen35(c.edit))
 			if err == nil {
-				t.Fatal("a config this graph cannot honour was accepted")
+				t.Fatal("a config this graph cannot honor was accepted")
 			}
 			if !strings.Contains(err.Error(), c.want) {
 				t.Errorf("the refusal %q does not say %q", err, c.want)

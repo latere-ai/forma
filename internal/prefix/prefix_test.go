@@ -380,7 +380,7 @@ func TestTheLeastRecentlyUsedPrefixIsEvictedFirst(t *testing.T) {
 func TestAReusedBlockIsMoreRecentlyUsedThanOneOnlyPublished(t *testing.T) {
 	// A hit takes the block out of the eviction list and puts it back at the
 	// far end when it is released. Reuse therefore protects a prefix, which is
-	// the behaviour "least recently used" promises.
+	// the behavior "least recently used" promises.
 	p := newPool(t, Config{Block: testBlock, Blocks: 3})
 	first := run(100, testBlock)
 	second := run(500, testBlock)

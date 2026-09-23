@@ -55,7 +55,7 @@ const (
 	//
 	// Narrowing is a last resort at every step. int4 in particular is not
 	// uniformly more accurate or less than int8: it beats int8 on a group of
-	// weights clustered away from zero and loses on one centred on it, so auto
+	// weights clustered away from zero and loses on one centered on it, so auto
 	// reaches for it only where the alternative is not loading at all.
 	AutoPrecision Precision = iota
 
@@ -304,7 +304,7 @@ func WithPrefixCache(scope CacheScope, positions int) Option {
 	return func(o *options) { o.cacheScope, o.cachePositions = scope, positions }
 }
 
-// checkCache refuses a prefix-cache configuration that cannot be honoured.
+// checkCache refuses a prefix-cache configuration that cannot be honored.
 func (o options) checkCache() error {
 	switch o.cacheScope {
 	case CacheOff:

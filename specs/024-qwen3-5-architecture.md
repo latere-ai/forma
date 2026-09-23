@@ -515,7 +515,7 @@ this is the head it would need.
 
 ## 5. What `nn` gains
 
-Three changes, each defaulting to today's behaviour by zero value, so the dense
+Three changes, each defaulting to today's behavior by zero value, so the dense
 path is byte-identical.
 
 ### 5.1 `partial_rotary_factor` needs a field `AttentionConfig` does not have
@@ -683,7 +683,7 @@ the per-slot state shapes are decided. Sub-scope C
 ## 7. Refusals
 
 [004 §7](004-model-graph.md)'s table is the precedent: refuse at parse, name the
-field, and refuse anything the graph cannot honour rather than approximating it.
+field, and refuse anything the graph cannot honor rather than approximating it.
 
 | condition | why refusing beats approximating |
 | --- | --- |
@@ -737,7 +737,7 @@ the identity.
 **What the fixture proves:** the schedule, every refusal, the weight map's
 completeness against a synthetic checkpoint, each block against a host reference,
 the wiring of extents to one layer kind and not the other, the residual stream's
-shape through both kinds, decode equalling prefill's last row, and the state
+shape through both kinds, decode equaling prefill's last row, and the state
 carrying across steps.
 
 **What only a real checkpoint proves:** every field name in
@@ -848,7 +848,7 @@ names the field. `model/weights.go` did not change, as §4.5 predicted.
 
 *Sub-scope A*: [§5.1](#51-partial_rotary_factor-needs-a-field-attentionconfig-does-not-have)'s
 `AttentionConfig.RotaryDim` and [§5.2](#52-attn_output_gate-is-a-fifth-projection-and-it-multiplies-before-o)'s
-gate, both `nn` changes that default to today's behaviour by zero value. They
+gate, both `nn` changes that default to today's behavior by zero value. They
 are buildable now — the field names they waited on are read — and they are
 small.
 
@@ -861,7 +861,7 @@ something.
 *Also open*: §4.5's `conv1d.weight` row, `[10240, 1, 4]` in the file and
 `[K, C]` in the block. `WeightSpec.Transpose` reverses a rank-2 shape and
 `weights.targetShape` refuses any other rank, so the map states the file's shape
-and the loader cannot yet honour it. That is a `WeightSpec` reshape or a rank-3
+and the loader cannot yet honor it. That is a `WeightSpec` reshape or a rank-3
 case in the loader, and it belongs with sub-scope C, which is the first thing
 that would load one.
 

@@ -50,7 +50,7 @@ once would get a failed fence rather than a data race -- invisible to a -race
 test, and visible to a server as errors under load (007-D9).
 
 [Session] is deliberately not safe for concurrent use (007-D1). Two goroutines
-decoding one session would interleave writes into one cache, and serialising
+decoding one session would interleave writes into one cache, and serializing
 that internally would hide a caller's bug rather than report it. Use one session
 per conversation and as many sessions at once as you like.
 

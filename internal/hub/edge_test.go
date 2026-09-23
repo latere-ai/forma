@@ -15,7 +15,7 @@ import (
 )
 
 func TestFetchFileRefusesAPathTheListingShouldNeverHaveHad(t *testing.T) {
-	// The second line of the defence. Revision refuses a traversing listing,
+	// The second line of the defense. Revision refuses a traversing listing,
 	// and this refuses one that reached the downloader anyway -- a filter or a
 	// caller could hand one over.
 	x := newFixture(t, repoFiles())
@@ -148,7 +148,7 @@ func TestAFinalFileOfTheWrongLengthIsReplaced(t *testing.T) {
 	// The recovery story for a cache poisoned by an older run: the file has
 	// the final name and the wrong length, so it is fetched again and the
 	// rename replaces it. os.Rename over an existing file is also the call
-	// whose behaviour differs most between GOOS.
+	// whose behavior differs most between GOOS.
 	files := repoFiles()
 	x := newFixture(t, files)
 	if err := os.MkdirAll(x.dir, 0o755); err != nil {

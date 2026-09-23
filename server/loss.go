@@ -18,8 +18,8 @@ import (
 //   - ir.Request has no seed, logit_bias or penalties, so every frontend files
 //     each as an unknown top-level field -- and forma implements all of them
 //     (specs/007-engine.md §1's Policy). Emitting the list verbatim would
-//     report as unhonoured exactly the knobs that were honoured (009-D12).
-//     honoured is subtracted.
+//     report as unhonoured exactly the knobs that were honored (009-D12).
+//     honored is subtracted.
 //
 //   - ir.Request *does* carry things forma drops: a caller identity, a
 //     prompt-cache breakpoint, a thinking budget, a tool_choice forma cannot
@@ -27,10 +27,10 @@ import (
 //     those, because its IR represents them fine. dropped is added.
 //
 // Both tables live here so a new sampling knob or a new accepted-and-ignored
-// field is one edit, and a Policy field missing from honoured fails a test
+// field is one edit, and a Policy field missing from honored fails a test
 // rather than silently starting to report itself as lost.
 
-// honoured maps a [latere.ai/x/forma.Policy] field to the wire fields
+// honored maps a [latere.ai/x/forma.Policy] field to the wire fields
 // that set it, across all four dialects.
 //
 // TestEveryPolicyFieldIsHonoured reflects over Policy and fails on a field
@@ -60,8 +60,8 @@ var honoured = map[string][]string{
 }
 
 // honouredSession are the wire names that configure the *session* rather than
-// the sampler, so they are honoured without being
-// [latere.ai/x/forma.Policy] fields and cannot go in [honoured], whose
+// the sampler, so they are honored without being
+// [latere.ai/x/forma.Policy] fields and cannot go in [honored], whose
 // invariant is that its keys are exactly Policy's.
 //
 // One entry. cache_salt is the isolation boundary under both engines and
@@ -70,12 +70,12 @@ var honoured = map[string][]string{
 // Under a pooled engine it bounds which session a request may be routed to
 // (specs/019-session-affinity.md 019-D3); under a batched one it is the domain
 // the shared pool”'s block hashes are seeded with, and a request that sends none
-// gets a minted one (specs/022-batched-serving.md §7). It is honoured on every
+// gets a minted one (specs/022-batched-serving.md §7). It is honored on every
 // route, because [parseExtras] reads it from the raw body and does not know
 // which dialect sent it.
 var honouredSession = map[string]bool{"cache_salt": true}
 
-// honouredWire is honoured flattened: every wire name some dialect applies.
+// honouredWire is honored flattened: every wire name some dialect applies.
 var honouredWire = func() map[string]bool {
 	m := map[string]bool{}
 	for _, names := range honoured {
@@ -102,9 +102,9 @@ var honouredEverywhere = []string{
 // The subtraction has to be per dialect or it is the very bug 009-D12 names,
 // from the other side: max_output_tokens sent to /v1/chat/completions sets
 // nothing, because that surface's member is max_tokens, and subtracting the
-// name anyway would report a bound this server never applied as honoured. The
+// name anyway would report a bound this server never applied as honored. The
 // completion then runs unbounded and no channel says so, which is worse than
-// reporting an honoured knob as lost.
+// reporting an honored knob as lost.
 // The schema is the sharpest case in the table: each dialect spells it
 // differently -- response_format, output_format, text.format -- and all three
 // names reach the same [latere.ai/x/forma.Policy] field, so subtracting
@@ -167,7 +167,7 @@ const (
 //
 // Order is llmdialect's insertion order first and this package's additions
 // after, deduplicated, so the header is stable for a given request. The
-// subtraction is the caller's dialect's, because a name is honoured only on the
+// subtraction is the caller's dialect's, because a name is honored only on the
 // surfaces that define it.
 func lossReport(d ir.Dialect, req *ir.Request, raw map[string]bool) []string {
 	honours := honouredOn[d]

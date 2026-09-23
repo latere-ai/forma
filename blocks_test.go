@@ -228,7 +228,7 @@ func TestAPromptLargerThanThePoolIsRefused(t *testing.T) {
 // TestABlockPoolGeneratesWhatAContiguousCacheDoes red the first time it ran.
 //
 // NewSession built its host-side step slices twice: the paged branch sized the
-// page table, and the shared initialisation below it replaced the whole struct
+// page table, and the shared initialization below it replaced the whole struct
 // and dropped it. WriteBuffer over an empty slice writes nothing and reports
 // nothing, so the port kept whatever the allocation held and every step
 // attended to blocks nobody chose. Nothing failed. The output stayed fluent and

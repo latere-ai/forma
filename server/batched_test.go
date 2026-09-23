@@ -219,7 +219,7 @@ func TestABatchedRequestReportsWhatItReused(t *testing.T) {
 	// itself is 016's, measured there.
 	w := do(t, s, http.MethodPost, "/v1/completions", body)
 	if got := w.Header().Get("X-Forma-Loss"); strings.Contains(got, "cache_salt") {
-		t.Errorf("X-Forma-Loss = %q, and the batched engine does honour cache_salt", got)
+		t.Errorf("X-Forma-Loss = %q, and the batched engine does honor cache_salt", got)
 	}
 }
 

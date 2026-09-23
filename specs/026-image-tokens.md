@@ -137,7 +137,7 @@ checkpoint does not have (`model.go:547-557`): −1 equals no id, so a Qwen3-4B
 config parses to two −1s and every check below is inert. Present and outside
 `[0, vocab_size)` is refused at parse by field name, like every other row of
 `ParseConfig`: an id the embedding table has no row for is a config that cannot
-be honoured.
+be honored.
 
 One predicate reads them — `Config.IsPlaceholder(id int) bool` — so the two guards
 below are one rule stated once.

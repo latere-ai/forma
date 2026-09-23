@@ -98,7 +98,7 @@ func TestARequestThatDidNotAskStillAnswersNull(t *testing.T) {
 // TestStreamingServesTheSameLogProbs is §4's consistency requirement.
 //
 // Serving them only when `stream` is false would make a number depend on how
-// the caller asked for delivery, and X-Forma-Loss would call the member honoured
+// the caller asked for delivery, and X-Forma-Loss would call the member honored
 // either way.
 func TestStreamingServesTheSameLogProbs(t *testing.T) {
 	t.Parallel()

@@ -214,7 +214,7 @@ func towardAccept(g *Grammar, d *dstate) int {
 // happily walk -4.5e654521, which is JSON that json.Valid accepts and that
 // float64 cannot hold. Decoding into float64 here would report the machine as
 // broken for emitting something the specification allows. What a caller
-// unmarshalling into a float64 field should know is in the package
+// unmarshaling into a float64 field should know is in the package
 // documentation instead.
 func decode(b []byte) (any, error) {
 	dec := json.NewDecoder(bytes.NewReader(b))

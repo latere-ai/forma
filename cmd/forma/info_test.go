@@ -531,7 +531,7 @@ func TestCacheWidthIsMeasuredNotAssumed(t *testing.T) {
 	// A size the formula does not explain loses the label and keeps the total.
 	per, width, dtype = cacheWidth(m, elements*4+1, context, accel.F32.String())
 	if width != 0 || !strings.Contains(dtype, "unknown") {
-		t.Errorf("an unexplained cache size was labelled %q at width %d", dtype, width)
+		t.Errorf("an unexplained cache size was labeled %q at width %d", dtype, width)
 	}
 	if per == 0 {
 		t.Error("the per-position cost was dropped along with the label")
@@ -559,7 +559,7 @@ func TestDTypeSize(t *testing.T) {
 // Two lines of the description print a layer count and two print a head count,
 // so a renderer that put the key/value head count where the layer count belongs
 // still leaves "2 layers" somewhere in the output and passes a substring test.
-// Each labelled line is read out and pinned whole, against the config the
+// Each labeled line is read out and pinned whole, against the config the
 // builder parsed rather than against numbers written here.
 func TestRenderInfoNamesEachExtentOnItsOwnLine(t *testing.T) {
 	b := syntheticBuilder(t)
@@ -599,7 +599,7 @@ func lineWith(t *testing.T, out, label string) string {
 		}
 	}
 	if len(found) != 1 {
-		t.Fatalf("the description has %d lines labelled %q, want one:\n%s", len(found), label, out)
+		t.Fatalf("the description has %d lines labeled %q, want one:\n%s", len(found), label, out)
 	}
 	return found[0]
 }

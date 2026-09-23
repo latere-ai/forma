@@ -352,7 +352,7 @@ $$1 + \tfrac{2}{32} = 1.0625 \quad\longrightarrow\quad \tfrac{1}{2} + \tfrac{4}{
 
 `auto` reaches for int4 **only when int8 does not fit.** accel's own tests show
 int4 beating int8 on a group of weights clustered away from zero and losing on
-one centred on it, so it is not uniformly better: a rule that preferred it would
+one centered on it, so it is not uniformly better: a rule that preferred it would
 trade accuracy for memory nobody asked to save. The case it exists for is the
 one where the alternative is not loading at all.
 

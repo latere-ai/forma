@@ -178,7 +178,7 @@ $B = \texttt{quant.Int8Block}$.
 | 27B class | 27e9 | 54 GB | 27 GB |
 
 Above roughly 8 GB of weights, f16 stops being an option on the machines Forma
-targets, so int8 is not an optimisation there — it is the only way the model
+targets, so int8 is not an optimization there — it is the only way the model
 loads. Both paths are first class and both are tested. The default is chosen at
 load time from available device memory, and it is always overridable, because a
 silently-quantized model is a silently-different model.
@@ -195,7 +195,7 @@ requires it to be measured on the real weight blocks, not on synthetic ones.
 >
 > **The ladder is f16 → int8 → int4**, and the rule is still the widest form
 > that fits. int4 is not a preference. accel's own tests show it beating int8 on
-> a group of weights clustered away from zero and losing on one centred on it,
+> a group of weights clustered away from zero and losing on one centered on it,
 > so it is not uniformly better, and a budget rule that reached for it early
 > would quietly degrade a model that fits at int8: **`auto` never prefers int4
 > to int8**, and `TestAutoNeverPrefersInt4ToInt8` is the gate.
@@ -215,7 +215,7 @@ requires it to be measured on the real weight blocks, not on synthetic ones.
 > **Embeddings pin to int8 whatever the policy says.** The embedding table is
 > gathered a row at a time rather than contracted against, and accel registers
 > no int4 gather (decision 4), so the loader caps that one tensor at int8 under
-> an int4 policy. It is a numeric-plane constraint, not an accuracy judgement,
+> an int4 policy. It is a numeric-plane constraint, not an accuracy judgment,
 > and a tied checkpoint's LM head still packs because that is a `MatMul`.
 
 ## 6. A model is a config plus a graph builder, resolved by name
@@ -224,12 +224,12 @@ requires it to be measured on the real weight blocks, not on synthetic ones.
 string in a registry to a builder function, which records the forward pass with
 [`nn`](004-model-graph.md) blocks over `tensor.Builder`.
 
-**Rejected:** one hardcoded Qwen3 forward pass, generalised when a second model
+**Rejected:** one hardcoded Qwen3 forward pass, generalized when a second model
 arrives. It is genuinely cheaper today. It stops being cheaper the moment the
 engine, the KV cache and the server sit on top of it, because the refactor then
 crosses every one of them.
 
-**Also rejected:** a serialised graph format (ONNX-shaped). It buys portability
+**Also rejected:** a serialized graph format (ONNX-shaped). It buys portability
 Forma does not need and costs a second type system.
 
 Adding a model is one file and one `init`. Nothing else changes. A model that
@@ -363,7 +363,7 @@ shape will move under us.
 The HTTP surface speaks three wire dialects — OpenAI Chat Completions, Anthropic
 Messages, and OpenAI Responses — through one neutral request shape, and says so
 where a dialect asks for something Forma does not do. **Compatibility is a
-serialisation decision, not an architectural one, and it does not reach into the
+serialization decision, not an architectural one, and it does not reach into the
 engine.** That is what makes three cost one adapter rather than three parsers;
 [009 §2](009-server.md) has the boundary.
 
@@ -397,7 +397,7 @@ engine.** That is what makes three cost one adapter rather than three parsers;
 > longest.
 >
 > The dialect boundary holds and its shape moved. There are four wire formats,
-> not three — `/v1/completions` is the fourth. Parsing and serialisation for
+> not three — `/v1/completions` is the fourth. Parsing and serialization for
 > three of them live in an external module, `latere.ai/x/pkg/llmdialect`, Forma
 > owns one mapping file (`server/adapt.go`) and codecs the fourth itself
 > (`server/legacy.go`), and all four travel the same neutral request shape. No

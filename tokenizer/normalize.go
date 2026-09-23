@@ -44,7 +44,7 @@ type normalizer func(string) string
 func nfc(s string) string { return norm.NFC.String(s) }
 
 // nfcImplemented reports whether nfc actually composes. The tests that assert
-// NFC behaviour read it so they skip rather than pass vacuously against an
+// NFC behavior read it so they skip rather than pass vacuously against an
 // identity function; it is true now and the constant stays so that a future
 // change back to a seam cannot silently turn those tests green.
 const nfcImplemented = true

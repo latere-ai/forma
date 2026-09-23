@@ -91,7 +91,7 @@ func (s Step) Total() time.Duration {
 // exactly the completions long enough to need a window: a request past capacity
 // published percentiles for its own warm-up and never noticed. Keeping the
 // newest is the answer 027-D5 chose over refusing to publish a truncated
-// report, because a long request is the one whose current behaviour a reader
+// report, because a long request is the one whose current behavior a reader
 // wants, and refusing would report nothing at all in that case.
 //
 // # Why there is a lock

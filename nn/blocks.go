@@ -30,7 +30,7 @@ func Linear(g *Graph, x *tensor.Tensor, w Operand) *tensor.Tensor {
 		// Int4MatMul at every row count, including one.
 		//
 		// accel registers a matvec beside it and says a decode "would work and
-		// would be slower" through the GEMM, because a tiled kernel amortises
+		// would be slower" through the GEMM, because a tiled kernel amortizes
 		// the unpacking over a tile of tokens and a one-row step has no tile.
 		// Reaching it costs two reshapes -- the matvec takes a rank-1 [K] and
 		// returns [N], where every other projection here is [rows, K] -- and

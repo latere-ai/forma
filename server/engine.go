@@ -59,7 +59,7 @@ type Engine interface {
 // Tools and thinking are session options in forma rather than fields of
 // [forma.Policy], because they are rendered into the prompt and Policy is one
 // request's sampling configuration. A server that made one session and reused
-// it could not honour either.
+// it could not honor either.
 type SessionSpec struct {
 	// Tools are the functions the model may call, rendered into the system
 	// turn.
@@ -76,7 +76,7 @@ type SessionSpec struct {
 	// state, and is the request's cache_salt
 	// (specs/016-prefix-cache.md §7.1).
 	//
-	// It is honoured only by a pooled engine, where it decides which pooled
+	// It is honored only by a pooled engine, where it decides which pooled
 	// session a request may be routed to, and it fails closed: a request with
 	// no key matches only sessions whose last request had none
 	// (specs/019-session-affinity.md 019-D3). forma has no notion of a tenant
@@ -155,7 +155,7 @@ func (e *modelEngine) NewSession(_ context.Context, spec SessionSpec) (Session, 
 		// block pool, and a salt that does not reach it means two tenants with
 		// the same system prompt seed identically: the second one's first token
 		// arrives fast, which is a membership test over the first one's prompt
-		// (016 §7.1). §4's loss report told both of them it had been honoured.
+		// (016 §7.1). §4's loss report told both of them it had been honored.
 		forma.WithCacheSalt(spec.Key),
 	}
 	if len(spec.Tools) > 0 {

@@ -147,8 +147,8 @@ func TestJSONObjectModeRunsAndIsReported(t *testing.T) {
 		t.Errorf("Policy.Schema = %q, and json_object names no schema", got)
 	}
 	// And it is reported, which is the half this test's name claims. The
-	// subtraction table honours `response_format`, and llmdialect files this
-	// mode under its own name so that honouring the one does not swallow the
+	// subtraction table honors `response_format`, and llmdialect files this
+	// mode under its own name so that honoring the one does not swallow the
 	// other: a caller who asked for JSON and got prose must hear it here.
 	if loss := w.Header().Get("X-Forma-Loss"); !strings.Contains(loss, "response_format.json_object") {
 		t.Errorf("X-Forma-Loss = %q and does not report json_object mode, which nothing "+

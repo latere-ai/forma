@@ -33,7 +33,7 @@ Nothing is implemented before the spec that owns it is written and its decisions
 recorded. [`specs/README.md`](specs/README.md) has the lifecycle, the
 frontmatter shape, and the decision-record format.
 
-If you are changing behaviour, change the spec in the same series of commits —
+If you are changing behavior, change the spec in the same series of commits —
 amending the decision record **in place**, with the new reasoning, rather than
 deleting the old row. The value of a decision record is that a later reader can
 see what was considered.
@@ -61,12 +61,12 @@ cannot go stale. The rules are in `.lateregate.yaml`; the checker is
   thing it waits for happens**, not until the thing it watches *appears*. A
   generator blocked on a gate between tokens only reaches its cancellation check
   after taking one, so a loop that stops nudging early parks it forever and then
-  reports the timeout as a behaviour failure. This failed only under `-race`,
+  reports the timeout as a behavior failure. This failed only under `-race`,
   where the timing is slow enough to lose a race the test did not know it had.
   Yield in such a loop, too — a hot spin starves the goroutine under test.
 - **Do not `Sleep` to reach a state.** "Give it time to get to the queue" is a
   guess that holds on a fast machine and fails under `-race` on a loaded CI
-  runner — and it fails as a *behaviour* failure, blaming the code for a state
+  runner — and it fails as a *behavior* failure, blaming the code for a state
   the test never reached. Wait for the state itself: poll the gauge, the
   counter, the channel. Every timing bug this project has hit has been one of
   these.

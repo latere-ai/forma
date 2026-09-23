@@ -137,7 +137,7 @@ func (p Policy) sampling() sample.Policy {
 	}
 }
 
-// check refuses a policy the engine cannot honour, naming the field.
+// check refuses a policy the engine cannot honor, naming the field.
 //
 // The sampler panics on a policy the device could not reproduce, which is the
 // right contract one layer down and the wrong one here: a caller who typed a

@@ -83,7 +83,7 @@ const (
 	//
 	// **Never chosen as a preference.** accel's own tests show int4 beating
 	// int8 on a group of weights clustered away from zero and losing on one
-	// centred on it, so it is not uniformly better, and a budget rule that
+	// centered on it, so it is not uniformly better, and a budget rule that
 	// reached for it early would quietly degrade a model that fits at int8.
 	Int4
 )
@@ -293,7 +293,7 @@ type Report struct {
 	Int4Bytes int64
 
 	// F16Bytes and Int8Bytes are what the declared tensors would occupy at each
-	// precision, honouring per-tensor overrides. They are what Auto compared.
+	// precision, honoring per-tensor overrides. They are what Auto compared.
 	F16Bytes, Int8Bytes int64
 
 	// Budget is what they were compared against.
@@ -505,13 +505,13 @@ func planLoad(repo *safetensors.Repo, decls []Tensor, policy Precision, budget i
 		rep.Chosen = policy
 	case Inherit, Auto:
 		// Decision 5 of specs/000-decisions.md: the widest form that fits.
-		// Above roughly 8 GB of weights int8 is not an optimisation, it is the
+		// Above roughly 8 GB of weights int8 is not an optimization, it is the
 		// only way the model loads, and int4 is the same statement one width
 		// down for a 27B-class model on hardware people own.
 		//
 		// **Narrowing is a last resort at every step and int4 especially.**
 		// accel's own tests show int4 beating int8 on a group of weights
-		// clustered away from zero and losing on one centred on it, so it is
+		// clustered away from zero and losing on one centered on it, so it is
 		// not uniformly better: a rule that preferred it would trade accuracy
 		// for memory nobody asked to save. Auto reaches for it only when int8
 		// does not fit, which is the case where the alternative is not loading.

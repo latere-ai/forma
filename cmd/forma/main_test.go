@@ -29,7 +29,7 @@ func TestRunDispatch(t *testing.T) {
 		t.Fatalf("run info: %v", err)
 	}
 	if !strings.Contains(stdout.String(), "architecture") {
-		t.Errorf("info wrote nothing recognisable:\n%s", stdout.String())
+		t.Errorf("info wrote nothing recognizable:\n%s", stdout.String())
 	}
 
 	// The other two arms dispatch to the same parsers, against a fake engine:

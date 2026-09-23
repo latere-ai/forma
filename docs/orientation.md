@@ -68,7 +68,7 @@ instance, is arithmetic on a value, and the machine counts characters -- so you
 learn it when you send the schema rather than from output that quietly ignored
 half of it.
 
-**A setting Forma cannot honour is never dropped quietly.** One that would change
+**A setting Forma cannot honor is never dropped quietly.** One that would change
 the answer — asking for four completions at once, say — is refused by name, with
 the reason. One that cannot change the answer runs anyway and comes back listed
 in an `X-Forma-Loss` response header, so you can see what was ignored without
@@ -105,7 +105,7 @@ A model has to fit in memory. Roughly:
 
 Each step down costs some accuracy, by a bounded amount Forma measures rather than
 assumes. Above about 8 GB of weights f16 stops being an option on the machines
-Forma targets, so int8 is not an optimisation there — it is the only way the model
+Forma targets, so int8 is not an optimization there — it is the only way the model
 loads. int4 is that same sentence one size up: a 27B model does not fit a 24 GB
 card at int8 and does at int4.
 
@@ -264,13 +264,13 @@ until they do.
 
 ## What Forma will not do
 
-- **Guess.** A model it does not recognise is refused with the list of what it
+- **Guess.** A model it does not recognize is refused with the list of what it
   knows, rather than run through a generic path that produces fluent nonsense.
 - **Truncate your context.** If a conversation exceeds the cache, Forma says so.
   It does not silently drop the beginning.
 - **Ignore a request field.** A setting that would change the answer is refused
   by name. One that cannot change the answer runs anyway, and Forma tells you it
-  could not honour it, in a response header rather than in silence.
+  could not honor it, in a response header rather than in silence.
 
 ## Where to go next
 

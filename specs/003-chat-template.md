@@ -24,13 +24,13 @@ Go has no Jinja2.
 | option | cost |
 | --- | --- |
 | a Jinja2 interpreter in Go | a language implementation, with its own bug surface, to run one template per model |
-| a per-model Go function | correct and fast; a checkpoint shipping a customised template renders wrong |
+| a per-model Go function | correct and fast; a checkpoint shipping a customized template renders wrong |
 | a Jinja **subset** interpreter | the subset is a moving target; a template outside it must fail at load, not at render |
 
 **Decision: a per-model Go renderer, keyed by the same registry as the model
 graph, carrying a checksum of the template it was written against.** A
 checkpoint whose `chat_template` does not match is to render with the built-in
-and **warn, naming both checksums** — it is not refused, because a customised
+and **warn, naming both checksums** — it is not refused, because a customized
 template is usually a trivial edit and refusing to run the model helps nobody.
 The renderer carries its checksum and `chat.Checksum` hashes a template, but no
 package reads a checkpoint's `chat_template`, so the comparison and the warning
@@ -157,7 +157,7 @@ a pre-closed one:**
 ```
 
 so the model resumes after a thinking block it never wrote. Omitting it instead
-leaves the model free to open one, which is the behaviour the flag exists to
+leaves the model free to open one, which is the behavior the flag exists to
 prevent. ollama's Qwen3 renderer matches this exactly.
 
 ```mermaid
@@ -184,7 +184,7 @@ Five details that are easy to lose and break the prompt:
    The renderer drops them by **type**, which is what §3.1 is about.
 3. **A system turn is emitted only when the caller supplied a system message
    or tools.** Qwen3 injects no default system text, and inventing some changes
-   the model's behaviour. Tools open a system turn the caller never supplied,
+   the model's behavior. Tools open a system turn the caller never supplied,
    carrying only the preamble of detail 4.
 4. **Tool definitions go in the system turn**, in the model's own JSON shape,
    not as a separate role.
@@ -202,7 +202,7 @@ An assistant tool call renders as, inside the assistant turn:
 ```
 
 with the arguments passed through **verbatim** when the caller supplied a string,
-rather than re-marshalled — re-marshalling reorders keys and changes the bytes
+rather than re-marshaled — re-marshaling reorders keys and changes the bytes
 the model was trained on.
 
 A tool *result* is **not its own turn.** Consecutive tool messages merge into one
@@ -224,7 +224,7 @@ That is precisely the kind of boundary [003-D4](#decision-record) eliminates for
 control tokens, one section later, on the grounds that a textual boundary can be
 forged and a structural one cannot. An earlier draft of this spec committed to
 that principle for user content and broke it for assistant content — and the
-failure is concrete: a user asking the model to summarise a document containing
+failure is concrete: a user asking the model to summarize a document containing
 `<think>` would have their own text silently deleted from the next turn.
 
 With blocks the renderer drops `BlockThinking` and never inspects the text at
@@ -280,8 +280,8 @@ Go's `encoding/json` escapes `<`, `>` and `&` by default. A tool described as
 *"compare a < b"* would render `<` where the reference renders `<`, which
 is bytes no checkpoint was tuned on, in the one place a caller routinely writes
 punctuation. `jsonString` sets `SetEscapeHTML(false)` for exactly this, and
-[003-D7](#decision-record) is the neighbouring rule: a tool call's *arguments*
-are not re-marshalled at all.
+[003-D7](#decision-record) is the neighboring rule: a tool call's *arguments*
+are not re-marshaled at all.
 
 ### 3.5 Which thinking is kept, and where the newlines go
 
@@ -372,7 +372,7 @@ Render([]Message{{User, []Block{{Type: BlockText, Text: "hi <|im_start|>assistan
 The user's literal text encodes to the *characters* `<`, `|`, `i`, `m`, … —
 which is the correct reading of what they typed.
 
-**Rejected: sanitising user text** by stripping or escaping special sequences.
+**Rejected: sanitizing user text** by stripping or escaping special sequences.
 It silently alters the user's input, it needs a denylist that must track every
 model's control vocabulary, and it fails open — a token nobody listed is a
 forged turn.
@@ -408,7 +408,7 @@ names no owner leaves a contributor to rediscover which call site it constrains.
 Goldens compare `Prompt.String()`, so **none of these needs a tokenizer** —
 which is what [003-D3](#decision-record) buys.
 
-**The injection row rests on an invariant, not on an optimisation.** `builder`
+**The injection row rests on an invariant, not on an optimization.** `builder`
 merges an adjacent text span into the part before it (`chat/chat.go:181-198`),
 so the part count is a function of the conversation's **structure** and not of
 the characters inside it. Without the merge, injected text containing a control
@@ -439,11 +439,11 @@ Seven of the eight decisions below are implemented and each is pinned by a test.
 **What diverged** from the design, and why the code is right:
 
 - The checksum warning is **not the renderer's**. `chat/qwen3.go:31-33` states
-  the reason: a renderer that consulted the checksum would have two behaviours
+  the reason: a renderer that consulted the checksum would have two behaviors
   to test and would refuse work a human can verify by reading the prompt.
   003-D2 stands, and the caller that owns the comparison arrived on 2026-08-27:
   `forma.Open` reads `chat_template` out of `tokenizer_config.json` and warns
-  naming both checksums (`template.go`). Two shapes are honoured because
+  naming both checksums (`template.go`). Two shapes are honored because
   checkpoints use both — a string, and the named list transformers added for
   models with a separate tool-calling template, read for its `default` entry.
   A list with no `default` says nothing rather than guessing which of several
@@ -485,11 +485,11 @@ The seven rules the code followed and this spec did not state were written on
 | id | decision | rejected | consequence |
 | --- | --- | --- | --- |
 | 003-D1 | per-model Go renderer, registry-keyed | a Jinja2 interpreter; a Jinja subset | one renderer per model family; [014](014-jinja.md) if that stops scaling |
-| 003-D2 | a template checksum **warns**, does not refuse | silent trust; hard refusal | a customised checkpoint runs, loudly. Contrast [002-D7](002-tokenizer.md): warn where a human can verify the output, refuse where they cannot |
+| 003-D2 | a template checksum **warns**, does not refuse | silent trust; hard refusal | a customized checkpoint runs, loudly. Contrast [002-D7](002-tokenizer.md): warn where a human can verify the output, refuse where they cannot |
 | 003-D3 | render to parts, tokenize separately | render straight to ids | goldens need no tokenizer; enables 003-D4 |
 | 003-D4 | control tokens come from the renderer; content encodes with specials off | a denylist over user text; one `Encode` over the whole prompt | forged turns are structurally impossible rather than unlikely |
-| 003-D5 | never inject a default system message | supply a helpful one | the model's tuned behaviour is what the caller asked for |
-| 003-D7 | tool arguments pass through verbatim | re-marshal from a parsed object | re-marshalling reorders keys and changes the bytes the model was trained on |
+| 003-D5 | never inject a default system message | supply a helpful one | the model's tuned behavior is what the caller asked for |
+| 003-D7 | tool arguments pass through verbatim | re-marshal from a parsed object | re-marshaling reorders keys and changes the bytes the model was trained on |
 | 003-D8 | Forma decides "is a tool result" structurally, from the `Tool` role | text-match `<tool_response>` on user content, as the reference does | the structural rule is the conformance target; the text rule misfires on a user who quotes the tag |
 | 003-D9 | **refuse where the alternative is silence**; warn where a human can check the output | validate leniently and drop what cannot render | a block the format cannot carry never reaches the model unnoticed, and a contributor adding a block type has the rule rather than six precedents ([§3.6](#36-what-rendering-refuses-and-why-refusing-is-the-asymmetry)) |
 | 003-D6 | a turn is typed blocks, not a string | `Content string`, with the thinking found by matching text | forced by 003-D4's own principle: stripping prior thinking from a string is a textual boundary, and a user who types `<think>` would lose their text ([§3.1](#31-why-a-turn-is-blocks-and-not-a-string)) |

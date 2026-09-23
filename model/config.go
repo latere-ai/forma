@@ -126,7 +126,7 @@ type rawConfig struct {
 // specs/004-model-graph.md §5 and §7.
 //
 // Every refusal names the config field that caused it. A config the builder
-// cannot honour is refused here, at parse, rather than approximated: §7's rows
+// cannot honor is refused here, at parse, rather than approximated: §7's rows
 // are each a case where the wrong answer runs, produces shapes that check, and
 // degrades output somewhere a test does not look.
 func ParseConfig(raw json.RawMessage) (*Config, error) {
@@ -262,7 +262,7 @@ func checkSlidingWindow(window *int, use *bool) error {
 	}
 	// A length with no flag beside it: some configs carry sliding_window alone
 	// and mean it. use_sliding_window: false is the explicit off switch, and
-	// honouring it is what lets Qwen3-0.6B through.
+	// honoring it is what lets Qwen3-0.6B through.
 	if window != nil && *window > 0 && use == nil {
 		return fmt.Errorf("model: config: sliding_window is %d and this graph attends "+
 			"to the whole cache; output past the window would be silently wrong", *window)

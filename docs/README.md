@@ -28,5 +28,5 @@ reader — they argue about tradeoffs, and this does not.
 | Performance | what to expect, and how to measure it on your own machine |
 | Troubleshooting | when a model will not load, or the output looks wrong |
 
-Each describes behaviour that already exists, so each can be checked against the
+Each describes behavior that already exists, so each can be checked against the
 code as it is written.

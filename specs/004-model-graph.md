@@ -113,7 +113,7 @@ was always f32.
 At $M = 1$, which is every decode step, **the matrix-vector kernel is reached on
 the int8 path and not on the f16 one.** accel's matrix-vector kernel reads f16
 on *both* operands and Forma's activations are f32, so an f16 weight takes the
-tile and most of its rows are idle. `QuantMatMul` has an $M = 1$ specialisation
+tile and most of its rows are idle. `QuantMatMul` has an $M = 1$ specialization
 that takes an f32 activation ([C15](010-conformance.md)), so the int8 path —
 what `auto` picks for a large model — is the one with a decode kernel.
 `Plan.Selections()` reports which and why.
@@ -148,13 +148,13 @@ can see.
 
 ### 2.4 Attention — GQA, QK-norm, RoPE
 
-Qwen3 differs from Llama in one place that matters: it **normalises Q and K per
+Qwen3 differs from Llama in one place that matters: it **normalizes Q and K per
 head, before RoPE**.
 
 $$q_h = \text{RMSNorm}(x W_Q)_h,\qquad k_h = \text{RMSNorm}(x W_K)_h$$
 
 over the head dimension $d_h$, with a learned gain of $d_h$ values shared across
-heads. Getting the order wrong — normalising after RoPE, or over the full
+heads. Getting the order wrong — normalizing after RoPE, or over the full
 $H\cdot d_h$ row instead of per head — gives a model that produces plausible
 tokens and loses coherence after a few sentences. §7 has the test that fails if
 the norm moves.
@@ -250,7 +250,7 @@ $$\text{positions} = [\,p_0^{\times H},\ p_1^{\times H},\ \dots,\ p_{T-1}^{\time
 > cache length. Forma filed
 > [accel#2](https://github.com/golang-design/accel/issues/2); accel
 > [043](https://github.com/golang-design/accel/blob/main/specs/043-per-row-values.md)
-> generalised it into one rule — *a scalar is a value every row shares; a value
+> generalized it into one rule — *a scalar is a value every row shares; a value
 > that differs per row is a tensor* — and changed the operator.
 >
 > The consequence for Forma is that **there is no batched RoPE to write later**.
@@ -499,7 +499,7 @@ Adding a model is one file and one `init`. Nothing else changes.
 
 ## 7. Refusals
 
-A config the builder cannot honour is refused at build time, with the field
+A config the builder cannot honor is refused at build time, with the field
 named:
 
 | condition | why refusing beats approximating |
@@ -532,7 +532,7 @@ does not compile. The backend check is a separate test,
 | **QK-norm placement**: fails if the norm moves after RoPE | the Qwen3-specific ordering |
 | **rotary pairing**: `interleavedRoPE(permute(x))` equals `permute(halfSplitRoPE(x))` per head, each convention derived independently | [§2.5.1](#251-which-pairs-rotate-which-nothing-in-this-tree-used-to-say) — the permutation, which nothing else catches |
 | the permutation runs before quantization, not after | [§2.5.2](#252-the-fix-is-a-load-time-permutation-and-its-order-is-forced)'s ordering constraint |
-| **QK-norm axis**: fails if it normalises over `H·d_h` instead of `d_h` | the reshape in row 9–11 |
+| **QK-norm axis**: fails if it normalizes over `H·d_h` instead of `d_h` | the reshape in row 9–11 |
 | RoPE positions repeat per head (row 12's formula) | a positions tensor built per token instead of per row |
 | the declared logits port is `[1, V]` at every $T$ | §3.2's slice. Transient memory does *not* catch it: an output port's buffer is the caller's |
 | a tied head uploads two planes, accepts a checkpoint whose two planes hash identically, and refuses one whose planes differ | §4's tie handling, as [004-D10](#decision-record) narrowed it |

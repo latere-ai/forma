@@ -19,7 +19,7 @@ import (
 // prefix loses at most CacheBlock-1 tokens to rounding. Against a prefix of
 // hundreds that is a rounding error, and the alternative — two sequences
 // writing one block at different offsets — is a correctness problem rather than
-// an optimisation.
+// an optimization.
 //
 // It is a constant rather than an option because it is a plan parameter: accel
 // folds the block size into the plan's attributes, so two block sizes are two

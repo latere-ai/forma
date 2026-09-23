@@ -114,7 +114,7 @@ func (q *Queue) Stats() QueueStats
 func (q *Queue) Close() error
 ```
 
-`Scheduler` gains two things and no behaviour change: `Feasible`, and a capacity
+`Scheduler` gains two things and no behavior change: `Feasible`, and a capacity
 channel of capacity 1 that `Finish`, `Evict` and `Step` send to without
 blocking. `Admit` keeps its name and its refusal contract, so the interface is
 satisfied by the method already there and the nine call sites in

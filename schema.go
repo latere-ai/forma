@@ -79,7 +79,7 @@ func (m *Model) stopIDs() []int {
 // model's vocabulary, and keeps the result.
 //
 // It is the same compilation a request carrying [Policy.Schema] performs, done
-// early and on its own: a server has to answer a schema it cannot honour with a
+// early and on its own: a server has to answer a schema it cannot honor with a
 // refusal that names the construct, and it must do that before it allocates a
 // session, so that a request which will not run does not first take memory from
 // one that would.

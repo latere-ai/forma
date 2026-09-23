@@ -9,12 +9,12 @@ import (
 	"strconv"
 )
 
-// extras are the request fields forma honours that llmdialect's IR does not
+// extras are the request fields forma honors that llmdialect's IR does not
 // carry, read from the raw body beside DecodeRequest (009-D12, §4.1).
 //
-// Every field here is also a name in [honoured], and the two are checked
+// Every field here is also a name in [honored], and the two are checked
 // against each other by a test: a knob parsed but not subtracted reports itself
-// as lost, and a knob subtracted but not parsed reports itself as honoured
+// as lost, and a knob subtracted but not parsed reports itself as honored
 // while being dropped. The second is the worse of the two and the harder to
 // see.
 type extras struct {
@@ -32,7 +32,7 @@ type extras struct {
 	// carried the same one, and a request carrying none only to a session that
 	// had none. It is not a sampling knob and reaches no
 	// [latere.ai/x/forma.Policy] field, which is why it is subtracted
-	// from the loss report by [honouredSession] rather than by [honoured].
+	// from the loss report by [honouredSession] rather than by [honored].
 	cacheSalt string
 
 	// logProbs and topLogProbs are specs/030-logprobs.md §4's two wire shapes,

@@ -140,7 +140,7 @@ token is 169ms.
 **Three findings the breakdown produced that a throughput number could not:**
 
 1. **Submit is 15.61% of a decode step and 1.12% of a prefill.** Per-dispatch
-   cost is roughly fixed, so it is amortised over a 64-token prefill and paid in
+   cost is roughly fixed, so it is amortized over a 64-token prefill and paid in
    full by a one-token decode — which is the shape [008 §1](008-scheduler.md)
    argues batching fixes, visible in a measurement rather than in an argument.
    **Filed as [accel#21](https://github.com/golang-design/accel/issues/21) and
@@ -176,7 +176,7 @@ token is 169ms.
 **19.5× against the 7.5× accel measured**, and the difference is the workload
 rather than either benchmark being wrong: theirs was one elementwise kernel over
 a flat buffer, where a pool's fixed cost is a real fraction of the work, and a
-transformer prefill is ~790 nodes of GEMM-shaped work that amortises it.
+transformer prefill is ~790 nodes of GEMM-shaped work that amortizes it.
 
 **Device is 99.98% of a decode step**, so accel's question — whether the time is
 inside dispatches or between them — is answered: inside. The serial node walk
@@ -288,7 +288,7 @@ Owned elsewhere, four items, each with the spec that owns it.
   recent steps", so past `recorderCapacity` the server published a completion's
   warm-up as what the device was doing now. It is a ring now, per 027-D5, which
   keeps the newest rather than refusing to publish a truncated report — a long
-  request is the one whose current behaviour a reader wants, and refusing would
+  request is the one whose current behavior a reader wants, and refusing would
   report nothing at all in that case.
 - **Two stale strings in `cmd/forma`**, and they are [027](027-batched-benchmarks.md)'s:
   `singleBatchNote` (`cmd/forma/record.go:131`) and the `--batch` refusal

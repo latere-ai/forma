@@ -14,7 +14,7 @@ fluent text that answers a slightly different question, and nothing crashes.
 
 ## 1. What is in `tokenizer.json`
 
-The Hugging Face `tokenizers` serialisation. Four parts matter:
+The Hugging Face `tokenizers` serialization. Four parts matter:
 
 | part | Qwen3 | role |
 | --- | --- | --- |
@@ -147,7 +147,7 @@ naming the pattern.** Not warned — *refused*. This differs deliberately from
 [003-D2](003-chat-template.md), where an unrecognised chat template warns and
 renders anyway. The asymmetry is the point:
 
-- a customised chat template is usually a trivial edit, and rendering with the
+- a customized chat template is usually a trivial edit, and rendering with the
   built-in produces text a human can inspect;
 - a different split pattern produces **different token ids** for the same
   string, silently, and there is nothing to inspect. The model is simply fed
@@ -178,14 +178,14 @@ the ids produced for some text, and each names itself.
 | --- | --- |
 | a `normalizer` other than NFC | a different normalizer gives different ids for the same visible text |
 | other than exactly one `ByteLevel` and one `Split` pre-tokenizer | a `ByteLevel` with `use_regex` is GPT-2's built-in pattern, which is a third split this does not implement |
-| a `Split` `behavior` other than `Isolated` | the other behaviours cut the same text differently |
+| a `Split` `behavior` other than `Isolated` | the other behaviors cut the same text differently |
 | an unrecognised split pattern | named with its sha256, so a new family is added deliberately ([§4](#4-the-pre-tokenizer-and-the-constraint-go-imposes)) |
 | a `post_processor` other than `ByteLevel` | a `TemplateProcessing` post-processor inserts ids `Encode` would omit — a Llama-3-style file would encode every prompt **without its BOS** |
 | a `decoder` other than `ByteLevel` | `Decode` inverts the byte-level alphabet and nothing else |
 | a `model` type other than BPE | |
 | seven BPE model options: `dropout`, `unk_token`, `continuing_subword_prefix`, `end_of_word_suffix`, `fuse_unk`, `byte_fallback`, `ignore_merges` | each changes the ids produced, and a file setting one is a file this cannot reproduce |
 
-**Two merge-list serialisations are read.** `tokenizers` wrote `"left right"`
+**Two merge-list serializations are read.** `tokenizers` wrote `"left right"`
 for years and writes `["left","right"]` now, and both are in circulation on the
 hub. The pair form is unambiguous; the string form splits on the **first** space,
 which is safe because a byte-mapped token never contains one — U+0020 maps to
@@ -278,7 +278,7 @@ Naive scanning is $O(n^2)$ per piece for $n$ symbols. A linked list plus a heap
 of candidate pairs is $O(n \log n)$.
 
 Pieces are short — the §4 split produces mostly single words — so **v0 is naive
-and correct**, and the heap is an optimisation that needs a benchmark behind it.
+and correct**, and the heap is an optimization that needs a benchmark behind it.
 The one input that makes $n$ large is a long run of a repeated character with no
 split point, which is worth a fuzz seed rather than an algorithm.
 
@@ -393,7 +393,7 @@ was a declared normalizer running as the identity, which is what 002-D9 and
   emitted at once and the emitted prefix need not be valid UTF-8. Holding
   `0xFF` could only delay a `U+FFFD` the caller sees anyway, and would stall a
   stream that sends nothing more. `TestDecoderDoesNotHoldAnImpossibleByte`
-  (`tokenizer/decoder_test.go:87`) pins the behaviour. §6 now states the real
+  (`tokenizer/decoder_test.go:87`) pins the behavior. §6 now states the real
   rule.
 - **§6's placement of the second buffer.** 002-D8's intent — two buffers, never
   one — shipped, but the stop-string buffer is not in the `Decoder`. It lives
@@ -406,7 +406,7 @@ was a declared normalizer running as the identity, which is what 002-D9 and
   differ only in `\p{N}` against `\p{N}{1,3}` (`tokenizer/pretokenize.go:26`,
   `:40`, `:50`). A parameter set behind a digest is what a third family extends;
   a function per family is what it copies.
-- **§7's splitter row.** It named the reference pattern's behaviour as the thing
+- **§7's splitter row.** It named the reference pattern's behavior as the thing
   to check against, and no reference engine is in the tree. The check is against
   an in-tree oracle built a different way, with the two exclusions §7 now
   records and a negative test that proves it catches a mis-read lookahead.
@@ -438,7 +438,7 @@ and one `Decoder` per stream,
 the cl100k family, and
 [§4.2](#42-what-is-refused-at-load-and-the-invariants-that-make-encode-total)
 for the `post_processor`/`decoder` and seven model-option refusals, both merge
-serialisations, and the load-time invariants that make `Encode` total.
+serializations, and the load-time invariants that make `Encode` total.
 
 **Four stale package comments are corrected**, each of which asserted something
 a test in the same package disproved: `tokenizer/tokenizer.go` claimed no

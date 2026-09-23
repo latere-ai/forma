@@ -4,7 +4,7 @@
 // Package tokenizer turns text into the token ids a model was trained on, and
 // turns ids back into text.
 //
-// It implements the byte-level BPE serialised in a Hugging Face
+// It implements the byte-level BPE serialized in a Hugging Face
 // tokenizer.json: a normalizer, a split pattern that cuts text into pieces, a
 // byte-level alphabet, and an ordered merge table. It has no device and no
 // network. Its one dependency outside the standard library is
@@ -12,7 +12,7 @@
 //
 // Two things about it are worth knowing before you use it.
 //
-// A tokenizer whose split pattern is not one this package recognises is
+// A tokenizer whose split pattern is not one this package recognizes is
 // refused at load, naming the pattern. That is deliberate: a different split
 // produces different ids for the same text, silently, and there is nothing for
 // a human to read and check. See specs/002-tokenizer.md 002-D7.
@@ -126,7 +126,7 @@ func (t *Tokenizer) applyNormalizer(n *normalizerJSON) error {
 
 // applyPreTokenizer walks the pre_tokenizer tree, which is either a single node
 // or a Sequence of them, and requires exactly the shape 002-D6 handles: one
-// Split on a recognised regex, and one ByteLevel.
+// Split on a recognized regex, and one ByteLevel.
 func (t *Tokenizer) applyPreTokenizer(p *preTokJSON) error {
 	if p == nil {
 		return errors.New("tokenizer: no pre_tokenizer")
@@ -356,7 +356,7 @@ func (t *Tokenizer) Special(text string) (int, bool) {
 // Added tokens are matched before BPE and are never merged into (002-D3), but
 // only when allowSpecial is set. With allowSpecial false the literal text
 // "<|im_start|>" encodes as the characters that spell it, so content can never
-// forge a turn boundary; that is the structural half of the injection defence
+// forge a turn boundary; that is the structural half of the injection defense
 // in specs/003-chat-template.md section 4, and it is why the caller must ask
 // for special matching rather than opt out of it.
 func (t *Tokenizer) Encode(s string, allowSpecial bool) []int {

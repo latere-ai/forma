@@ -222,7 +222,7 @@ func (b *Batch) Slots() int { return len(b.slots) }
 // scoring pass and wrong for generation.
 //
 // R is policy and not a derived number. Setting it to the request's max_tokens
-// is safe and admits too little; setting it to zero maximises occupancy and
+// is safe and admits too little; setting it to zero maximizes occupancy and
 // deadlocks. This takes it from the caller and refuses loudly, because a server
 // that quietly admits fewer requests than it could is indistinguishable from a
 // slow one.

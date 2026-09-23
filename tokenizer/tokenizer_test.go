@@ -473,7 +473,7 @@ func TestParseRefusals(t *testing.T) {
 	}
 }
 
-// TestMergeStringForm covers the older serialisation, "left right", which is
+// TestMergeStringForm covers the older serialization, "left right", which is
 // still on the hub next to the pair form.
 func TestMergeStringForm(t *testing.T) {
 	d := doc(t)

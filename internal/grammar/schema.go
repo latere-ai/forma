@@ -463,7 +463,7 @@ func (c *compiler) lengths(m map[string]json.RawMessage, path, minKW, maxKW stri
 // admitted language, so a document this machine accepts still validates against
 // the caller's schema; what is lost is documents the schema would also have
 // allowed. An explicit "additionalProperties": true is refused rather than
-// narrowed, because that one is the caller stating something this cannot honour.
+// narrowed, because that one is the caller stating something this cannot honor.
 func (c *compiler) object(m map[string]json.RawMessage, path string) frag {
 	if raw, ok := m["additionalProperties"]; ok {
 		if strings.TrimSpace(string(raw)) != "false" {

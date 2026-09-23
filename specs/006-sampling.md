@@ -108,7 +108,7 @@ swapped.
 
 - **Bias first.** `logit_bias` is a caller's absolute statement about a token; a
   penalty computed on a biased logit still means what it says, while biasing a
-  penalised one does not.
+  penalized one does not.
 - **Penalties before temperature.** A penalty is a logit adjustment with a fixed
   meaning. Applied after dividing by $T$, its strength depends on $T$, so the
   same policy behaves differently at every temperature.
@@ -173,12 +173,12 @@ $$\ell'_v = \begin{cases}
 for repetition penalty $r$, presence $\alpha$, frequency $\beta$.
 
 The asymmetry in the first is not a quirk: dividing a *negative* logit by $r>1$
-would move it **toward** zero and make a penalised token more likely. Multiplying
+would move it **toward** zero and make a penalized token more likely. Multiplying
 instead keeps the penalty monotone in the right direction on both sides of zero.
 This is the form llama.cpp and every stack since uses, and reproducing it
-matters because callers tune $r$ against that behaviour.
+matters because callers tune $r$ against that behavior.
 
-The window is over **prompt and generated tokens together**. Penalising only
+The window is over **prompt and generated tokens together**. Penalizing only
 generated tokens lets the model repeat the prompt verbatim, which is the failure
 users report as "it just echoes my question".
 
@@ -210,7 +210,7 @@ one $u_i \in [0,1)$, whether or not the policy is greedy.**
 That last clause is the decision. Consuming a draw only when actually sampling
 is the natural implementation, and it makes reproducibility hold in every test
 and fail in production: a caller who changes temperature mid-request — a server
-honouring a per-message policy, a retry with different settings — shifts every
+honoring a per-message policy, a retry with different settings — shifts every
 subsequent draw, and the stream diverges from the same seed. The waste is one
 PCG step per greedy token, which is nothing.
 
@@ -258,7 +258,7 @@ unanswerable — the same reason accel 029 refuses to truncate a prompt.
 | --- | --- |
 | each stage against an independent host reference, exactly | arithmetic |
 | **order**: for each adjacent pair in §3, a case where swapping them changes the output | the whole of §3 |
-| the §3.1 sign asymmetry: a negative logit is penalised downward | the classic bug |
+| the §3.1 sign asymmetry: a negative logit is penalized downward | the classic bug |
 | penalties read prompt tokens too | the "it echoes my question" failure |
 | stream: the same seed gives the same completion **across a policy change mid-stream** | §4's decision |
 | `Probs` does not move the stream | §4 |
@@ -324,7 +324,7 @@ shipped on 2026-08-27: selecting the top $k$ on the softmax weights
 (`TestTopKSelectsWhereAccelSelects`, which §3's amended note records), a stop
 string straddling a UTF-8 boundary (`TestAStopStringStraddlingAUTF8Boundary`),
 and the penalties against an independent reference — `oracle.Penalize`, written
-from §3.1's prose rather than from `sample/stages.go`, compared over randomised
+from §3.1's prose rather than from `sample/stages.go`, compared over randomized
 inputs. The
 CPU-versus-Metal greedy divergence measurement §4.1 defers to
 [010 §3](010-conformance.md) is 010's, and waits on a Metal device in the loop.

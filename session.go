@@ -43,7 +43,7 @@ var ErrSessionFailed = errors.New("forma: the session failed and has not been re
 // # A Session is not safe for concurrent use
 //
 // Two goroutines decoding one session would interleave writes into one cache,
-// and serialising that internally would hide a caller's bug rather than report
+// and serializing that internally would hide a caller's bug rather than report
 // it (007-D1). Use one session per conversation, and as many sessions
 // concurrently as you like: [Model] is safe for concurrent use and holds the
 // submission lock that makes it so.

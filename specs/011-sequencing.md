@@ -54,7 +54,7 @@ than restating the goal.
 **Two honest qualifications on the dense side.** The checkpoint on hand is
 **0.6B**, not 4B — same architecture, same code path, one twelfth the
 parameters. What that proves is the loader, the graph and the numerics; what it
-does not prove is behaviour at 4B's memory footprint. And the 4B graph is
+does not prove is behavior at 4B's memory footprint. And the 4B graph is
 verified to *compile and to agree with the oracle*, not to have generated text,
 until Wave 4 lands.
 
@@ -138,7 +138,7 @@ flowchart TB
 
 **Wave 1 is four independent packages with no device and no network**, which is
 where [000 D8](000-decisions.md) puts the coverage gate, and it is the wave that
-parallelises cleanly. Wave 3 is the one that must be sequential: the forward
+parallelizes cleanly. Wave 3 is the one that must be sequential: the forward
 pass, the cache and the loop are one dependency chain.
 
 ## 2.3 What is missing that no spec covers
@@ -470,7 +470,7 @@ mask, the sampler, the detokenizer, the stop strings, the events and the
 stopping decision, shared by a single session and by a slot. Writing the batched
 decode loop beside the single one would have made a sampling bug and a batching
 bug indistinguishable, which is [008-D8](008-scheduler.md) one layer up. The
-extraction changed no behaviour: every test passed unedited except one that
+extraction changed no behavior: every test passed unedited except one that
 built a `Stream` around a bare `Session` to reach `isStop`.
 
 **The ordering the extraction had to get right.** A session appends the drawn
@@ -616,7 +616,7 @@ than by narrowing what was open:
   whitespace trims, and §3.6 the refusal contract — which also became
   003-D9, so the second refuse-versus-warn choice in that spec has an id.
 - [015](015-structured-output.md) documented three deliberate narrowings and the
-  one behaviour that widens: `G` admits every number RFC 8259 does, so `1e999`
+  one behavior that widens: `G` admits every number RFC 8259 does, so `1e999`
   is admissible JSON a `float64` field cannot hold.
 - [016](016-prefix-cache.md) documented `Reserve`, the `Grow`/`Commit`/
   `Publish(written)` split, `Batch` and the hash encoding, and settled §6 — the
@@ -801,7 +801,7 @@ halves both the batch size worth reaching and the throughput ceiling. Filed as
 not the one it lost is reporting half.
 
 **Then the port.** [016 §9](016-prefix-cache.md)'s third constraint was Forma's
-own: the kernels honoured a page table and
+own: the kernels honored a page table and
 [004 §3](004-model-graph.md)'s port table had none, so nothing here could pass
 one. `GraphSpec.Block` declares `PortPages` and `NewPagedStep` maps a logical
 position through it. The value test is a prefill over a **permuted** table
@@ -895,7 +895,7 @@ everything downstream trusted its extent.**
 | a chunked prefill published all six blocks of a prompt 32 tokens in, so the next request reused 160 positions nobody wrote — under two salts, one tenant's hash naming another's rows | `Publish` walked every hash the lease held |
 | a step that failed after an earlier slot reserved left that lease over a token nobody computed, and a retry with a different token wrote *its* state into a block named for the abandoned one | `reserve` recorded tokens before the submission |
 | a caller carving prompts out of one buffer had the first request rewrite the first token of the second | `Admit` kept the caller's slice and `Feed` appended to it |
-| `server.Wrap` dropped `cache_salt` while [009 §4](009-server.md)'s loss report said it was honoured | a session of its own shares nothing, so under `CacheSession` it reached nothing |
+| `server.Wrap` dropped `cache_salt` while [009 §4](009-server.md)'s loss report said it was honored | a session of its own shares nothing, so under `CacheSession` it reached nothing |
 
 **None of them had a symptom a value test could see.** In every one the logits
 of the step that caused the damage are correct, and the wrong answer goes to a

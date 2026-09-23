@@ -77,7 +77,7 @@
 //     2^n of them.
 //   - Objects are closed. A property outside the schema is never emitted. An
 //     explicit "additionalProperties": true is refused rather than narrowed,
-//     because that one is the caller stating something this cannot honour.
+//     because that one is the caller stating something this cannot honor.
 //   - "integer" admits the plain spelling. 1e2 is an integer to JSON Schema and
 //     is not admitted here.
 //

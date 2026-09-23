@@ -138,7 +138,7 @@ func TestArchitecturesIsSortedAndCarriesQwen3(t *testing.T) {
 	// is sorted whatever the map iteration order was, and a sort dropped from
 	// Architectures would pass this test every time. Registering in an order
 	// that is not the sorted one is what makes the assertion carry weight; map
-	// iteration is randomised, so a missing sort fails within a few runs and a
+	// iteration is randomized, so a missing sort fails within a few runs and a
 	// wrong sort fails on the first.
 	n := registerSeq.Add(1)
 	stub := func(json.RawMessage) (Builder, error) { return nil, nil }
@@ -210,7 +210,7 @@ func TestRegisterPanics(t *testing.T) {
 func TestRegisterAndOpenNewArchitecture(t *testing.T) {
 	// A fresh name per run, so that -count=2 does not panic on a duplicate
 	// registration: the registry is process-global and Register refuses a
-	// second claim on one architecture, which is the behaviour under test
+	// second claim on one architecture, which is the behavior under test
 	// elsewhere in this file.
 	arch := fmt.Sprintf("TestOnly%dForCausalLM", registerSeq.Add(1))
 	Register(arch, func(r json.RawMessage) (Builder, error) {

@@ -33,9 +33,9 @@ import (
 //
 // # Why one driver goroutine
 //
-// [Scheduler.Step] serialises on the scheduler's own lock and [Batch.Step]
+// [Scheduler.Step] serializes on the scheduler's own lock and [Batch.Step]
 // takes the model's submission lock (007-D9), so B goroutines calling Step
-// would interleave rather than batch -- which is the behaviour a session per
+// would interleave rather than batch -- which is the behavior a session per
 // request already has, with more machinery (022-D3). One goroutine steps,
 // samples every slot and sends events; the request's goroutine receives them.
 //

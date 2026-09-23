@@ -74,7 +74,7 @@ func (d dist) spread(out []float32) {
 func policyDist(logits []float32, history []int, p Policy, scratch []float32) dist {
 	// Bias first. A logit bias is the caller's absolute statement about a
 	// token, so a penalty computed on a biased logit still means what it says,
-	// while biasing an already penalised one does not.
+	// while biasing an already penalized one does not.
 	for id, b := range p.LogitBias {
 		logits[id] += b
 	}
@@ -147,7 +147,7 @@ func policyDist(logits []float32, history []int, p Policy, scratch []float32) di
 
 // penalize applies section 3.1 to the logits, over the window of history.
 //
-// The window covers prompt and generated tokens together. Penalising only what
+// The window covers prompt and generated tokens together. Penalizing only what
 // the model produced lets it repeat the prompt verbatim.
 func penalize(logits []float32, history []int, p Policy) {
 	rep := p.RepetitionPenalty != 0 && p.RepetitionPenalty != 1
@@ -168,7 +168,7 @@ func penalize(logits []float32, history []int, p Policy) {
 	for id, c := range counts {
 		if rep {
 			// The asymmetry is the point. Dividing a negative logit by r > 1
-			// moves it toward zero, which makes a penalised token *more*
+			// moves it toward zero, which makes a penalized token *more*
 			// likely; multiplying keeps the penalty monotone on both sides.
 			// Zero takes the multiply branch, so a zero logit is left alone
 			// either way but the branch is the one section 3.1 names.
@@ -211,7 +211,7 @@ func argmax(logits []float32) int {
 //
 // Selection rather than a sort. A vocabulary is 152k entries and n is at most
 // TopMaxRounds, so a full sort would be thousands of comparisons to answer a
-// question about the first few dozen -- and its tie behaviour would be the
+// question about the first few dozen -- and its tie behavior would be the
 // standard library's rather than the kernel's.
 func topN(logits []float32, n int) []int {
 	out := make([]int, 0, n)

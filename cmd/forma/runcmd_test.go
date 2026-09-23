@@ -33,7 +33,7 @@ func TestParseRun(t *testing.T) {
 	}
 	// The default policy is greedy, which is the zero Policy plus the identity
 	// repetition penalty: specs/006-sampling.md makes one and zero both mean no
-	// penalty, and 1 is the spelling a reader recognises.
+	// penalty, and 1 is the spelling a reader recognizes.
 	d, err := parseRun([]string{"dir"})
 	if err != nil {
 		t.Fatalf("parseRun: %v", err)

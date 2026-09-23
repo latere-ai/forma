@@ -88,7 +88,7 @@ The seam is exact and the code is already on the right side of it.
 | `unescaped`, `cont` (internal/grammar/json.go:76, :87) | the UTF-8 rune spelling — an **alphabet** fact, not a JSON fact | splits, §3.2 |
 | `Compile` (internal/grammar/grammar.go:144) | schema-specific, and it also builds the `Grammar` | splits, §3.1 |
 | `maxStates` and its check (internal/grammar/schema.go:38, :191) | a bound on the machine, placed in the front end | moves, §4 |
-| `UnsupportedError` (internal/grammar/grammar.go:62) | the refusal, rendered in schema words | generalises, §3.3 |
+| `UnsupportedError` (internal/grammar/grammar.go:62) | the refusal, rendered in schema words | generalizes, §3.3 |
 
 **029-D2: four small refactors, no new engine.** Nothing in nfa.go or dfa.go is
 touched. The four are below and each is mechanical.
@@ -105,7 +105,7 @@ func newGrammar(n *nfa, root frag, v Vocab, opt Options) (*Grammar, error)
 
 carrying the vocabulary check, the stop-id validation, `closure`, `intern` and
 the state bound. `Compile` keeps its signature and its meaning. `CompileGBNF`
-and, later, `CompileRegex` sit beside it. No behaviour changes.
+and, later, `CompileRegex` sit beside it. No behavior changes.
 
 ### 3.2 Move the UTF-8 spelling off `compiler`
 
@@ -122,7 +122,7 @@ becomes one call with JSON's three holes. That is where it belongs:
 internal/grammar/nfa.go:8 already says the alphabet is the byte and well-formed
 UTF-8 is spelled out rather than assumed.
 
-### 3.3 Generalise `UnsupportedError`
+### 3.3 Generalize `UnsupportedError`
 
 `UnsupportedError.Path` is documented as a JSON Pointer and `Error()` renders an
 empty `Path` as `"the root schema"` (internal/grammar/grammar.go:73). A GBNF
@@ -314,7 +314,7 @@ bytes, so the map is bounded.
 
 Rejected: a `response_format: {"type": "grammar", ...}` extension, and a
 top-level `grammar` member of the kind other servers have added.
-[009 §4](009-server.md)'s contract is that a field Forma does not honour is
+[009 §4](009-server.md)'s contract is that a field Forma does not honor is
 reported, and Forma cannot report on a field it invented and no caller sent. A spelling
 chosen now is a compatibility promise made before one grammar has been compiled
 from a request. 000-D10 keeps the surface small, and a wire field is the easy
@@ -342,7 +342,7 @@ arrives with the wire field, if it ever does.
 **One person, one pass, for §2 through §5, §7 and §8.** That is: the GBNF
 parser, the cycle detector, the four refactors of §3, the bound of §4,
 `Policy.Grammar`, `Model.CheckGrammar`, and the tests below. `json_object` is a
-decision plus a test that an existing behaviour did not change.
+decision plus a test that an existing behavior did not change.
 
 **§6 is a second scope and it should be a second spec.** The regex parser is a
 parser, a class syntax, a negated-class construction over UTF-8, the anchoring

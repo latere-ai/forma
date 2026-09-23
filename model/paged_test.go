@@ -58,7 +58,7 @@ func (r *rig) pagedStep(c *Config, ids []uint32, first int, pages []int,
 // from.
 //
 // The table is a permutation and deliberately not the identity. An identity
-// table would pass whether the kernels honoured it or read the cache
+// table would pass whether the kernels honored it or read the cache
 // contiguously, which is how accel issue 10 stayed invisible for a day: a paged
 // prefill that dropped its table returned a fluent wrong answer and a probe
 // that only checked the graph compiled recorded it as working.

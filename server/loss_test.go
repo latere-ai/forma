@@ -21,7 +21,7 @@ import (
 // honourCase is one wire member forma implements, and what it must do.
 type honourCase struct {
 	// field is the [forma.Policy] field it sets, which is the key into
-	// [honoured].
+	// [honored].
 	field string
 
 	// wire is the member name, which must not appear in X-Forma-Loss.
@@ -37,7 +37,7 @@ type honourCase struct {
 	want any
 }
 
-// honourCases covers every wire name in [honoured]. §4.1 asks for one test per
+// honourCases covers every wire name in [honored]. §4.1 asks for one test per
 // Policy field; this is that, plus one per additional spelling, because
 // max_output_tokens and max_completion_tokens are different bugs from
 // max_tokens.
@@ -113,7 +113,7 @@ const wireSchema = `{"type":"object"}`
 // TestAnHonouredFieldIsAppliedAndNotReportedAsLost is §4.1 in both directions.
 //
 // A field parsed and not subtracted reports as unhonoured the knob that was
-// honoured. A field subtracted and not parsed reports as honoured the knob that
+// honored. A field subtracted and not parsed reports as honored the knob that
 // was dropped, which is the worse of the two: nothing downstream can tell.
 // Each case asserts both.
 func TestAnHonouredFieldIsAppliedAndNotReportedAsLost(t *testing.T) {
@@ -131,11 +131,11 @@ func TestAnHonouredFieldIsAppliedAndNotReportedAsLost(t *testing.T) {
 				t.Errorf("%s reached Policy.%s as %v, want %v", c.wire, c.field, got, c.want)
 			}
 			if loss := w.Header().Get("X-Forma-Loss"); strings.Contains(loss, c.wire) {
-				t.Errorf("X-Forma-Loss reports %q as lost, and it was honoured: %q", c.wire, loss)
+				t.Errorf("X-Forma-Loss reports %q as lost, and it was honored: %q", c.wire, loss)
 			}
 			if body := get(t, s, "/metrics").Body.String(); strings.Contains(body,
 				`forma_request_loss_total{field="`+c.wire+`"}`) {
-				t.Errorf("the loss counter names %q, and it was honoured", c.wire)
+				t.Errorf("the loss counter names %q, and it was honored", c.wire)
 			}
 		})
 	}
@@ -153,13 +153,13 @@ func TestEveryPolicyFieldIsHonoured(t *testing.T) {
 	for field := range typ.Fields() {
 		name := field.Name
 		if _, ok := honoured[name]; !ok {
-			t.Errorf("forma.Policy.%s is not in the honoured table, so a request that sets it "+
+			t.Errorf("forma.Policy.%s is not in the honored table, so a request that sets it "+
 				"would be told the field was dropped", name)
 		}
 	}
 	for name := range honoured {
 		if _, ok := typ.FieldByName(name); !ok {
-			t.Errorf("the honoured table names %q, which forma.Policy does not have: the "+
+			t.Errorf("the honored table names %q, which forma.Policy does not have: the "+
 				"subtraction would hide a field nothing applies", name)
 		}
 	}
@@ -173,7 +173,7 @@ func TestEveryHonouredWireNameIsExercised(t *testing.T) {
 	for _, c := range honourCases {
 		seen[c.wire] = true
 		if !slices.Contains(honoured[c.field], c.wire) {
-			t.Errorf("the case for %q claims Policy.%s, which honoured does not map to it",
+			t.Errorf("the case for %q claims Policy.%s, which honored does not map to it",
 				c.wire, c.field)
 		}
 	}
@@ -188,12 +188,12 @@ func TestEveryHonouredWireNameIsExercised(t *testing.T) {
 // The subtraction is per dialect, and it is exactly the set of names that
 // reached Policy.
 //
-// This is 009-D12's invariant as a matrix rather than as a list: every honoured
+// This is 009-D12's invariant as a matrix rather than as a list: every honored
 // wire name against every route, asserting that a member was applied if and
 // only if it was left out of the loss report. Both diagonals are bugs, and the
 // quiet one is the second: max_output_tokens sent to /v1/chat/completions sets
 // no bound, and subtracting the name anyway would report an unbounded
-// completion as one that honoured its limit.
+// completion as one that honored its limit.
 func TestAWireNameIsSubtractedExactlyWhereItIsApplied(t *testing.T) {
 	t.Parallel()
 	// The cases come from honourCases so the two cannot drift: one entry per
@@ -230,7 +230,7 @@ func TestAWireNameIsSubtractedExactlyWhereItIsApplied(t *testing.T) {
 							w.Header().Get("X-Forma-Loss"), r.name, wire)
 					} else {
 						t.Errorf("%s on %s set nothing and X-Forma-Loss = %q says nothing: the "+
-							"knob was dropped and the caller was told it was honoured",
+							"knob was dropped and the caller was told it was honored",
 							wire, r.name, w.Header().Get("X-Forma-Loss"))
 					}
 				}
@@ -242,7 +242,7 @@ func TestAWireNameIsSubtractedExactlyWhereItIsApplied(t *testing.T) {
 // The per-dialect tables and the Policy table describe the same set of names.
 //
 // A name in honouredOn that Policy does not have would subtract a field nothing
-// applies; a name in honoured that no dialect claims would be a knob no route
+// applies; a name in honored that no dialect claims would be a knob no route
 // can reach, which is a knob that is always reported as lost.
 func TestTheDialectTablesAgreeWithThePolicyTable(t *testing.T) {
 	t.Parallel()
@@ -250,7 +250,7 @@ func TestTheDialectTablesAgreeWithThePolicyTable(t *testing.T) {
 	for d, names := range honouredOn {
 		for n := range names {
 			if !honouredWire[n] {
-				t.Errorf("%s claims to honour %q, which no forma.Policy field is mapped to", d, n)
+				t.Errorf("%s claims to honor %q, which no forma.Policy field is mapped to", d, n)
 			}
 			union[n] = true
 		}

@@ -209,7 +209,7 @@ func TestCmdBenchWritesBothReports(t *testing.T) {
 	}
 }
 
-// TestCmdBenchSaysWhenItWroteNoRecord: 017-D6 makes the JSON the artefact that
+// TestCmdBenchSaysWhenItWroteNoRecord: 017-D6 makes the JSON the artifact that
 // gates a regression, so a run that produced none has to say the flag that
 // would have.
 func TestCmdBenchSaysWhenItWroteNoRecord(t *testing.T) {

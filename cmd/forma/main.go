@@ -52,7 +52,7 @@
 //     `forma bench`, and it is obtained: the engine takes the caller's recorder
 //     through forma.WithRecorder (017-D7, options.go), so every run here carries
 //     the four terms. A record without them is a session opened without a
-//     recorder, and it says so rather than marshalling a report of zeros that
+//     recorder, and it says so rather than marshaling a report of zeros that
 //     reads as a measurement. See noBreakdownNote in record.go.
 //   - `forma serve` prints the admission limit with the three terms it was
 //     divided out of, not as a bare count (specs/009-server.md §6). The

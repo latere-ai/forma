@@ -125,7 +125,7 @@ func TestFullRecorderKeepsTheMostRecent(t *testing.T) {
 	if want := 6; rep.Dropped != want {
 		t.Errorf("Dropped = %d, want %d (3 steps and 3 TTFTs overwritten)", rep.Dropped, want)
 	}
-	// The kept observations are the last two, 4µs and 5µs. The old behaviour
+	// The kept observations are the last two, 4µs and 5µs. The old behavior
 	// gave 2µs here, so this assertion is the one that changes with it.
 	if got, want := rep.Decode.Host.P99, 5*time.Microsecond; got != want {
 		t.Errorf("Host.P99 = %v, want %v: the recorder keeps the suffix", got, want)

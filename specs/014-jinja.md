@@ -15,7 +15,7 @@ than permanent by neglect.
 ## 1. The trigger
 
 Two of: more than roughly six model families; a family whose checkpoints
-routinely ship customised templates; or a template feature that a Go renderer
+routinely ship customized templates; or a template feature that a Go renderer
 cannot reasonably mirror. Until then a renderer is 60 lines and an interpreter
 is a language.
 
@@ -25,7 +25,7 @@ and warns naming both checksums when it differs from the renderer's
 (`template.go`, 003-D2). Until then the pieces existed and nothing called them,
 so the trigger this spec waits on could not fire. It now reports itself, which
 is what makes the deferral honest rather than indefinite: a checkpoint that
-customises its template says so at load.
+customizes its template says so at load.
 
 ## 2. The subset
 

@@ -109,7 +109,7 @@ func (a *admitter) acquire(ctx context.Context) (func(), *apiError) {
 // calls are a bug in this file rather than in a caller's defer.
 func (a *admitter) release() { <-a.slots }
 
-// overloaded builds the 429, with the Retry-After a caller should honour.
+// overloaded builds the 429, with the Retry-After a caller should honor.
 func (a *admitter) overloaded(reason, format string, args ...any) *apiError {
 	e := &apiError{kind: errOverloaded, reason: reason, retryAfter: retryAfter(a.wait)}
 	e.msg = fmt.Sprintf(format, args...)

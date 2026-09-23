@@ -336,7 +336,7 @@ func TestC16MixedStepEqualsTheSeparateSteps(t *testing.T) {
 // TestC16TheExtentsAreRead varies the option and requires the output to move.
 //
 // specs/010-conformance.md §2: "where an option is optional, vary it and check
-// the output moves. An option that changes nothing is either honoured and
+// the output moves. An option that changes nothing is either honored and
 // irrelevant, or ignored." The extents are the whole row, so a step that
 // produced the same answer under a different split would be reading the flat
 // buffer as one sequence and the probe would be green for the wrong reason.

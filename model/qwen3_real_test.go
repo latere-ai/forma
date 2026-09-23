@@ -115,7 +115,7 @@ func TestQwen3RealCheckpoint(t *testing.T) {
 	// The discrepancy, asserted rather than worked around. config.json sets
 	// tie_word_embeddings and the checkpoint ships lm_head.weight anyway: one
 	// [151936, 1024] BF16 plane whose bytes are identical to the embedding's,
-	// materialised by whatever wrote the file. §4 calls that combination a
+	// materialized by whatever wrote the file. §4 calls that combination a
 	// contradiction and refuses it, so the map does not name the tensor and
 	// Check refuses the checkpoint this project targets.
 	//

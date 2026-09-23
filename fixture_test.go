@@ -168,7 +168,7 @@ func plane(name string, n int, gain bool) []float32 {
 		seed ^= seed << 5
 		v := float32(int32(seed%32)-16) / 32
 		if gain {
-			// A norm gain near one: a gain centred on zero would zero the
+			// A norm gain near one: a gain centered on zero would zero the
 			// residual stream and every logit with it.
 			v = 1 + v/4
 		}

@@ -33,7 +33,7 @@ const (
 //
 // A checkpoint whose template hashes to something else still renders, with a
 // warning naming both checksums (003-D2). The warning is the caller's: a
-// renderer that consulted the checksum would have two behaviours to test and
+// renderer that consulted the checksum would have two behaviors to test and
 // would refuse work a human can verify by reading the prompt.
 const Qwen3TemplateChecksum = "a55ee1b1660128b7098723e0abcd92caa0788061051c62d51cbe87d9cf1974d8"
 
@@ -55,7 +55,7 @@ func (q qwen3) Render(msgs []Message, opts Options) (Prompt, error) {
 	b := &builder{}
 	// A system message is emitted only when the caller supplied one, and only
 	// from position zero, which is where the template looks for it. Qwen3 has no
-	// default system prompt and inventing one changes the tuned behaviour
+	// default system prompt and inventing one changes the tuned behavior
 	// (003-D5).
 	leadSystem := len(msgs) > 0 && msgs[0].Role == System
 	q.header(b, msgs, opts, leadSystem)
@@ -99,7 +99,7 @@ func (q qwen3) Render(msgs []Message, opts Options) (Prompt, error) {
 		b.text("assistant\n")
 		if !opts.Thinking {
 			// Thinking off does not omit the block, it pre-closes one. Omitting
-			// it leaves the model free to open its own, which is the behaviour
+			// it leaves the model free to open its own, which is the behavior
 			// the flag exists to prevent (specs/003 section 3).
 			b.control(thinkOpen)
 			b.text("\n\n")
@@ -204,7 +204,7 @@ func arguments(call *ToolUse) string {
 }
 
 // toolJSON is one tool in the shape Hugging Face's tojson filter produces for a
-// normalised tool definition: a space after every colon and comma, no HTML
+// normalized tool definition: a space after every colon and comma, no HTML
 // escaping, and the schema copied through untouched.
 func toolJSON(t ToolSpec) string {
 	schema := "{}"
