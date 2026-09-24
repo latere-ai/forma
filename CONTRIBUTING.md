@@ -33,7 +33,7 @@ Nothing is implemented before the spec that owns it is written and its decisions
 recorded. [`specs/README.md`](specs/README.md) has the lifecycle, the
 frontmatter shape, and the decision-record format.
 
-If you are changing behavior, change the spec in the same series of commits —
+If you are changing behavior, change the spec in the same series of commits,
 amending the decision record **in place**, with the new reasoning, rather than
 deleting the old row. The value of a decision record is that a later reader can
 see what was considered.
@@ -49,7 +49,7 @@ cannot go stale. The rules are in `.lateregate.yaml`; the checker is
 ## Tests
 
 - **Every bug fix has a test that fails without the fix.** No exceptions.
-- **No test downloads weights.** CI runs on synthetic configurations — 2 layers,
+- **No test downloads weights.** CI runs on synthetic configurations: 2 layers,
   hidden size 64, vocab 128, seeded weights. Real weights run behind `FORMA_MODEL`
   and never in CI ([000 D8](specs/000-decisions.md)).
 - **Tolerances are derived, and carry a comment naming the term that produced
@@ -63,10 +63,10 @@ cannot go stale. The rules are in `.lateregate.yaml`; the checker is
   after taking one, so a loop that stops nudging early parks it forever and then
   reports the timeout as a behavior failure. This failed only under `-race`,
   where the timing is slow enough to lose a race the test did not know it had.
-  Yield in such a loop, too — a hot spin starves the goroutine under test.
+  Yield in such a loop, too: a hot spin starves the goroutine under test.
 - **Do not `Sleep` to reach a state.** "Give it time to get to the queue" is a
   guess that holds on a fast machine and fails under `-race` on a loaded CI
-  runner — and it fails as a *behavior* failure, blaming the code for a state
+  runner, and it fails as a *behavior* failure, blaming the code for a state
   the test never reached. Wait for the state itself: poll the gauge, the
   counter, the channel. Every timing bug this project has hit has been one of
   these.
@@ -74,8 +74,8 @@ cannot go stale. The rules are in `.lateregate.yaml`; the checker is
   about 15ms, so a real interval of a few hundred microseconds measures as
   exactly zero, and every rate derived from it is zero. Five tests passed on
   macOS and Linux and failed on Windows for this reason. Assert the
-  *observation count* — a term recorded on every step, a wall clock that
-  advanced — and where a fixture needs measurable time to pass, spend it
+  *observation count* (a term recorded on every step, a wall clock that
+  advanced), and where a fixture needs measurable time to pass, spend it
   deliberately.
 - **No two dimensions in a test fixture may be equal.** A config where the layer
   count equals the key/value head count, or the vocabulary equals the
@@ -86,7 +86,7 @@ cannot go stale. The rules are in `.lateregate.yaml`; the checker is
   layer/kv-head swap in `cmd/forma`. Where a collision is unavoidable, say so in
   the fixture's comment and name what it cannot discriminate.
 
-The coverage floor is 90% per package, not per repository — an average lets a
+The coverage floor is 90% per package, not per repository: an average lets a
 well-tested package carry an untested one. Exemptions live in
 `.lateregate.yaml` with a reason attached: the value in the map *is* the
 reason, and an empty one fails the gate rather than warning.
@@ -120,14 +120,21 @@ make test-hermetic   # the suite with only the toolchain on PATH
 make test-race       # CGO_ENABLED=1, 45m budget
 ```
 
-CI runs all of these plus `make cgo-free`, `make fuzz` and `make dist`, which
-cross-compiles the ten GOOS/GOARCH pairs. `make validate` is the three of them
-that defend a promise most repos do not make.
+`make check` runs the whole bar in one command (`go tool lateregate`), and
+`go tool lateregate list` names every gate in it, including `cgo-free`, `lint`
+and `vuln`. CI runs that same bar on Linux, the test suite on Windows, and the
+suite with `FORMA_REQUIRE_METAL=1` on a macOS runner, where a missing Metal
+device is a failure rather than a skip.
 
-Every gate is a make target, and every target runs the same on your machine as
-on a runner: the checks live in `latere.ai/x/ci-gate`, pinned in `go.mod`, so
-they need nothing checked out but this repository. That is deliberate — a gate
-you can only run in CI tells you too late.
+Two targets are not in CI and are worth running before a change that could
+affect them. `make dist` cross-compiles the ten GOOS/GOARCH pairs the README's
+cross-compilation claim rests on. `make fuzz` replays the fuzz seed corpus on
+its own; the same seeds also run inside `go test`.
+
+The checks live in `latere.ai/x/ci-gate`, pinned in `go.mod`, so every gate runs
+the same on your machine as on a runner and needs nothing checked out but this
+repository. That is deliberate: a gate you can only run in CI tells you too
+late.
 
 **Before you push, build a clean clone.** Every gate above reads your working
 tree; CI reads what you committed. A file you forgot to stage passes locally and
@@ -137,7 +144,7 @@ fails everywhere else:
 T=$(mktemp -d) && git clone -q . $T/forma && (cd $T/forma && go build ./... && go test ./...)
 ```
 
-This has cost a red build once already — `go.mod` was left out of a commit that
+This has cost a red build once already: `go.mod` was left out of a commit that
 staged its packages by name, so nine green packages built against a module file
 CI did not have.
 
@@ -162,8 +169,8 @@ actually been:
 | Wave 9 | 3055s | 45m | a batched step runs B forward passes, and the regressions for four cache defects run several |
 
 **The budget is 3500s.** Past it, the answer is to make the suite cheaper and
-not the ceiling higher: no single test above is large — the heaviest is 22s and
-the top twelve are 155s between them — so the growth is a suite that does more
+not the ceiling higher: no single test above is large (the heaviest is 22s and
+the top twelve are 155s between them), so the growth is a suite that does more
 each wave, and the lever is fixtures sized to their assertions rather than to
 what was convenient.
 
@@ -182,7 +189,7 @@ Windows is the one to watch, and it is the reason the ceiling is 45m rather than
 **One thing measured rather than assumed.** Wave 9 shrank three regression
 fixtures from 33s to 3.1s, re-checking each against a faithful revert of its own
 fix so the smaller fixture still reached the bug. The suite's CPU moved from
-3041s to 3055s — that is, **not at all**. The growth is the suite doing more,
+3041s to 3055s, that is, **not at all**. The growth is the suite doing more,
 spread over everything, and not any one test being large. So the lever when the
 budget binds is the shape of what the suite exercises, not a search for the
 slowest test.
@@ -195,23 +202,26 @@ ten minutes `go test` allows by default.
 ## Dependencies
 
 Forma's core is stdlib, `golang.design/x/accel`, and
-`golang.org/x/text/unicode/norm` for Unicode NFC — which the tokenizer cannot be
+`golang.org/x/text/unicode/norm` for Unicode NFC, which the tokenizer cannot be
 correct without and the standard library does not provide
 ([002-D10](specs/002-tokenizer.md)). `forma/server` adds
-`latere.ai/x/pkg/llmdialect` and nothing else.
+`latere.ai/x/pkg/llmdialect` for the wire dialects and `latere.ai/x/pkg/health`
+for the probes, and nothing else.
 
 That module carries a large dependency set of its own, and none of it reaches
-Forma — Go's module graph pruning keeps a consumer's build list to llmdialect's
+Forma: Go's module graph pruning keeps a consumer's build list to llmdialect's
 stdlib-only subtree ([009 §2.1](specs/009-server.md)). **This holds because of
-what llmdialect currently imports, not because of a guarantee**, so from M9 CI
-checks the non-stdlib build list against an allowlist.
+what llmdialect currently imports, not because of a guarantee**, so the
+`depcheck` gate (`make deps`) checks the non-stdlib build list of `forma/server`
+and `forma/tokenizer` against the allowlist in `.lateregate.yaml`, on all ten
+platforms.
 
 Adding a dependency means editing that allowlist, in the same commit, with the
 reason. A `go.sum` that grows without one is the review comment.
 
 ## Commits
 
-One logical change per commit, staged explicitly — not `git add -A`. The message
+One logical change per commit, staged explicitly, not `git add -A`. The message
 says **why**, not what; the diff already says what. Where a change reverses an
 earlier decision, say which and what changed your mind.
 
