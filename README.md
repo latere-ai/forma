@@ -5,98 +5,82 @@
 </p>
 
 <p align="center">
+  <a href="https://github.com/latere-ai/forma/actions/workflows/ci.yml"><img src="https://github.com/latere-ai/forma/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://pkg.go.dev/latere.ai/x/forma"><img src="https://pkg.go.dev/badge/latere.ai/x/forma.svg" alt="Go Reference"></a>
   <img src="https://img.shields.io/badge/go-1.27+-00ADD8.svg" alt="Go 1.27+">
   <img src="https://img.shields.io/badge/cgo-free-success.svg" alt="cgo-free">
-  <img src="https://img.shields.io/badge/license-Apache--2.0-blue.svg" alt="License: Apache-2.0">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-blue.svg" alt="License: Apache-2.0"></a>
   <img src="https://img.shields.io/badge/status-early-orange.svg" alt="Status: early">
 </p>
 
----
-
-Forma runs open-weight language models from Go. It builds to **one static binary**
-with `CGO_ENABLED=0` — no C++ runtime, no Python, no vendor SDK, and nothing to
-install beside it. You cross-compile it the way you cross-compile any Go
-program.
+Forma runs open-weight language models from Go, as a library or as a command.
+It builds to one static binary with `CGO_ENABLED=0`: no C++ runtime, no
+Python, no vendor SDK, and nothing to install beside it. You cross-compile it
+the way you cross-compile any Go program.
 
 > [!IMPORTANT]
-> **Early, and it works.** Forma loads a real Qwen3 checkpoint and generates text
-> on Apple silicon today — about 18 tokens a second on a 0.6B model, with a
-> 170ms wait for the first one.
->
-> One caveat worth knowing before you plan around it. `forma serve` holds many
-> conversations at once but still gives each request its own forward pass, so
-> its total throughput is close to what one conversation gets. The engine below
-> it does batch — see the table — and connecting the two is the next thing.
-> [`docs/orientation.md`](docs/orientation.md) explains what runs where.
+> **Early, and it runs.** Forma loads Qwen3 checkpoints from Hugging Face and
+> generates on Apple silicon through Metal. On an 8-core Apple machine,
+> Qwen3-0.6B at f16 decodes about 18 tokens a second for one conversation,
+> with about 170 ms to the first token. The CPU backend is correct and far too
+> slow to serve from. No comparison against vLLM has been run yet.
+> [Orientation](docs/orientation.md) says what runs where and what it costs.
 
 ## Install
 
 ```sh
-go get latere.ai/x/forma@main
-go install latere.ai/x/forma/cmd/forma@main
+go install latere.ai/x/forma/cmd/forma@main    # the command
+go get latere.ai/x/forma@main                  # the library, imported as package forma
 ```
 
-Import `latere.ai/x/forma` as package `forma`.
+There is no tagged release yet, so both follow `main`.
 
-## Why you might want it
+## Run a model
 
-**Deployment.** One file. Ship a model inside a Go service, run it on a machine
-you cannot install a toolchain on, cross-compile it for a platform you do not
-build on. No runtime, no version matrix, no container to keep in step with a
-driver.
+```sh
+MODEL=$(forma pull Qwen/Qwen3-0.6B)     # download into the cache and print the directory
+forma run --prompt "Why is the sky blue?" "$MODEL"
+forma serve "$MODEL"                    # listen on 127.0.0.1:11434
+```
 
-**Speed, and this is the goal rather than a claim.** Forma aims to be **faster
-than vLLM**, not to trade speed for convenience. The parts of serving that are
-not matrix multiplication — scheduling a step, sampling a token, turning it back
-into text, deciding what runs next — are pure overhead on every token, and they
-are where a compiled language with no interpreter and no global lock should win.
-Starting up is the same story: Forma builds its compute plan in milliseconds
-rather than loading a Python stack.
+`forma serve` answers OpenAI Chat Completions, Anthropic Messages and OpenAI
+Responses on the same model, with streaming, so most clients work unchanged.
+The model id a request names is the last element of the model directory,
+which `forma serve` prints at startup and `GET /v1/models` lists:
 
-Today [vLLM](https://github.com/vllm-project/vllm) is faster, because Forma does
-not run yet. When it does, the honest position will be a table of measurements
-rather than a claim, and we will publish the ones we lose.
+```sh
+ID=$(basename "$MODEL")
+curl -s http://127.0.0.1:11434/v1/chat/completions \
+  -H 'Content-Type: application/json' \
+  -d '{"model": "'"$ID"'", "messages": [{"role": "user", "content": "Why is the sky blue?"}]}'
+```
 
-**Hardware.** vLLM serves NVIDIA extremely well and other hardware less so. Forma
-runs wherever its compute layer runs, which today means CPU everywhere and Metal
-on Apple silicon.
+`forma info <dir>` prints the architecture, the precision Forma would choose,
+and what the weights and the key/value cache will cost before anything is
+loaded. [Commands](docs/commands.md) covers all five commands and
+[Serving](docs/serving.md) covers the HTTP API.
 
-## What it will do
-
-| | |
-| --- | --- |
-| **Models** | Qwen3 dense — 0.6B through 32B — from Hugging Face safetensors. The hybrid-attention models (Qwen3.5, Qwen3.8) need work in the layer below first |
-| **Precision** | f16, int8 or int4, chosen by what fits your machine and always overridable. A 27B model is 50 GB at f16 and 13 GB at int4 |
-| **Devices** | Metal on Apple silicon, and CPU everywhere. Use a GPU if you have one: the CPU path works and is currently far slower |
-| **APIs** | OpenAI Chat Completions, Anthropic Messages, and OpenAI Responses, so most clients work unchanged |
-| **Serving** | streaming, logprobs, seeded reproducible output, and JSON-schema output that parses every time |
-| **Reuse** | a conversation's next turn prefills only what is new, and with `--prefix-cache process` two conversations sharing a system prompt prefill it once between them; `cache_salt` bounds who shares with whom |
-| **As a library** | open a model, hold a conversation, stream tokens, reuse the prompt a conversation has already paid for, and run several conversations in one forward pass |
-
-**Continuous batching runs, and `forma serve` does not use it yet.** The engine
-puts several conversations in one forward pass, and puts a long prompt's next
-chunk in that same pass rather than making everyone wait for it — so the weights
-are read once for all of them, which is where a server gets most of its
-throughput. Reach it with `Model.NewScheduler`. The server still gives each
-request its own conversation slot, so its throughput is close to what one
-conversation gets; wiring the two together is the next thing.
-
-## What using it will look like
+## Use it as a library
 
 ```go
-m, err := forma.Open("./Qwen3-4B", forma.WithPrecision(forma.Int8))
+m, err := forma.Open(dir, forma.WithPrecision(forma.Int8))
 if err != nil {
 	log.Fatal(err)
 }
 defer m.Close()
 
-s, _ := m.NewSession()
+s, err := m.NewSession()
+if err != nil {
+	log.Fatal(err)
+}
 defer s.Close()
 
-stream, _ := s.Chat(ctx, []chat.Message{
+stream, err := s.Chat(ctx, []chat.Message{
 	{Role: chat.User, Blocks: []chat.Block{{Type: chat.BlockText, Text: "Why is the sky blue?"}}},
 }, forma.Policy{Temperature: 0.7, TopP: 0.8, MaxTokens: 512})
-
+if err != nil {
+	log.Fatal(err)
+}
 for stream.Next() {
 	fmt.Print(stream.Text())
 }
@@ -105,46 +89,67 @@ if err := stream.Err(); err != nil {
 }
 ```
 
-Or as a server, which speaks three APIs on the same model:
+`chat` is `latere.ai/x/forma/chat`. A `Model` is shared and safe for
+concurrent use; a `Session` is one conversation. `Model.NewPool` keeps
+sessions between requests so a conversation's next turn reuses its prefix,
+and `Model.NewRunner` puts every in-flight request in one forward pass. The
+[package documentation](https://pkg.go.dev/latere.ai/x/forma) is the
+reference.
 
-```sh
-forma pull Qwen/Qwen3-0.6B     # fetch a checkpoint into the cache
-forma serve ./Qwen3-0.6B       # then serve it
-```
+## What it does
 
-It answers OpenAI Chat Completions, Anthropic Messages and OpenAI Responses on
-the same model, streaming, so most clients work unchanged.
+| | |
+| --- | --- |
+| **Models** | Qwen3 dense, 0.6B through 32B, read directly from Hugging Face safetensors. The hybrid-attention `qwen3_5` architecture (Qwen3.5, Qwen3.8) is recognized and refused by name until the compute layer below supports it. Any other architecture is refused with the list of what Forma knows |
+| **Precision** | f16, int8 or int4. By default Forma takes the widest that fits the device, prints what it chose, and never picks int4 unless int8 does not fit. Always overridable |
+| **Devices** | Metal on Apple silicon, and a CPU backend everywhere. The CPU backend is a correctness reference, not a serving path |
+| **APIs** | OpenAI Chat Completions, Anthropic Messages, OpenAI Responses, and legacy OpenAI Completions |
+| **Output control** | streaming, seeded reproducible sampling, logprobs, stop sequences, logit bias and penalties, and JSON-schema output that parses every time |
+| **Prompt reuse** | with `--prefix-cache`, a conversation's next turn prefills only what is new; with `--prefix-cache process`, conversations that share a system prompt prefill it once between them, and `cache_salt` bounds who shares with whom |
+| **Batching** | `forma serve --batched` puts every in-flight request in one forward pass, so the weights are read once for all of them. It is opt-in; the default serves each request from its own pooled session |
+| **Refusals** | a request field that would change the answer and cannot be honored is refused by name; one that cannot change it is accepted and listed in the `X-Forma-Loss` response header |
 
-`--sessions N` sets how many conversations it holds at once, and
-`--prefix-cache` lets a conversation's next turn skip the transcript it already
-paid for. `--prefix-cache process` goes further and shares that state *between*
-conversations, so a fleet of agents on one system prompt pays for it once — for
-the same memory, because the pool replaces the per-session caches rather than
-adding to them. Both cost memory that is reserved at startup and held for the
-life of the process; `forma serve` prints the arithmetic before it listens.
-[Session pooling](docs/orientation.md#session-pooling-and-what-it-costs) has the
-numbers.
+## Why it exists
 
-## How it is built, and why that matters to you
+**Deployment.** One file. Ship a model inside a Go service, run it on a machine
+you cannot install a toolchain on, cross-compile it for a platform you do not
+build on. No runtime, no version matrix, no container to keep in step with a
+driver.
+
+**Speed, as a goal.** The parts of serving that are not matrix multiplication
+(scheduling a step, sampling a token, turning it back into text, deciding what
+runs next) are overhead on every token, and they are where a compiled language
+with no interpreter lock should win. Forma measures where each decode step
+goes (host, submit, device, readback) so that claim can be checked. It has not
+been compared against vLLM yet, and vLLM is the better choice today if you
+already run Python.
+
+**Hardware.** Forma runs wherever its compute layer runs: Metal on Apple silicon
+and CPU everywhere today.
+
+## How it is built
 
 Forma does the model; [accel](https://github.com/golang-design/accel) does the
-GPU. Forma contains no GPU code at all — when it needs something accel cannot do,
-it reports the gap upstream and waits rather than working around it.
+device. Forma contains no GPU code and no kernels. When it needs something accel
+cannot do, the gap is reported upstream and recorded here with its reason,
+rather than worked around with private device code.
 
-That is worth knowing for two reasons. It is why Forma gains a backend the moment
-accel does, without changes. And it is why the status above is honest: a limit
-you meet in Forma is a real limit, written down with the reason, rather than a
-sharp edge nobody mapped.
+Two consequences for you: Forma gains a backend when accel does, without
+changes, and a limit you meet in Forma is a real, recorded limit rather than an
+undocumented edge.
 
 ## Documentation
 
-- **[Orientation](docs/orientation.md)** — what Forma is, what runs where, and what
-  it costs in memory. Written for people running models.
-- **[docs/](docs/)** — the index. Quickstart, model and serving guides arrive
-  with the code they describe.
-- **[specs/](specs/)** — the design, written for contributors: what was decided,
-  what was rejected, and why.
-- **[CONTRIBUTING.md](CONTRIBUTING.md)** — start here to work on Forma.
+- **[Orientation](docs/orientation.md)**: what runs where, what it costs in
+  memory, prompt reuse, batching, and which models run.
+- **[Commands](docs/commands.md)**: `pull`, `run`, `info`, `serve` and
+  `bench`, and where checkpoints are cached.
+- **[Serving](docs/serving.md)**: the HTTP routes, request fields, admission,
+  probes and metrics.
+- **[Package documentation](https://pkg.go.dev/latere.ai/x/forma)**: the Go API.
+- **[specs/](specs/README.md)**: the design, written for contributors: what
+  was decided, what was rejected, and why.
+- **[CONTRIBUTING.md](CONTRIBUTING.md)**: how to work on Forma.
 
 ## License
 
