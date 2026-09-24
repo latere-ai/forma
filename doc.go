@@ -87,9 +87,21 @@ distribution and not bit for bit (016-D6). Reuse also stops one token short of
 the prompt, always -- the cache holds key/value state and not logits, and
 sampling needs a forward pass over the last prompt position (016-D10).
 
-Sharing across sessions ([CacheProcess]) is refused rather than approximated.
-It needs the cache addressed through a page table, and forma's graph declares no
-page-table port.
+Sharing across sessions is [CacheProcess]: one block pool, addressed through a
+page table and stored at f16, that every session in the process draws from, so
+two conversations that begin with the same system prompt prefill it once.
+[WithCacheSalt] bounds what a session may match in it, because a hit is
+observable in timing.
+
+# Several conversations in one forward pass
+
+[Model.NewRunner] puts every in-flight request in one forward pass, so the
+weights are read once per step for all of them rather than once each. It is a
+[Scheduler] ([Model.NewScheduler]), an admission [Queue] in front of it, and one
+goroutine that drives them; a caller that wants to drive the steps itself uses
+the scheduler directly. A runner's slots share the [CacheProcess] pool, and a
+request with no cache salt is given one of its own, so it shares with nothing
+(specs/022-batched-serving.md).
 
 # JSON that parses by construction
 
@@ -123,24 +135,16 @@ truncated, at the request and not partway through it (007 §7).
 
 # What runs today, measured
 
-Neither device this package can open runs a real model at a usable speed, and
-that is the state to know before reaching for it rather than after.
-
-accel's Metal backend cannot compile a forma graph at all.
-specs/004-model-graph.md §3.2 slices the last position out before the LM head
-and packs the result, because accel refuses a strided operand into a matrix
-multiply rather than copying behind the caller's back — and the packing kernel
-carries no MSL artifact. Every forward pass contains one, so every compile is
-refused.
+Metal runs a real model. Measured on an 8-core Apple machine on 2026-08-25 with
+Qwen3-0.6B at f16, 64 prompt tokens and 32 decode steps at batch 1: 17.97
+tokens a second decoding, with 94.62% of a decode step on the device
+(specs/017-benchmarks.md §4.1). Every forward pass once failed to compile on
+Metal because accel's packing kernel had no MSL artifact; accel lowered it
+(accel#19), and TestMetalRunsTheForwardPass holds the result.
 
 accel's CPU backend runs, and it is a correctness oracle rather than an engine:
-its own documentation calls it one. Measured on an Apple M2 on 2026-08-25 with
-Qwen3-0.6B at f16, opening the checkpoint takes 11 s and one decode step takes
-3 minutes 21 seconds.
-
-So the loop this package implements is correct, instrumented and tested, on a
-model whose arithmetic no available device does quickly. That gap is the
-finding, and closing it is upstream work.
+its own documentation calls it one. On the same machine and model, opening the
+checkpoint took 11 s and one decode step 3 minutes 21 seconds.
 
 # What this package measures
 
