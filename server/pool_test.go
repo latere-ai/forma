@@ -494,11 +494,14 @@ func processPoolServer(t *testing.T, n int) (*server.Server, *recordingEngine) {
 // TestAProcessPoolSharesAcrossConversations is the process scope over the wire,
 // and it is the thing no session-scoped cache can do at any pool size.
 //
-// Two *different* conversations, sharing a long opening turn and diverging
-// after it. Under [forma.CacheSession] the second is cold whichever session it
+// *Different* conversations, sharing a long opening turn and diverging after
+// it. Under [forma.CacheSession] a second one is cold whichever session it
 // lands on, because a session reuses only what it computed itself. Under
-// [forma.CacheProcess] it reuses the shared opening, and a request carrying a
-// cache_salt does not.
+// [forma.CacheProcess] a second conversation under the same cache_salt reuses
+// the shared opening. One with no salt reuses nothing, because an unsalted
+// request shares with nobody (specs/022-batched-serving.md §7): the pooled
+// engine gives it a salt of its own, as the batched one does, and without that
+// its fast first token was a membership test over the other caller's prompt.
 func TestAProcessPoolSharesAcrossConversations(t *testing.T) {
 	s, eng := processPoolServer(t, 2)
 
@@ -520,7 +523,8 @@ func TestAProcessPoolSharesAcrossConversations(t *testing.T) {
 		want string
 	}{
 		{"the first conversation", "", "what is one?", "cold"},
-		{"a second conversation on the same opening", "", "what is two?", "warm"},
+		{"a second conversation on the same opening, with no salt", "", "what is two?",
+			"cold"},
 		{"a third, under a salt", "tenant-a", "what is three?", "cold"},
 		{"a fourth, under the same salt", "tenant-a", "what is four?", "warm"},
 	} {
@@ -531,8 +535,9 @@ func TestAProcessPoolSharesAcrossConversations(t *testing.T) {
 		got := eng.counts()
 		n := got[len(got)-1]
 		if c.want == "cold" && n != 0 {
-			t.Fatalf("%s reused %d positions; the pool fails closed, so a salt shares "+
-				"with nobody rather than with everybody", c.what, n)
+			t.Fatalf("%s reused %d positions of an opening computed under another "+
+				"salt or under none; the pool fails closed, so a request shares only "+
+				"with requests that sent its salt", c.what, n)
 		}
 		if c.want == "warm" && n == 0 {
 			t.Fatalf("%s reused nothing of an opening another conversation had already "+

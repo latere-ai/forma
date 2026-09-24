@@ -497,6 +497,83 @@ func TestPoolAnUnkeyedRequestNeverReadsAKeyedSession(t *testing.T) {
 	}
 }
 
+// processPoolModel is [poolModel] with the key/value state in the model's shared
+// block pool rather than in each session, which is what --prefix-cache process
+// serves. Four blocks hold both requests of a test beside each other, so a miss
+// below is isolation and not an eviction.
+func processPoolModel(t *testing.T) *Model {
+	t.Helper()
+	return openSynthetic(t, WithContext(poolCap), WithPrefixCache(CacheProcess, 4*CacheBlock))
+}
+
+// secondRequestReuse runs one prompt through a process-scoped pool twice, keyed
+// first and then second, and reports what the second request reused: the
+// positions its stream counted and the hits the shared block pool counted.
+//
+// Both, because they are two accounts of one event kept by two layers. The
+// positions are what the caller is told; the hit is the block pool's own record
+// of a lookup that found another request's blocks, which is the event a timing
+// probe measures, and it is counted below the session that routed to it.
+//
+// The prompt is one block and two positions: sharing is block-aligned (016-D4)
+// and capped one position short of the prompt (016-D10), so this is the
+// shortest prompt that has a whole block to find again.
+func secondRequestReuse(t *testing.T, first, second string) (reused, hits int) {
+	t.Helper()
+	m := processPoolModel(t)
+	p := pool(t, m, 2)
+	prompt := promptIDs(211, CacheBlock+2)
+	if g := leaseRun(t, p, PoolRequest{Key: first}, prompt, greedy(1)); g.usage.CachedPromptTokens != 0 {
+		t.Fatalf("the first request reused %d positions of an empty pool",
+			g.usage.CachedPromptTokens)
+	}
+	before := m.blocks.pool.Stats().Hits
+	g := leaseRun(t, p, PoolRequest{Key: second}, prompt, greedy(1))
+	return g.usage.CachedPromptTokens, m.blocks.pool.Stats().Hits - before
+}
+
+// TestPoolUnsaltedRequestsDoNotShareBlocks is 022 §7 on the pooled engine.
+//
+// Under [CacheProcess] a pooled session holds no key/value state of its own: it
+// leases blocks from the model's pool, and routing takes the coldest session
+// because there is no session history to match. So the key [Pool.route] fails
+// closed on (019-D3) decides nothing here, and what bounds the reuse is the salt
+// the blocks are hashed under. Passed through empty, every unsalted request
+// hashed into one domain and the second caller's first token arrived fast: a
+// membership test over the first caller's prompt.
+func TestPoolUnsaltedRequestsDoNotShareBlocks(t *testing.T) {
+	t.Parallel()
+	reused, hits := secondRequestReuse(t, "", "")
+	if reused != 0 || hits != 0 {
+		t.Errorf("the second unsalted request reused %d positions of the first one's "+
+			"prompt and the shared pool counted %d hit(s); an unkeyed request shares "+
+			"with nobody", reused, hits)
+	}
+}
+
+// TestPoolSaltedRequestsShareBlocks is the other half, and without it the test
+// above passes by disabling the cache.
+func TestPoolSaltedRequestsShareBlocks(t *testing.T) {
+	t.Parallel()
+	reused, hits := secondRequestReuse(t, "tenant-a", "tenant-a")
+	if reused != CacheBlock || hits != 1 {
+		t.Errorf("the second request under the same cache_salt reused %d positions and "+
+			"the shared pool counted %d hit(s); the two share one whole block of %d "+
+			"positions, which is what the field is for", reused, hits, CacheBlock)
+	}
+}
+
+// TestPoolADifferentSaltIsADifferentDomain is the same prompt under two
+// cache_salts, which share nothing.
+func TestPoolADifferentSaltIsADifferentDomain(t *testing.T) {
+	t.Parallel()
+	reused, hits := secondRequestReuse(t, "tenant-a", "tenant-b")
+	if reused != 0 || hits != 0 {
+		t.Errorf("tenant-b reused %d positions of tenant-a's prompt and the shared pool "+
+			"counted %d hit(s)", reused, hits)
+	}
+}
+
 // TestPoolReleaseLeavesTheHistoryAtTheValidLength is the postcondition
 // [Lease.Release]'s truncation exists for (019-D5).
 //

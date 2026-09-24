@@ -189,12 +189,13 @@ func (m *Model) NewRunner(o RunnerOptions) (*Runner, error) {
 // Slots is how many sequences the runner generates at once.
 func (r *Runner) Slots() int { return r.sched.Slots() }
 
-// mintDomain reads the sixteen random bytes every synthesised salt is prefixed
-// with. See [Runner.salt].
+// mintDomain reads the sixteen random bytes every minted salt is prefixed with,
+// once per [Runner] and once per [Pool]. See [Runner.salt].
 func mintDomain() (string, error) {
 	var b [16]byte
 	if _, err := rand.Read(b[:]); err != nil {
-		return "", fmt.Errorf("forma: reading the runner's isolation domain: %w", err)
+		return "", fmt.Errorf("forma: reading the isolation domain minted cache salts "+
+			"are prefixed with: %w", err)
 	}
 	return hex.EncodeToString(b[:]), nil
 }
@@ -207,13 +208,13 @@ func mintDomain() (string, error) {
 //
 // **A request that names none gets a salt unique to itself, so it shares with
 // nothing.** [016-D7](specs/016-prefix-cache.md) and 019-D3 both say an unkeyed
-// request shares with nobody rather than with everybody, and under a pooled
-// session that is true by construction because routing compares the key. Under
-// a shared block pool it is false: the seed's domain is empty for
+// request shares with nobody rather than with everybody. Under a shared block
+// pool a key comparison does not deliver that: the seed's domain is empty for
 // [CacheProcess] (internal/prefix/prefix.go), so every unsalted request hashes
-// into one domain and two tenants with the same system prompt seed identically
-// — the second one's first token arrives fast, which is a membership test over
-// the first one's prompt (specs/022-batched-serving.md §7).
+// into one domain and two tenants with the same system prompt seed identically.
+// The second one's first token arrives fast, which is a membership test over
+// the first one's prompt (specs/022-batched-serving.md §7). [Pool.salt] mints
+// for the same reason.
 //
 // The minted salt is **sixteen random bytes and a counter**, not a counter
 // alone. A caller's salt is used verbatim, so any predictable namespace can be

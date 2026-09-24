@@ -16,3 +16,14 @@ committed: the commit log already holds that.
 - Rename configuration to `FORMA_CACHE`, `FORMA_MODEL`, and `FORMA_REQUIRE_METAL`,
   the default cache directory to `forma`, the loss header to `X-Forma-Loss`, and
   benchmark records to `forma.bench/1`, and metric names to `forma_*`.
+
+### Fixed
+
+- `forma serve --prefix-cache process` on the pooled engine no longer shares
+  cached prompts between requests that carry no `cache_salt`. A cache hit makes
+  the first token arrive sooner, so one unsalted caller could test what another
+  had sent. An unsalted request now shares with nothing, as it already did under
+  `--batched`, and requests that send the same `cache_salt` still share. A
+  deployment that relied on unsalted requests sharing a system prompt sends the
+  same `cache_salt` on each of them. In the library, a `PoolRequest` with an
+  empty `Key` gets a salt of its own under `CacheProcess`.

@@ -77,8 +77,9 @@ Two things it costs. Every pooled session's cache is allocated by
 [Model.NewPool] and released only by [Pool.Close], so a process holds N
 sessions' cache whether or not a second request arrives. And affinity is keyed
 by [PoolRequest.Key], which fails closed: a request with no key matches only
-sessions whose last request had none, so a caller who sets nothing shares with
-nobody rather than with everybody.
+sessions whose last request had none, and under [CacheProcess], where the
+sessions share one block pool, it is given a salt of its own and shares no block
+with any other request.
 
 It is off by default, and turning it on is a decision rather than a default,
 because a reused prefix was computed under a different prefill shape and

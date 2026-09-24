@@ -7,7 +7,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strconv"
 	"sync"
+	"sync/atomic"
 
 	"latere.ai/x/forma/bench"
 	"latere.ai/x/forma/chat"
@@ -26,12 +28,19 @@ import (
 // session that held it (016 §7.2). A pool keeps the history, and the request is
 // routed to it.
 //
-// The unit of sharing is the session, not the block. Two conversations with the
-// same system prompt still pay for it twice, which is what
-// specs/016-prefix-cache.md §4's block pool would fix and what this cannot at
-// any pool size (019-D1). What this needs, and 016 does not have, is nothing:
-// a session's cache is contiguous and single-owner, so a row's index is its
-// position and no page table is involved.
+// # What a request reuses, under each scope
+//
+// Under [CacheSession] the unit of sharing is the session, not the block. A
+// session's cache is contiguous and single-owner, a request reuses only what
+// the session it is routed to already holds, and two conversations with the
+// same system prompt each pay for it (019-D1).
+//
+// Under [CacheProcess] a pooled session holds no key/value state of its own. It
+// leases blocks from the model's pool through a page table, [Pool.route]
+// matches no session history and takes the coldest session, and what a request
+// reuses is whatever blocks the pool finds under the request's salt (019 §9).
+// [PoolRequest.Key] bounds both mechanisms, and [Pool.salt] is why an empty key
+// is not passed through to the second.
 //
 // # What it costs
 //
@@ -63,6 +72,11 @@ type Pool struct {
 	tick uint64
 
 	closed bool
+
+	// domain and minted make the salt of a request that carries no key. See
+	// [Pool.salt].
+	domain string
+	minted atomic.Uint64
 }
 
 // poolEntry is one pooled session and what routing needs to know about it.
@@ -92,10 +106,19 @@ type PoolRequest struct {
 	Tools    []chat.ToolSpec
 	Thinking bool
 
-	// Key is the affinity key. A request may match only a session whose last
-	// request carried the same key, and the empty string is a key of its own:
-	// a caller who supplies nothing shares with nobody rather than with
-	// everybody (019-D3).
+	// Key bounds what the request may reuse, under either scope.
+	//
+	// Under [CacheSession] it is the affinity key. A request may be routed only
+	// to a session whose last request carried the same key, and the empty
+	// string is a key of its own: an unkeyed request never reads a keyed
+	// session's history and a keyed one never reads an unkeyed session's
+	// (019-D3).
+	//
+	// Under [CacheProcess] it is also the salt the request's blocks are hashed
+	// under, so a request shares blocks only with requests that carried the
+	// same key. An empty key is not passed through there: the pool mints a salt
+	// unique to the lease, so an unkeyed request shares no block with any other
+	// request (022-D8). See [Pool.salt].
 	//
 	// forma has no notion of a tenant (009 §7), so the key is whatever the layer
 	// in front supplies. specs/016-prefix-cache.md §7.1's cache_salt is what
@@ -121,7 +144,12 @@ func (m *Model) NewPool(n int) (*Pool, error) {
 		return nil, fmt.Errorf("forma: a pool of %d sessions holds no conversation; it needs "+
 			"at least one", n)
 	}
-	p := &Pool{m: m, sem: make(chan struct{}, n), entries: make([]*poolEntry, 0, n)}
+	domain, err := mintDomain()
+	if err != nil {
+		return nil, err
+	}
+	p := &Pool{m: m, sem: make(chan struct{}, n), entries: make([]*poolEntry, 0, n),
+		domain: domain}
 	for i := range n {
 		s, err := m.NewSession()
 		if err != nil {
@@ -197,7 +225,37 @@ func (p *Pool) Acquire(ctx context.Context, req PoolRequest) (*Lease, error) {
 		<-p.sem
 		return nil, errors.New("forma: the pool is closed")
 	}
-	return &Lease{p: p, req: req}, nil
+	return &Lease{p: p, req: req, salt: p.salt(req.Key)}, nil
+}
+
+// salt is what a lease's blocks are hashed under in a process-scoped block
+// pool: the request's key when it carries one, and a salt minted for the lease
+// when it does not.
+//
+// An empty key passed through would be one domain. Under [CacheProcess] the
+// chain seed's scope domain is empty (internal/prefix/prefix.go), so every
+// unkeyed request would hash into it and hit the blocks every other unkeyed
+// request published. A hit is faster than a miss, so that is a membership test
+// over another caller's prompt (022 §7). Routing does not prevent it: under
+// [CacheProcess] [Pool.route] matches no session history and sends every
+// request to the coldest session, so the key it compares decides nothing.
+//
+// The minted salt is [Runner.salt]'s, for its reasons: random bytes, so no
+// caller can name the domain and share into it, and a counter, so no two
+// leases share one. It is minted per lease rather than per generation, so a
+// second generation on one lease reuses the first one's blocks and nobody
+// else's. The blocks are still published, under a seed only this lease holds,
+// and age out of the pool like any other cached block. The cost is that an
+// unkeyed conversation's next turn reuses nothing under [CacheProcess] unless
+// its client sends a key, which is the batched engine's rule too (022-D8).
+//
+// Under [CacheSession] a pooled session owns its cache, the salt reaches
+// nothing, and [Pool.route]'s key comparison is the whole of the isolation.
+func (p *Pool) salt(key string) string {
+	if key != "" {
+		return key
+	}
+	return p.domain + "-" + strconv.FormatUint(p.minted.Add(1), 36)
 }
 
 // Lease is one request's hold on one pooled session.
@@ -208,6 +266,10 @@ func (p *Pool) Acquire(ctx context.Context, req PoolRequest) (*Lease, error) {
 type Lease struct {
 	p   *Pool
 	req PoolRequest
+
+	// salt is what this lease's blocks are hashed under in a process-scoped
+	// block pool, fixed for the lease's life. See [Pool.salt].
+	salt string
 
 	// e is the session this lease routed to, and is nil until the first
 	// generation. A second generation on one lease keeps the same session:
@@ -307,12 +369,13 @@ func (l *Lease) generate(ctx context.Context, ids []int, p Policy) (*Stream, err
 	// the next reader, and [Session.Chat] on a pooled session would use them.
 	s.thinking, s.tools = l.req.Thinking, l.req.Tools
 	s.rec = l.req.Recorder
-	// The same key bounds both mechanisms. It decides which session this
-	// request may be routed to (019-D3) and, under a process-scoped block
-	// pool, which blocks it may match -- and they have to be the same string
-	// or a request excluded from a session's history would reach the same
-	// tokens through the pool a layer down.
-	s.salt = l.req.Key
+	// Routing compared the key (019-D3), and under a process-scoped block pool
+	// the salt decides which blocks this request may match. The salt must be
+	// at least as narrow as the key, or a request excluded from a session's
+	// history would reach the same tokens through the pool a layer down. It
+	// is: the key itself when there is one, and when there is none a salt no
+	// other request holds.
+	s.salt = l.salt
 	if err := s.usable(); err != nil {
 		return nil, err
 	}
