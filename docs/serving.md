@@ -76,8 +76,8 @@ not constrained, so check bounds after decoding.
 
 With `--prefix-cache`, a request that begins with tokens the server already
 scored reuses that work and prefills only what is new. `session` scope reuses
-within one conversation; `process` scope shares across conversations, so a
-common system prompt is prefilled once. A reused prefix gives the same answer
+within one conversation; `process` scope shares across conversations that send
+the same `cache_salt`, so their common system prompt is prefilled once. A reused prefix gives the same answer
 in distribution, not byte for byte, because floating point addition is not
 associative. [Orientation](orientation.md#prompt-caching) explains the scopes
 and what each costs.
@@ -87,13 +87,19 @@ faster, so a caller who can share another caller's cache can test what that
 caller sent. `cache_salt` is the boundary. A request carrying a salt reuses
 only work done for requests carrying the same salt.
 
-A request carrying no salt is treated differently by the two engines:
+What a request carrying no salt shares depends on the scope:
 
-- **Batched (`--batched`).** The request is given a random salt of its own and
-  shares with nothing, not even the earlier turns of its own conversation. A
-  client that wants its next turn to reuse the conversation sends a salt.
-- **Pooled (the default).** Unsalted requests share with each other. Under
-  `--prefix-cache process` that includes the prompts of other unsalted callers.
+- **`process`, on either engine.** The request is given a random salt of its
+  own and shares with nothing, not even the earlier turns of its own
+  conversation. `--batched` always runs in this scope. A client that wants its
+  next turn to reuse the conversation sends a salt, and a single-tenant
+  deployment that wants its requests to share a system prompt sends the same
+  salt on every request.
+- **`session`, pooled.** Unsalted requests share the pool's sessions with each
+  other: a request can reuse the cache an earlier unsalted request left in its
+  session. That is how a conversation's next turn reuses its own work without a
+  salt, and it also means one unsalted caller's hit can reveal what another
+  sent.
 
 Anything that multiplexes several tenants through one server should set a salt
 per tenant.

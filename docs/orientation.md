@@ -155,7 +155,7 @@ It is **off unless you ask for it**, with `--prefix-cache` on `forma serve` or
 | scope | reuses | costs |
 | --- | --- | --- |
 | `session` | work done earlier in the same conversation | each session's own cache |
-| `process` | work done for any conversation, so a shared system prompt is prefilled once | one shared pool at f16, sized by `--kv`; which slot a request lands on stops mattering |
+| `process` | work done for any conversation that sends the same `cache_salt`, so a shared system prompt is prefilled once | one shared pool at f16, sized by `--kv`; which slot a request lands on stops mattering |
 
 Three things to know before you turn it on:
 
@@ -166,8 +166,9 @@ Three things to know before you turn it on:
   your prompt is skipped, so the same question can still get a different answer.
 - **A hit is visible in timing.** Under `process` scope, a caller whose prompt
   hits another caller's cache can tell. `cache_salt` on a request bounds what it
-  may share with; [Serving](serving.md#prompt-caching-and-cache_salt) says
-  exactly how, per engine. Anything that serves several tenants from one
+  may share with, and under `process` scope a request without one shares with
+  nothing; [Serving](serving.md#prompt-caching-and-cache_salt) says exactly
+  how. Anything that serves several tenants from one
   process should set a salt per tenant.
 
 ## Serving several requests: pooled sessions
@@ -184,8 +185,9 @@ is two numbers at once:
   served since its last turn.
 
 Under `process` scope the cache lives in one shared pool, so `--slots` is
-concurrency alone and a conversation finds its own work however many others
-were served in between.
+concurrency alone and a conversation that sends a `cache_salt` finds its own
+work however many others were served in between. One that sends none shares
+nothing, not even with its own earlier turns.
 
 The cost is memory, and it is not conditional. Every slot's cache, or the shared
 pool under `process` scope, is reserved when the process starts and held until
