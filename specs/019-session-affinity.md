@@ -155,7 +155,13 @@ than with everybody, which is the opposite of vLLM's default and is the whole
 reason 016 §7.1 took a scope as well as a salt.
 
 A single-tenant deployment sets no key and gets full sharing among its own
-unkeyed requests, which is correct: there is one tenant.
+unkeyed requests, which is correct: there is one tenant. That holds under
+`--prefix-cache session`, where what is shared is the pool's sessions. Under
+`process` what is shared is the block pool, which routing does not guard
+([§9](#9-what-this-is-not)), so an unkeyed request there gets a salt minted for
+its lease and shares no block with any other request, as the batched engine's
+does ([022 §7](022-batched-serving.md)). A single-tenant deployment that wants
+the block pool's sharing sends one `cache_salt` on every request.
 
 ## 6. Correctness
 
@@ -181,6 +187,7 @@ ends early truncates its session's history to the last position it completed.
 | $N+1$ distinct conversations round-robin: the one evicted is the coldest, and it prefills whole | §3.1's reuse distance |
 | a request matching 40 tokens does **not** evict a session holding 8000 when an equal match exists on a shorter one | §3.2 |
 | a keyed request never matches an unkeyed session's history, and vice versa | §5 — asserted on reuse count, which is the thing the oracle would read |
+| under `CacheProcess`, two unkeyed requests with one prompt: the second reuses nothing and the block pool counts no hit; two under one key hit, and two under different keys do not | §5 under the process scope, where routing matches nothing and the salt is the whole of the isolation |
 | a cancelled request's session, reused by the next request, produces the same answer as a cold one | §6's truncation hazard: without it the next request attends to KV that was never written |
 | $N$ concurrent requests all get a session and the $N+1$th waits rather than failing | §4's semaphore |
 | under `-race`, concurrent routing over the pool keeps one owner per session | §4 |
@@ -418,7 +425,10 @@ coldest session by last use, and `Lease.generate` rewinds that session to 0.
 [§3.2](#32-choosing-the-victim-destroys-history)'s tie-break never execute.
 Reuse moves one layer down instead: `Session.acquire` leases blocks from the
 model's pool and is told how many positions were already computed, matched by
-hash on the same key this spec routes on. So `--prefix-cache process` gets block
+hash on the same key this spec routes on. An empty key is the exception: it is
+replaced by a salt minted for the lease, because routing that matches nothing
+cannot fail closed and an empty salt is one domain every unkeyed request shares
+([022 §7](022-batched-serving.md)). So `--prefix-cache process` gets block
 sharing and a coldest-session round robin, not affinity as well, and the session
 pool there is admission and eviction only. It hands the block pool nothing — the
 block pool is the model's, sized by `forma serve` as `--sessions` × `--context`.
@@ -447,6 +457,12 @@ why `server.New` refuses it
 unkeyed sessions. vLLM's `cache_salt` fails open; a framework whose default
 makes one user's conversation detectable by another has made a security decision
 for the operator. See [§5](#5-isolation-the-pool-is-now-the-boundary).
+Under `CacheProcess` routing matches nothing ([§9](#9-what-this-is-not)) and the
+key reaches the block pool as a salt, where an empty one is a single domain for
+every unkeyed request. There an unkeyed request gets a salt minted per lease, as
+[022-D8](022-batched-serving.md) has the runner do. The key alone was passed
+through at first, and the pooled engine shared every unsalted caller's blocks
+with every other while this record said it failed closed.
 
 **019-D4. Longest match wins, shortest history breaks the tie.** Routing chooses
 what to destroy as much as what to reuse, and the tie-break is what stops a
