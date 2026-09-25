@@ -105,7 +105,7 @@ reference.
 | **Devices** | Metal on Apple silicon, and a CPU backend everywhere. The CPU backend is a correctness reference, not a serving path |
 | **APIs** | OpenAI Chat Completions, Anthropic Messages, OpenAI Responses, and legacy OpenAI Completions |
 | **Output control** | streaming, seeded reproducible sampling, logprobs, stop sequences, logit bias and penalties, and JSON-schema output that parses every time |
-| **Prompt reuse** | with `--prefix-cache`, a conversation's next turn prefills only what is new; with `--prefix-cache process`, conversations that share a system prompt prefill it once between them, and `cache_salt` bounds who shares with whom |
+| **Prompt reuse** | with `--prefix-cache`, a conversation's next turn prefills only what is new; with `--prefix-cache process`, conversations that send the same `cache_salt` and share a system prompt prefill it once between them, and a request with no `cache_salt` shares with nothing |
 | **Batching** | `forma serve --batched` puts every in-flight request in one forward pass, so the weights are read once for all of them. It is opt-in; the default serves each request from its own pooled session |
 | **Refusals** | a request field that would change the answer and cannot be honored is refused by name; one that cannot change it is accepted and listed in the `X-Forma-Loss` response header |
 
