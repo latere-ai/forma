@@ -199,7 +199,7 @@ func WithSessionContext(n int) SessionOption {
 // caller who supplies nothing gets the safe answer, not the fast one, and
 // sessions that should share a system prompt pass one salt. forma has no notion
 // of a tenant (009 §7), so what belongs here is whatever the layer in front
-// uses to tell them apart — the server puts a request's cache_salt in it.
+// uses to tell them apart. The server puts a request's cache_salt in it.
 func WithCacheSalt(v string) SessionOption {
 	return func(o *sessionOptions) { o.salt = v }
 }
@@ -243,7 +243,7 @@ const (
 	// salt shares with nobody, and reuses only its own earlier turns.
 	//
 	// It costs a page table in the innermost loop of every decode, and it makes
-	// a hit observable across the conversations that share a salt — so it is a
+	// a hit observable across the conversations that share a salt, so it is a
 	// deployment's decision and never a default (016-D7). [WithCacheSalt] is
 	// what decides who shares.
 	CacheProcess
