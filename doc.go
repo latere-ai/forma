@@ -90,9 +90,11 @@ sampling needs a forward pass over the last prompt position (016-D10).
 
 Sharing across sessions is [CacheProcess]: one block pool, addressed through a
 page table and stored at f16, that every session in the process draws from, so
-two conversations that begin with the same system prompt prefill it once.
-[WithCacheSalt] bounds what a session may match in it, because a hit is
-observable in timing.
+two conversations under the same [WithCacheSalt] that begin with the same
+system prompt prefill it once. The salt bounds what a session may match in it,
+because a hit is observable in timing, and a session opened without one is
+given a salt of its own: it reuses its own earlier turns and shares with
+nobody.
 
 # Several conversations in one forward pass
 

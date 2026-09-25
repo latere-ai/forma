@@ -27,3 +27,13 @@ committed: the commit log already holds that.
   deployment that relied on unsalted requests sharing a system prompt sends the
   same `cache_salt` on each of them. In the library, a `PoolRequest` with an
   empty `Key` gets a salt of its own under `CacheProcess`.
+- A `Session` opened with `Model.NewSession` on a model opened with
+  `WithPrefixCache(CacheProcess, ...)` and no `WithCacheSalt` no longer shares
+  cached prompt blocks with every other unsalted session. It is given a salt
+  of its own, so it reuses its own earlier turns and nothing another session
+  computed, which is what `WithCacheSalt`'s documentation already promised.
+  Sessions opened with the same salt still share. **A library caller that
+  relied on unsalted sessions sharing a system prompt now passes the same
+  `WithCacheSalt` to each of them**, or every conversation prefills that prompt
+  itself. `server.Wrap` serves a request with no `cache_salt` from such a
+  session, so it follows the same rule.

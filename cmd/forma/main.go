@@ -151,9 +151,10 @@ serve flags:
   --prefix-cache S    off, session or process: reuse the key/value state a
                       conversation already paid for, so a turn prefills only
                       what is new. session keeps every block inside one
-                      conversation; process shares them, so two conversations
-                      with the same system prompt prefill it once between them
-                      and a request's cache_salt is what keeps tenants apart.
+                      conversation; process shares them between requests that
+                      send the same cache_salt, so two such conversations with
+                      the same system prompt prefill it once between them, and
+                      a request with no cache_salt shares with nothing.
                       A warm answer matches a cold one in distribution rather
                       than bit for bit (default off; bare --prefix-cache is
                       session)

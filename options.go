@@ -190,13 +190,16 @@ func WithSessionContext(n int) SessionOption {
 // Under [CacheProcess] a block is reachable from any session, and a hit is
 // faster than a miss, so timing makes the cache a membership oracle over other
 // conversations' prompts (016 §7). The salt is mixed into every block hash, so
-// two conversations share only when the layer in front says they may.
+// two conversations share only when the layer in front says they may: sessions
+// opened with the same salt share their common prefixes, and nothing else does.
 //
-// The empty string is a key of its own and shares with nobody rather than with
-// everybody: a caller who supplies nothing gets the safe answer, not the fast
-// one. forma has no notion of a tenant (009 §7), so what belongs here is whatever
-// the layer in front uses to tell them apart — the server puts a request's
-// cache_salt in it.
+// A session opened without a salt, or with the empty string, shares with
+// nobody rather than with everybody: under [CacheProcess] it is given a salt of
+// its own, so it reuses its own earlier turns and no other session's blocks. A
+// caller who supplies nothing gets the safe answer, not the fast one, and
+// sessions that should share a system prompt pass one salt. forma has no notion
+// of a tenant (009 §7), so what belongs here is whatever the layer in front
+// uses to tell them apart — the server puts a request's cache_salt in it.
 func WithCacheSalt(v string) SessionOption {
 	return func(o *sessionOptions) { o.salt = v }
 }
@@ -233,14 +236,16 @@ const (
 	// most of the value.
 	CacheSession
 
-	// CacheProcess shares across every session in the process, which is the
-	// scope an agent runtime or a single-tenant server wants: two conversations
-	// that begin with the same system prompt prefill it once between them.
+	// CacheProcess shares one block pool across every session in the process,
+	// which is the scope an agent runtime or a single-tenant server wants: two
+	// conversations opened with the same [WithCacheSalt] that begin with the
+	// same system prompt prefill it once between them. A session opened with no
+	// salt shares with nobody, and reuses only its own earlier turns.
 	//
 	// It costs a page table in the innermost loop of every decode, and it makes
-	// a hit observable across conversations — so it is a deployment's decision
-	// and never a default (016-D7). [WithPrefixCache]'s salt is what narrows it
-	// back where the deployment is not single-tenant.
+	// a hit observable across the conversations that share a salt — so it is a
+	// deployment's decision and never a default (016-D7). [WithCacheSalt] is
+	// what decides who shares.
 	CacheProcess
 )
 

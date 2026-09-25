@@ -58,17 +58,19 @@ func TestABlockPoolGeneratesWhatAContiguousCacheDoes(t *testing.T) {
 // TestTwoConversationsShareOneSystemPrompt is what the pool is for, and what no
 // session-scoped cache can do at any size.
 //
-// Two sessions, the same leading tokens, different continuations. The second
-// must reuse what the first computed, and the reuse is block-aligned, so what
-// is asserted is that it reused a whole number of blocks covering the common
-// run rather than an exact token count (016 §3).
+// Two sessions under one salt, the same leading tokens, different
+// continuations. The second must reuse what the first computed, and the reuse
+// is block-aligned, so what is asserted is that it reused a whole number of
+// blocks covering the common run rather than an exact token count (016 §3).
+// The salt is what permits the sharing: two unsalted sessions share nothing
+// (TestTwoUnsaltedSessionsShareNothing).
 func TestTwoConversationsShareOneSystemPrompt(t *testing.T) {
 	t.Parallel()
 	m := sharedModel(t)
 
 	system := promptIDs(1, 2*CacheBlock)
 
-	first := session(t, m, WithSessionContext(sharedCap))
+	first := session(t, m, WithSessionContext(sharedCap), WithCacheSalt("agent"))
 	one := request(t, first, extend(system, 7, 10, 0), greedy(1))
 	if one.usage.CachedPromptTokens != 0 {
 		t.Fatalf("the first conversation reused %d positions from an empty pool",
@@ -76,7 +78,7 @@ func TestTwoConversationsShareOneSystemPrompt(t *testing.T) {
 	}
 
 	// A different conversation, in a session that has never seen these tokens.
-	second := session(t, m, WithSessionContext(sharedCap))
+	second := session(t, m, WithSessionContext(sharedCap), WithCacheSalt("agent"))
 	two := request(t, second, extend(system, 11, 10, 0), greedy(1))
 
 	if two.usage.CachedPromptTokens == 0 {
@@ -113,18 +115,23 @@ func TestASharedHitGeneratesWhatAColdRunDoes(t *testing.T) {
 	m := sharedModel(t)
 	system := promptIDs(1, 2*CacheBlock)
 	prompt := extend(system, 11, 10, 0)
+	// One salt for every session here: it is what lets the warm run reach
+	// another conversation's blocks, and the cold run carries it too so the
+	// two differ only in what the pool held.
+	salt := WithCacheSalt("agent")
 
 	// Cold: a pool that has never seen the system prompt.
-	cold := request(t, session(t, sharedModel(t), WithSessionContext(sharedCap)),
+	cold := request(t, session(t, sharedModel(t), WithSessionContext(sharedCap), salt),
 		prompt, greedy(4))
 	if cold.usage.CachedPromptTokens != 0 {
 		t.Fatalf("the cold run reused %d positions", cold.usage.CachedPromptTokens)
 	}
 
-	// Warm: another conversation computed the system prompt first.
-	request(t, session(t, m, WithSessionContext(sharedCap)),
+	// Warm: another conversation under the same salt computed the system
+	// prompt first.
+	request(t, session(t, m, WithSessionContext(sharedCap), salt),
 		extend(system, 7, 10, 0), greedy(4))
-	warm := request(t, session(t, m, WithSessionContext(sharedCap)), prompt, greedy(4))
+	warm := request(t, session(t, m, WithSessionContext(sharedCap), salt), prompt, greedy(4))
 	if warm.usage.CachedPromptTokens == 0 {
 		t.Fatal("the warm run reused nothing, so this measures no sharing")
 	}
@@ -173,6 +180,42 @@ func TestASaltKeepsTwoConversationsApart(t *testing.T) {
 	if got.usage.CachedPromptTokens == 0 {
 		t.Fatal("a conversation under the same salt reused nothing, so the two " +
 			"refusals above prove no separation")
+	}
+}
+
+// TestTwoUnsaltedSessionsShareNothing is 019-D3's rule for a session opened
+// directly on the model: under [CacheProcess] a session without
+// [WithCacheSalt] is given a salt of its own, so it shares with nobody rather
+// than with every other unsalted session.
+//
+// The empty salt passed through would be one domain. The chain seed's scope
+// domain is empty under [CacheProcess], so two unsalted conversations with the
+// same system prompt would hash identically and the second would hit the
+// first's blocks, which is 016 §7's membership oracle. What is asserted is the
+// hit accounting, not the timing it would leak through.
+func TestTwoUnsaltedSessionsShareNothing(t *testing.T) {
+	t.Parallel()
+	m := sharedModel(t)
+	system := promptIDs(1, 2*CacheBlock)
+
+	first := session(t, m, WithSessionContext(sharedCap))
+	request(t, first, extend(system, 7, 10, 0), greedy(1))
+
+	second := session(t, m, WithSessionContext(sharedCap))
+	got := request(t, second, extend(system, 11, 10, 0), greedy(1))
+	if got.usage.CachedPromptTokens != 0 {
+		t.Fatalf("an unsalted session reused %d positions another unsalted session "+
+			"computed; the timing of that hit is a membership oracle over its prompt",
+			got.usage.CachedPromptTokens)
+	}
+
+	// The minted salt is the session's for its whole life, so its own next turn
+	// still finds what its first one published. Without this the refusal above
+	// would also pass for a pool that shares nothing at all.
+	again := request(t, first, extend(system, 13, 10, 0), greedy(1))
+	if want := len(system) / CacheBlock * CacheBlock; again.usage.CachedPromptTokens != want {
+		t.Fatalf("an unsalted session's second turn reused %d positions of the %d "+
+			"whole blocks its first turn published", again.usage.CachedPromptTokens, want)
 	}
 }
 

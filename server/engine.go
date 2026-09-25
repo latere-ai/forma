@@ -74,13 +74,19 @@ type SessionSpec struct {
 
 	// Key bounds what this request may reuse of another request's key/value
 	// state, and is the request's cache_salt
-	// (specs/016-prefix-cache.md §7.1).
+	// (specs/016-prefix-cache.md §7.1). Every engine honors it and fails
+	// closed: a request with no key shares with nobody.
 	//
-	// It is honored only by a pooled engine, where it decides which pooled
-	// session a request may be routed to, and it fails closed: a request with
-	// no key matches only sessions whose last request had none
-	// (specs/019-session-affinity.md 019-D3). forma has no notion of a tenant
-	// (009 §7), so the key is whatever the layer in front supplies.
+	// Under [forma.CacheProcess] it is the salt the request's blocks are
+	// hashed under, on every engine, so a request shares blocks only with
+	// requests that carried the same key. A request with none is given a salt
+	// of its own: per session under [Wrap], per lease under [WrapPool], per
+	// request under [WrapRunner]. Under [forma.CacheSession] a pooled engine
+	// also routes by it: a request may be routed only to a session whose last
+	// request carried the same key, and one with no key only to a session
+	// whose last request had none (specs/019-session-affinity.md 019-D3).
+	// forma has no notion of a tenant (009 §7), so the key is whatever the
+	// layer in front supplies.
 	Key string
 }
 

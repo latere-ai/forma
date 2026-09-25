@@ -64,13 +64,14 @@ var honored = map[string][]string{
 // [latere.ai/x/forma.Policy] fields and cannot go in [honored], whose
 // invariant is that its keys are exactly Policy's.
 //
-// One entry. cache_salt is the isolation boundary under both engines and
+// One entry. cache_salt is the isolation boundary under every engine and
 // reaches no Policy field at all, so a caller who sends it and is told it was
 // dropped would think their cache is shared with everybody when it is isolated.
-// Under a pooled engine it bounds which session a request may be routed to
-// (specs/019-session-affinity.md 019-D3); under a batched one it is the domain
-// the shared pool”'s block hashes are seeded with, and a request that sends none
-// gets a minted one (specs/022-batched-serving.md §7). It is honored on every
+// Under a process-scoped cache it is the domain the shared pool's block hashes
+// are seeded with, on every engine, and a request that sends none gets a minted
+// one, so it shares with nothing (specs/022-batched-serving.md §7). Under a
+// session-scoped pooled engine it also bounds which session a request may be
+// routed to (specs/019-session-affinity.md 019-D3). It is honored on every
 // route, because [parseExtras] reads it from the raw body and does not know
 // which dialect sent it.
 var honoredSession = map[string]bool{"cache_salt": true}

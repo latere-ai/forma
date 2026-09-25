@@ -190,7 +190,8 @@ func (m *Model) NewRunner(o RunnerOptions) (*Runner, error) {
 func (r *Runner) Slots() int { return r.sched.Slots() }
 
 // mintDomain reads the sixteen random bytes every minted salt is prefixed with,
-// once per [Runner] and once per [Pool]. See [Runner.salt].
+// once per [Runner], once per [Pool] and once per process-scoped block pool.
+// See [Runner.salt].
 func mintDomain() (string, error) {
 	var b [16]byte
 	if _, err := rand.Read(b[:]); err != nil {

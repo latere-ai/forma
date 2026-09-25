@@ -26,11 +26,15 @@ type extras struct {
 	penaltyWindow     *int
 	topK              *int
 
-	// cacheSalt is 016 §7.1's caller-supplied salt, which
-	// specs/019-session-affinity.md 019-D3 uses as the affinity key: a request
-	// carrying one may be routed only to a pooled session whose last request
-	// carried the same one, and a request carrying none only to a session that
-	// had none. It is not a sampling knob and reaches no
+	// cacheSalt is 016 §7.1's caller-supplied salt, and becomes
+	// [SessionSpec.Key]. Under a process-scoped cache it is the salt the
+	// request's blocks are hashed under, so a request carrying one shares only
+	// with requests carrying the same one and a request carrying none shares
+	// with nothing. A session-scoped pooled engine also routes by it
+	// (specs/019-session-affinity.md 019-D3): a request carrying one may be
+	// routed only to a pooled session whose last request carried the same
+	// one, and a request carrying none only to a session that had none. It is
+	// not a sampling knob and reaches no
 	// [latere.ai/x/forma.Policy] field, which is why it is subtracted
 	// from the loss report by [honoredSession] rather than by [honored].
 	cacheSalt string

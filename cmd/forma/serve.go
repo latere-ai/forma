@@ -795,10 +795,11 @@ func prefixCacheLine(scope forma.CacheScope) string {
 			"warm\n                    answer matches a cold one in distribution rather than " +
 			"bit for bit"
 	case forma.CacheProcess:
-		return "on, shared across every session; two conversations with the same system\n" +
-			"                    prompt prefill it once between them, a request's " +
-			"cache_salt is what\n                    keeps tenants apart, and --sessions " +
-			"is concurrency rather than\n                    reuse depth"
+		return "on, shared across every session under one cache_salt; two conversations\n" +
+			"                    with the same salt and system prompt prefill it once " +
+			"between them, a\n                    request with no cache_salt shares " +
+			"with nothing, and --sessions is\n                    concurrency rather " +
+			"than reuse depth"
 	}
 	return "off; every request prefills its whole prompt. --prefix-cache reuses what a\n" +
 		"                    conversation already paid for, which is the reason to pool " +

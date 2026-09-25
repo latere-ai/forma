@@ -6,6 +6,8 @@ package forma
 import (
 	"errors"
 	"fmt"
+	"strconv"
+	"sync/atomic"
 
 	"golang.design/x/accel"
 
@@ -63,6 +65,32 @@ type blockPool struct {
 	// positions is the pool's capacity, blocks*CacheBlock, and is the row
 	// count of both states.
 	positions int
+
+	// domain and minted make the salt of a session opened without
+	// [WithCacheSalt]. See [blockPool.mintSalt].
+	domain string
+	minted atomic.Uint64
+}
+
+// mintSalt is the salt of a session opened without [WithCacheSalt]: one no
+// other session holds, so the session shares no block with any other and still
+// finds its own blocks on its next turn.
+//
+// The empty salt passed through would be one domain. Under [CacheProcess] the
+// chain seed's scope domain is empty (internal/prefix/prefix.go), so every
+// unsalted session would hash into it and hit the blocks every other unsalted
+// session published. A hit is faster than a miss, so that is a membership test
+// over another conversation's prompt (016 §7), and 019-D3 says an unkeyed
+// request shares with nobody.
+//
+// The salt is [Pool.salt]'s and [Runner.salt]'s, for their reasons: random
+// bytes, so no caller can name the domain and share into it, and a counter, so
+// no two sessions hold one. It is minted per session rather than per request
+// because a session is one conversation, and reusing its own earlier turns is
+// what the cache is for. Sessions that should share a prefix say so with one
+// [WithCacheSalt].
+func (bp *blockPool) mintSalt() string {
+	return bp.domain + "-" + strconv.FormatUint(bp.minted.Add(1), 36)
 }
 
 // newBlockPool allocates the shared states and the bookkeeping over them.
@@ -85,7 +113,12 @@ func newBlockPool(dev *accel.Device, c *model.Config, scope prefix.Scope,
 	if err != nil {
 		return nil, fmt.Errorf("forma: %w", err)
 	}
-	bp := &blockPool{pool: p, positions: blocks * CacheBlock, dtype: accel.F16}
+	domain, err := mintDomain()
+	if err != nil {
+		return nil, err
+	}
+	bp := &blockPool{pool: p, positions: blocks * CacheBlock, dtype: accel.F16,
+		domain: domain}
 
 	// The layers that have a key/value cache, and a gated-delta layer has
 	// none. Allocating over the whole stack would reserve four times the pool

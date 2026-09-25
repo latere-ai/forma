@@ -99,9 +99,12 @@ type Session struct {
 
 	// salt bounds what this conversation may match in a shared block pool.
 	//
-	// The empty string is a key of its own and shares with nobody, which is
-	// 019-D3's rule applied to blocks rather than to sessions: the same string
-	// bounds both, because they are the same question asked of two mechanisms.
+	// It is [WithCacheSalt]'s value, and under [CacheProcess] a session given
+	// none holds a salt minted for it alone ([blockPool.mintSalt]), so it
+	// shares with nobody. That is 019-D3's rule applied to blocks rather than
+	// to sessions: the same string bounds both, because they are the same
+	// question asked of two mechanisms. A pooled session's is replaced on every
+	// lease ([Pool.salt]).
 	salt string
 
 	// rec instruments the loop (specs/007-engine.md §5.1, 017-D1), one Step
@@ -143,6 +146,12 @@ func (m *Model) NewSession(opts ...SessionOption) (*Session, error) {
 		tools:    o.tools,
 		salt:     o.salt,
 		rec:      o.recorder,
+	}
+	// Under a process-scoped block pool the empty salt would be one domain
+	// every unsalted session hashes into. A session given none gets one of its
+	// own instead. See [blockPool.mintSalt].
+	if m.blocks != nil && s.salt == "" {
+		s.salt = m.blocks.mintSalt()
 	}
 	s.submit = func(p *tensor.Plan, b tensor.Bindings) error {
 		return p.Submit(m.dev.Queue(), b).Wait()
