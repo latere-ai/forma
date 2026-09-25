@@ -395,6 +395,13 @@ So Forma takes both, and they compose:
   layer with tenant identity supplies it.
 - **scope** on the server, which bounds what a *missing* salt can reach.
 
+Under `process` a missing salt reaches nothing another conversation computed.
+A session opened without one is given a salt of its own (`blockPool.mintSalt`),
+as a pooled lease (`Pool.salt`) and a batched request (`Runner.salt`) are
+([022-D8](022-batched-serving.md)), so it reuses its own earlier turns and
+shares with nobody. Sessions that should share a system prompt say so with one
+salt.
+
 The scope is what makes the default safe; the salt is what makes it precise.
 Neither alone is enough: a scope cannot express "these two sessions are the same
 customer", and a salt cannot protect a caller who forgot it.
@@ -415,7 +422,7 @@ that possible rather than deciding it:
 
 | scope | when |
 | --- | --- |
-| `process` | single-tenant: a CLI, one team's server, an agent runtime. `forma serve --prefix-cache process` |
+| `process` | single-tenant: a CLI, one team's server, an agent runtime, whose conversations share by sending one salt. `forma serve --prefix-cache process` |
 | `session` | share within a conversation only; safe under multi-tenancy. Reachable from the server since [019](019-session-affinity.md) pooled the sessions; bare `forma serve --prefix-cache` |
 | `off` (default) | measurement, and comparison against a cold baseline |
 
