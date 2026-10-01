@@ -19,6 +19,9 @@ committed: the commit log already holds that.
 
 ### Fixed
 
+- `latere.ai/x/pkg` v0.90.2, the release past GO-2026-6615 and GO-2026-6505.
+  No OpenTelemetry module is in this module's build.
+
 - `forma serve --prefix-cache process` on the pooled engine no longer shares
   cached prompts between requests that carry no `cache_salt`. A cache hit makes
   the first token arrive sooner, so one unsalted caller could test what another
