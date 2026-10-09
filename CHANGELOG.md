@@ -40,3 +40,7 @@ committed: the commit log already holds that.
   `WithCacheSalt` to each of them**, or every conversation prefills that prompt
   itself. `server.Wrap` serves a request with no `cache_salt` from such a
   session, so it follows the same rule.
+
+### Security
+
+- Built with Go 1.27.2, which fixes GO-2026-6611, GO-2026-6612, GO-2026-6613 and GO-2026-6617.
