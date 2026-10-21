@@ -2,7 +2,7 @@ module latere.ai/x/forma
 
 go 1.27.0
 
-toolchain go1.27.2
+toolchain go1.27.3
 
 require (
 	golang.design/x/accel v0.0.0-20260905175250-168f5ed9ae76
