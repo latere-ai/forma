@@ -97,6 +97,12 @@ Go's module graph pruning carries only the requirements of the packages actually
 imported, and llmdialect's subtree is **stdlib-only**. It also cannot break
 [000 D2](000-decisions.md): nothing there imports `C`.
 
+Since `latere.ai/x/pkg` v0.104.0, `ir` takes its message and dialect types from
+`latere.ai/x/sdk-go/llm/wire`. That adds one indirect require
+(`latere.ai/x/sdk-go`), its two `go.sum` lines, and one package to the build
+list. `wire` imports only `encoding/json` and `math`, so the subtree stays
+stdlib-only, and [009-D14](#decision-record)'s allowlist admits it by name.
+
 **That is a property of llmdialect's current imports, not a promise it makes.**
 One OTEL import added upstream would arrive in Forma on the next `go get`, and the
 first symptom would be a slower build rather than an error. So
@@ -457,7 +463,7 @@ GET routes are live.
 | --- | --- | --- |
 | 1 | the four POST routes and the three GET routes, each POST round-tripping one golden request | `server/server.go:87-93`, `server/dialect_test.go:20` |
 | 2 | `ir` meets `chat.Message` and `Policy` in one file, and the root module imports no `llmdialect` package | `server/adapt.go:16-19` |
-| 2.1 | the measurement still holds at `latere.ai/x/pkg v0.41.0`: one require, `go.sum` at two lines, a stdlib-only build list | `go.mod`, `go.sum` |
+| 2.1 | the measurement at `latere.ai/x/pkg v0.110.2`: the pkg require and an indirect `latere.ai/x/sdk-go`, `go.sum` at two lines for each, a stdlib-only build list that adds `latere.ai/x/sdk-go/llm/wire` | `go.mod`, `go.sum` |
 | 2.1 | [009-D14](#decision-record)'s footprint gate: `go list -deps` on the server against an allowlist that carries a reason per prefix, taken on all ten GOOS/GOARCH pairs `cross` builds and unioned, run in CI and pinned both ways -- a module no decision allows fails, and an allowance no platform reaches fails too | `.lateregate.yaml`'s `depcheck` block, `Makefile`'s `deps` target |
 | 3 | blocks as a strict subset: `ir.BlockImage` is refused rather than dropped, redacted thinking is dropped with the reason stated | `chat/chat.go:49-67`, `server/adapt.go:162-228` |
 | 3.1 | thinking is dropped by block type, so the forgeable textual boundary does not exist | `chat/qwen3.go:261-266`, `server/dialect_test.go:121` |
