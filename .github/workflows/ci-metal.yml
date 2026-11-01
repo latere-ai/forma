@@ -23,8 +23,8 @@ jobs:
     name: metal
     runs-on: macos-15
     steps:
-    - uses: actions/checkout@v5
-    - uses: actions/setup-go@v6
+    - uses: actions/checkout@v7
+    - uses: actions/setup-go@v7
       with:
         go-version: '1.27.x'
         check-latest: true
