@@ -16,7 +16,7 @@ require (
 	golang.org/x/mod v0.42.0 // indirect
 	golang.org/x/sync v0.24.0 // indirect
 	golang.org/x/tools v0.52.0 // indirect
-	latere.ai/x/ci-gate v0.61.0 // indirect
+	latere.ai/x/ci-gate v0.62.1 // indirect
 	latere.ai/x/sdk-go v0.1.0 // indirect
 )
 
