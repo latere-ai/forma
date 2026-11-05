@@ -4,6 +4,10 @@ name: ci-metal
 # backend. FORMA_REQUIRE_METAL turns "no device on this runner" from a skip into
 # the failure it should be where Metal is promised -- without it, this job
 # would rot green.
+#
+# The plain test on macOS runs through test.os in .lateregate.yaml. It cannot
+# set FORMA_REQUIRE_METAL or run the race detector, so this job is the one
+# that does both on a machine with Metal.
 
 on:
   push:
@@ -28,9 +32,6 @@ jobs:
       with:
         go-version: '1.27.x'
         check-latest: true
-
-    - name: Test
-      run: go test ./...
 
     - name: Test under the race detector
       env:

@@ -14,8 +14,8 @@ cover:
     internal/conformance: >-
       device-open and Metal-present branches, unreachable without a Metal
       device; the tier decisions they act on are pure and fully covered.
-      specs/010-conformance.md section 4. ci-metal.yml has a machine with
-      Metal; this gate does not, and a mock device here would cover the
+      specs/010-conformance.md section 4. ci-metal.yml and the macOS test run have a
+      machine with Metal; this gate does not, and a mock device here would cover the
       statements and prove nothing about accel
 
 race:
@@ -26,6 +26,15 @@ race:
   # in two packages. CONTRIBUTING tracks that as a 3500s budget rather than a
   # line to move again; past it the answer is a cheaper suite.
   timeout: 45m
+
+test:
+  # forma builds and tests on Windows and on macOS, and the plain test (go
+  # vet, then go test ./...) runs on each beside the suite on Linux. vet
+  # compiles every package, so a build break there fails it too. The plain
+  # test sets no FORMA_REQUIRE_METAL and runs no race detector, so on macOS a
+  # missing device skips the Metal tests; ci-metal.yml runs the race pass with
+  # the device required.
+  os: [windows-latest, macos-15]
 
 hermetic:
   # Nothing besides the toolchain. forma's tests reach no system binary, and the

@@ -1,41 +1,26 @@
 name: ci
 
-# Tier 1 from specs/010-conformance.md section 4: everything that needs no
-# device and no weights. It runs on every push, because each of these gates
-# rots silently.
-#
-# Tier 2 is ci-metal.yml. A job that promises a backend and finds no device is
-# a failure rather than a skip, so it cannot share a matrix with jobs that
-# promise only the CPU.
-#
-# Tier 3 -- real weights -- is never here. specs/000-decisions.md decision 8:
-# the smallest Qwen3 is over a gigabyte, and a CI that downloads one is a CI
-# nobody runs locally.
-#
-# The gates themselves live in latere-ai/ci (which orders them) and
-# latere.ai/x/ci-gate (which decides what each asserts), and are reached
-# through this repo's Makefile. Every one of them runs locally: `make cover`,
-# `make deps`, `make spec-lint` and the rest need nothing but this checkout.
-#
-# Windows is in windows.yml rather than in the matrix here, because the
-# runner image ships no GNU make and the contract is make targets.
-
+# The bar lives in latere-ai/ci-gate, pinned in go.mod, and the shared
+# workflow runs it. What this repository decides is in .lateregate.yaml.
+# `lateregate init` writes this file, the same in every repository.
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
   workflow_dispatch:
 
 # A newer push to the same ref supersedes this run: its commit carries every
-# change this one would verify, and the runner is better spent on it.
+# change this one would verify.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event_name }}
   cancel-in-progress: true
 
+# actions: read lets the gate find the last commit whose CI passed, which it
+# measures the change from.
 permissions:
   contents: read
+  actions: read
 
 jobs:
-  verify:
+  gate:
     uses: latere-ai/ci/.github/workflows/lateregate.yml@v1
