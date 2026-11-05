@@ -4,6 +4,8 @@
 package bench
 
 import (
+	"encoding/json/jsontext"
+	"encoding/json/v2"
 	"slices"
 	"time"
 )
@@ -29,6 +31,45 @@ type Quantiles struct {
 	N   int           `json:"n"`
 }
 
+// quantilesWire is Quantiles as it is written: durations are integer
+// nanoseconds, in the field order of Quantiles.
+type quantilesWire struct {
+	P50 int64 `json:"p50_ns"`
+	P90 int64 `json:"p90_ns"`
+	P99 int64 `json:"p99_ns"`
+	N   int   `json:"n"`
+}
+
+// MarshalJSONTo writes the durations as integer nanoseconds and passes the
+// encoder's options on to the rest of the value.
+func (q Quantiles) MarshalJSONTo(enc *jsontext.Encoder) error {
+	return json.MarshalEncode(enc, quantilesWire{
+		P50: int64(q.P50),
+		P90: int64(q.P90),
+		P99: int64(q.P99),
+		N:   q.N,
+	})
+}
+
+// UnmarshalJSONFrom reads the form written by [Quantiles.MarshalJSONTo]. Members
+// the input leaves out keep their current values.
+func (q *Quantiles) UnmarshalJSONFrom(dec *jsontext.Decoder) error {
+	w := quantilesWire{
+		P50: int64(q.P50),
+		P90: int64(q.P90),
+		P99: int64(q.P99),
+		N:   q.N,
+	}
+	if err := json.UnmarshalDecode(dec, &w); err != nil {
+		return err
+	}
+	q.P50 = time.Duration(w.P50)
+	q.P90 = time.Duration(w.P90)
+	q.P99 = time.Duration(w.P99)
+	q.N = w.N
+	return nil
+}
+
 // PhaseStats is one phase's measurement: throughput, the four terms as
 // distributions, and the breakdown as fractions of a step.
 type PhaseStats struct {
@@ -48,11 +89,18 @@ type PhaseStats struct {
 	Tokens int `json:"tokens"`
 }
 
+// MarshalJSONTo sorts ShareOfStep's keys whatever options the caller passed, so
+// that two marshals of equal reports are equal bytes.
+func (p PhaseStats) MarshalJSONTo(enc *jsontext.Encoder) error {
+	type plain PhaseStats
+	return json.MarshalEncode(enc, plain(p), json.Deterministic(true))
+}
+
 // Report is the aggregate over everything a Recorder holds.
 //
 // Its JSON is the regression record (017-D6), so every field is tagged and the
 // encoding is stable: struct fields marshal in declaration order and
-// encoding/json sorts map keys, so two marshals of equal reports are equal
+// [PhaseStats] sorts its map keys, so two marshals of equal reports are equal
 // bytes.
 type Report struct {
 	Prefill PhaseStats `json:"prefill"`

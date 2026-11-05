@@ -4,7 +4,8 @@
 package server
 
 import (
-	"encoding/json"
+	"encoding/json/jsontext"
+	"encoding/json/v2"
 
 	"latere.ai/x/pkg/llmdialect/ir"
 )
@@ -34,7 +35,7 @@ var definesN = map[ir.Dialect]bool{
 
 // refuseRaw refuses the members that must be answered before a frontend sees
 // them.
-func refuseRaw(d ir.Dialect, top map[string]json.RawMessage) *apiError {
+func refuseRaw(d ir.Dialect, top map[string]jsontext.Value) *apiError {
 	if !definesN[d] {
 		return nil
 	}
@@ -43,7 +44,7 @@ func refuseRaw(d ir.Dialect, top map[string]json.RawMessage) *apiError {
 		return nil
 	}
 	var n int
-	if err := json.Unmarshal(raw, &n); err != nil {
+	if err := json.Unmarshal(raw, &n, foreignJSON); err != nil {
 		return badRequest("forma: n must be an integer: %v", err)
 	}
 	if n > 1 {

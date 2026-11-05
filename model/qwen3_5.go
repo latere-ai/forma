@@ -4,7 +4,8 @@
 package model
 
 import (
-	"encoding/json"
+	"encoding/json/jsontext"
+	"encoding/json/v2"
 	"fmt"
 	"sort"
 	"strings"
@@ -106,16 +107,16 @@ type qwen35Config struct {
 // for hidden_size and every other width -- and a config of zeros is not a
 // refusal, it is a model with no width (§2.1).
 type qwen35Raw struct {
-	Architectures   []string        `json:"architectures"`
-	ModelType       string          `json:"model_type"`
-	TieEmbeddings   bool            `json:"tie_word_embeddings"`
-	ImageToken      int             `json:"image_token_id"`
-	VideoToken      int             `json:"video_token_id"`
-	VisionStart     int             `json:"vision_start_token_id"`
-	VisionEnd       int             `json:"vision_end_token_id"`
-	Text            json.RawMessage `json:"text_config"`
-	Vision          json.RawMessage `json:"vision_config"`
-	TransformersVer string          `json:"transformers_version"`
+	Architectures   []string       `json:"architectures"`
+	ModelType       string         `json:"model_type"`
+	TieEmbeddings   bool           `json:"tie_word_embeddings"`
+	ImageToken      int            `json:"image_token_id"`
+	VideoToken      int            `json:"video_token_id"`
+	VisionStart     int            `json:"vision_start_token_id"`
+	VisionEnd       int            `json:"vision_end_token_id"`
+	Text            jsontext.Value `json:"text_config"`
+	Vision          jsontext.Value `json:"vision_config"`
+	TransformersVer string         `json:"transformers_version"`
 }
 
 // qwen35Text is `text_config`.
@@ -187,7 +188,7 @@ var qwen35TextKeys = map[string]bool{
 }
 
 // newQwen35 is the registry constructor.
-func newQwen35(raw json.RawMessage) (Builder, error) {
+func newQwen35(raw jsontext.Value) (Builder, error) {
 	c, err := parseQwen35Config(raw)
 	if err != nil {
 		return nil, err
@@ -211,12 +212,12 @@ func (m *qwen35) Weights() []WeightSpec { return qwen35Weights(m.cfg) }
 
 // parseQwen35Config reads both levels, refuses what the graph cannot honor,
 // and fills 004 §5's table plus this architecture's own fields.
-func parseQwen35Config(raw json.RawMessage) (*qwen35Config, error) {
+func parseQwen35Config(raw jsontext.Value) (*qwen35Config, error) {
 	if err := onlyKeys(raw, qwen35TopKeys, "the config"); err != nil {
 		return nil, err
 	}
 	var top qwen35Raw
-	if err := json.Unmarshal(raw, &top); err != nil {
+	if err := json.Unmarshal(raw, &top, foreignJSON); err != nil {
 		return nil, fmt.Errorf("model: reading a %s config: %w", Qwen35Architecture, err)
 	}
 	if len(top.Text) == 0 {
@@ -229,7 +230,7 @@ func parseQwen35Config(raw json.RawMessage) (*qwen35Config, error) {
 		return nil, err
 	}
 	var t qwen35Text
-	if err := json.Unmarshal(top.Text, &t); err != nil {
+	if err := json.Unmarshal(top.Text, &t, foreignJSON); err != nil {
 		return nil, fmt.Errorf("model: reading a %s text_config: %w",
 			Qwen35Architecture, err)
 	}
@@ -410,9 +411,9 @@ func qwen35Schedule(layers int, types []string, interval int) (LayerSchedule, er
 }
 
 // onlyKeys refuses a JSON object carrying a key that is not on the list.
-func onlyKeys(raw json.RawMessage, allow map[string]bool, what string) error {
-	var got map[string]json.RawMessage
-	if err := json.Unmarshal(raw, &got); err != nil {
+func onlyKeys(raw jsontext.Value, allow map[string]bool, what string) error {
+	var got map[string]jsontext.Value
+	if err := json.Unmarshal(raw, &got, foreignJSON); err != nil {
 		return fmt.Errorf("model: reading %s: %w", what, err)
 	}
 	var extra []string

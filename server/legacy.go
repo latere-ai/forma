@@ -4,7 +4,8 @@
 package server
 
 import (
-	"encoding/json"
+	"encoding/json/jsontext"
+	"encoding/json/v2"
 	"fmt"
 	"io"
 	"math"
@@ -67,15 +68,15 @@ func (*legacyFrontend) DecodeRequest(body []byte) (*ir.Request, error) {
 		}
 	}
 	var wire struct {
-		Model       string          `json:"model"`
-		MaxTokens   *int64          `json:"max_tokens"`
-		Temperature *float64        `json:"temperature"`
-		TopP        *float64        `json:"top_p"`
-		Stop        json.RawMessage `json:"stop"`
-		Stream      bool            `json:"stream"`
-		User        string          `json:"user"`
+		Model       string         `json:"model"`
+		MaxTokens   *int64         `json:"max_tokens"`
+		Temperature *float64       `json:"temperature"`
+		TopP        *float64       `json:"top_p"`
+		Stop        jsontext.Value `json:"stop"`
+		Stream      bool           `json:"stream"`
+		User        string         `json:"user"`
 	}
-	if err := json.Unmarshal(body, &wire); err != nil {
+	if err := json.Unmarshal(body, &wire, foreignJSON); err != nil {
 		return nil, fmt.Errorf("malformed completions request: %w", err)
 	}
 	if wire.Model == "" {
@@ -109,17 +110,17 @@ func (*legacyFrontend) DecodeRequest(body []byte) (*ir.Request, error) {
 // An array of more than one prompt is n>1 wearing another name, and an array of
 // token ids is a prompt this server cannot render back to the text
 // Session.Complete takes. Both are refused rather than approximated.
-func legacyPrompt(top map[string]json.RawMessage) (string, error) {
+func legacyPrompt(top map[string]jsontext.Value) (string, error) {
 	raw, ok := top["prompt"]
 	if !ok || isNull(raw) {
 		return "", fmt.Errorf("prompt is required")
 	}
 	var s string
-	if json.Unmarshal(raw, &s) == nil {
+	if json.Unmarshal(raw, &s, foreignJSON) == nil {
 		return s, nil
 	}
 	var many []string
-	if err := json.Unmarshal(raw, &many); err != nil {
+	if err := json.Unmarshal(raw, &many, foreignJSON); err != nil {
 		return "", fmt.Errorf("prompt must be a string or an array of strings: token id " +
 			"prompts are not supported")
 	}
@@ -131,16 +132,16 @@ func legacyPrompt(top map[string]json.RawMessage) (string, error) {
 }
 
 // legacyStop reads stop, which is a string or an array of them.
-func legacyStop(raw json.RawMessage) ([]string, error) {
+func legacyStop(raw jsontext.Value) ([]string, error) {
 	if len(raw) == 0 || isNull(raw) {
 		return nil, nil
 	}
 	var one string
-	if json.Unmarshal(raw, &one) == nil {
+	if json.Unmarshal(raw, &one, foreignJSON) == nil {
 		return []string{one}, nil
 	}
 	var many []string
-	if err := json.Unmarshal(raw, &many); err != nil {
+	if err := json.Unmarshal(raw, &many, foreignJSON); err != nil {
 		return nil, fmt.Errorf("stop must be a string or an array of strings")
 	}
 	return many, nil
@@ -148,21 +149,21 @@ func legacyStop(raw json.RawMessage) ([]string, error) {
 
 // finish moves the prompt out of the message list and refuses the members that
 // would change the answer.
-func (*legacyFrontend) finish(top map[string]json.RawMessage, out *request) *apiError {
+func (*legacyFrontend) finish(top map[string]jsontext.Value, out *request) *apiError {
 	if raw, ok := top["suffix"]; ok && !isNull(raw) {
 		return refusal("suffix", "forma: suffix is not supported: filling in the middle needs "+
 			"the prompt built around the completion, and this route sends the prompt verbatim")
 	}
 	if raw, ok := top["echo"]; ok && !isNull(raw) {
 		var echo bool
-		if json.Unmarshal(raw, &echo) == nil && echo {
+		if json.Unmarshal(raw, &echo, foreignJSON) == nil && echo {
 			return refusal("echo", "forma: echo is not supported: the answer would carry the "+
 				"prompt back, which this server does not re-tokenize")
 		}
 	}
 	if raw, ok := top["best_of"]; ok && !isNull(raw) {
 		var n int
-		if json.Unmarshal(raw, &n) == nil && n > 1 {
+		if json.Unmarshal(raw, &n, foreignJSON) == nil && n > 1 {
 			return refusal("best_of", "forma: best_of=%d is not supported: sampling several "+
 				"completions and picking one needs batching (specs/008-scheduler.md)", n)
 		}
@@ -195,7 +196,7 @@ func (*legacyFrontend) EncodeResponse(resp *ir.Response) ([]byte, error) {
 			"finish_reason": legacyFinish(resp.StopReason),
 		}},
 		"usage": legacyUsage(resp.Usage),
-	})
+	}, modelText)
 }
 
 // legacyLogProbs renders this route's parallel-array shape, and nil when the
@@ -337,7 +338,7 @@ func (e *legacyEventEncoder) chunk(text string, finish *string, usage map[string
 	if usage != nil {
 		body["usage"] = usage
 	}
-	raw, err := json.Marshal(body)
+	raw, err := json.Marshal(body, modelText)
 	if err != nil {
 		return err
 	}

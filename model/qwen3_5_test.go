@@ -4,7 +4,8 @@
 package model
 
 import (
-	"encoding/json"
+	"encoding/json/jsontext"
+	"encoding/json/v2"
 	"os"
 	"strings"
 	"testing"
@@ -45,7 +46,7 @@ func newTestBuilder(t *testing.T) *tensor.Builder {
 // were wrong; a test written from the draft would have agreed with all four.
 
 // realConfig is the 27B's config.json.
-func realConfig(t *testing.T) json.RawMessage {
+func realConfig(t *testing.T) jsontext.Value {
 	t.Helper()
 	b, err := os.ReadFile("testdata/qwen3_5-27b-config.json")
 	if err != nil {
@@ -351,7 +352,7 @@ func TestQwen35ForwardIsRefusedByName(t *testing.T) {
 
 // synthQwen35 is §8's fixture as JSON: 4 layers at I=4, so three linear and one
 // full, with no two dimensions equal where the confusion would be silent.
-func synthQwen35(edit func(top, text map[string]any)) json.RawMessage {
+func synthQwen35(edit func(top, text map[string]any)) jsontext.Value {
 	rope := map[string]any{
 		"rope_type": "default", "rope_theta": 1e7,
 		// 0.75 x 8 = 6 channels, three pairs, so the sections sum to 3.

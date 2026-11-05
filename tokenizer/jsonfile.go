@@ -4,7 +4,8 @@
 package tokenizer
 
 import (
-	"encoding/json"
+	"encoding/json/jsontext"
+	"encoding/json/v2"
 	"fmt"
 	"strings"
 )
@@ -72,15 +73,18 @@ type modelJSON struct {
 // a byte-mapped token never contains one -- U+0020 maps to U+0120.
 type mergeJSON [2]string
 
-func (m *mergeJSON) UnmarshalJSON(b []byte) error {
-	var asPair [2]string
-	if err := json.Unmarshal(b, &asPair); err == nil {
+func (m *mergeJSON) UnmarshalJSONFrom(dec *jsontext.Decoder) error {
+	if dec.PeekKind() == '[' {
+		var asPair [2]string
+		if err := json.UnmarshalDecode(dec, &asPair); err != nil {
+			return fmt.Errorf("merge entry is neither a pair nor a string: %w", err)
+		}
 		*m = asPair
 		return nil
 	}
 	var asString string
-	if err := json.Unmarshal(b, &asString); err != nil {
-		return fmt.Errorf("merge entry is neither a pair nor a string: %s", b)
+	if err := json.UnmarshalDecode(dec, &asString); err != nil {
+		return fmt.Errorf("merge entry is neither a pair nor a string: %w", err)
 	}
 	left, right, ok := strings.Cut(asString, " ")
 	if !ok {

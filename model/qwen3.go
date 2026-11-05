@@ -4,7 +4,7 @@
 package model
 
 import (
-	"encoding/json"
+	"encoding/json/jsontext"
 	"fmt"
 
 	"latere.ai/x/forma/chat"
@@ -32,7 +32,7 @@ func init() { Register(Qwen3Architecture, newQwen3) }
 type qwen3 struct{ cfg *Config }
 
 // newQwen3 is the registry constructor.
-func newQwen3(raw json.RawMessage) (Builder, error) {
+func newQwen3(raw jsontext.Value) (Builder, error) {
 	c, err := ParseConfig(raw)
 	if err != nil {
 		return nil, err

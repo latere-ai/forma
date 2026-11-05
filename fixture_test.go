@@ -5,7 +5,7 @@ package forma
 
 import (
 	"encoding/binary"
-	"encoding/json"
+	"encoding/json/v2"
 	"fmt"
 	"math"
 	"os"

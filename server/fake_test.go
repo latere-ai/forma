@@ -5,7 +5,8 @@ package server
 
 import (
 	"context"
-	"encoding/json"
+	"encoding/json/jsontext"
+	"encoding/json/v2"
 	"errors"
 	"fmt"
 	"maps"
@@ -472,7 +473,7 @@ func inject(t *testing.T, base, extra string) string {
 	if extra == "" {
 		return base
 	}
-	var into, from map[string]json.RawMessage
+	var into, from map[string]jsontext.Value
 	if err := json.Unmarshal([]byte(base), &into); err != nil {
 		t.Fatalf("the base body is not an object: %v: %s", err, base)
 	}

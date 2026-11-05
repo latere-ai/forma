@@ -4,7 +4,8 @@
 package main
 
 import (
-	"encoding/json"
+	"encoding/json/jsontext"
+	"encoding/json/v2"
 	"fmt"
 	"io"
 	"strings"
@@ -100,6 +101,37 @@ type coldFacts struct {
 	FirstToken time.Duration `json:"first_token_ns"`
 }
 
+// coldfactsWire is coldFacts as it is written: durations are integer
+// nanoseconds, in the field order of coldFacts.
+type coldFactsWire struct {
+	Open       int64 `json:"open_ns"`
+	FirstToken int64 `json:"first_token_ns"`
+}
+
+// MarshalJSONTo writes the durations as integer nanoseconds and passes the
+// encoder's options on to the rest of the value.
+func (c coldFacts) MarshalJSONTo(enc *jsontext.Encoder) error {
+	return json.MarshalEncode(enc, coldFactsWire{
+		Open:       int64(c.Open),
+		FirstToken: int64(c.FirstToken),
+	})
+}
+
+// UnmarshalJSONFrom reads the form written by [coldFacts.MarshalJSONTo]. Members
+// the input leaves out keep their current values.
+func (c *coldFacts) UnmarshalJSONFrom(dec *jsontext.Decoder) error {
+	w := coldFactsWire{
+		Open:       int64(c.Open),
+		FirstToken: int64(c.FirstToken),
+	}
+	if err := json.UnmarshalDecode(dec, &w); err != nil {
+		return err
+	}
+	c.Open = time.Duration(w.Open)
+	c.FirstToken = time.Duration(w.FirstToken)
+	return nil
+}
+
 // batchPoint is one point on the batch axis.
 //
 // TokensPerSecond is the wall clock's, not bench.PhaseStats's: it is the tokens
@@ -115,6 +147,57 @@ type batchPoint struct {
 	Wall            time.Duration `json:"wall_ns"`
 	TokensPerSecond float64       `json:"tokens_per_second"`
 	Report          bench.Report  `json:"report"`
+}
+
+// batchpointWire is batchPoint as it is written: durations are integer
+// nanoseconds, in the field order of batchPoint.
+type batchPointWire struct {
+	Batch           int          `json:"batch"`
+	Cold            coldFacts    `json:"cold"`
+	Resident        int64        `json:"resident_bytes"`
+	Tokens          int          `json:"generated_tokens"`
+	Wall            int64        `json:"wall_ns"`
+	TokensPerSecond float64      `json:"tokens_per_second"`
+	Report          bench.Report `json:"report"`
+}
+
+// MarshalJSONTo writes the durations as integer nanoseconds and passes the
+// encoder's options on to the rest of the value.
+func (b batchPoint) MarshalJSONTo(enc *jsontext.Encoder) error {
+	return json.MarshalEncode(enc, batchPointWire{
+		Batch:           b.Batch,
+		Cold:            b.Cold,
+		Resident:        b.Resident,
+		Tokens:          b.Tokens,
+		Wall:            int64(b.Wall),
+		TokensPerSecond: b.TokensPerSecond,
+		Report:          b.Report,
+	})
+}
+
+// UnmarshalJSONFrom reads the form written by [batchPoint.MarshalJSONTo]. Members
+// the input leaves out keep their current values.
+func (b *batchPoint) UnmarshalJSONFrom(dec *jsontext.Decoder) error {
+	w := batchPointWire{
+		Batch:           b.Batch,
+		Cold:            b.Cold,
+		Resident:        b.Resident,
+		Tokens:          b.Tokens,
+		Wall:            int64(b.Wall),
+		TokensPerSecond: b.TokensPerSecond,
+		Report:          b.Report,
+	}
+	if err := json.UnmarshalDecode(dec, &w); err != nil {
+		return err
+	}
+	b.Batch = w.Batch
+	b.Cold = w.Cold
+	b.Resident = w.Resident
+	b.Tokens = w.Tokens
+	b.Wall = time.Duration(w.Wall)
+	b.TokensPerSecond = w.TokensPerSecond
+	b.Report = w.Report
+	return nil
 }
 
 // batchAxis is 017-D5: the axis, and why it has the points it has.
@@ -263,10 +346,10 @@ func hasBreakdown(r bench.Report) bool {
 // Indented, because a record that lands in a repository is read in a diff, and
 // a one-line JSON document diffs as one changed line whatever moved. The
 // encoding is stable for equal records: struct fields marshal in declaration
-// order and encoding/json sorts the keys of the one map in the tree,
+// order and Deterministic sorts the keys of the one map in the tree,
 // bench.PhaseStats.ShareOfStep.
 func encodeRecord(r benchRecord) ([]byte, error) {
-	b, err := json.MarshalIndent(r, "", "  ")
+	b, err := json.Marshal(r, jsontext.WithIndent("  "), json.Deterministic(true))
 	if err != nil {
 		return nil, fmt.Errorf("encoding the benchmark record: %w", err)
 	}

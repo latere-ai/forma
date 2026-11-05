@@ -18,7 +18,8 @@
 package main
 
 import (
-	"encoding/json"
+	"encoding/json/jsontext"
+	"encoding/json/v2"
 	"fmt"
 	"os"
 	"sort"
@@ -151,9 +152,11 @@ func main() {
 			"vocab": vocab, "merges": merges,
 		},
 	}
-	enc := json.NewEncoder(os.Stdout)
-	enc.SetIndent("", " ")
-	if err := enc.Encode(doc); err != nil {
+	// Sorted keys and escaped angle brackets keep the committed fixture's bytes
+	// stable under regeneration.
+	enc := jsontext.NewEncoder(os.Stdout, jsontext.WithIndent(" "), json.Deterministic(true),
+		jsontext.EscapeForHTML(true), jsontext.EscapeForJS(true))
+	if err := json.MarshalEncode(enc, doc); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}

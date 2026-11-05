@@ -5,7 +5,7 @@ package hub
 
 import (
 	"context"
-	"encoding/json"
+	"encoding/json/v2"
 	"fmt"
 	"io"
 	"net/http"
@@ -290,7 +290,7 @@ func (c *Client) Revision(ctx context.Context, ref Ref) (*Revision, error) {
 		return nil, statusError(u, resp)
 	}
 	var api apiRevision
-	if err := json.NewDecoder(io.LimitReader(resp.Body, 1<<24)).Decode(&api); err != nil {
+	if err := json.UnmarshalRead(io.LimitReader(resp.Body, 1<<24), &api, foreignJSON); err != nil {
 		return nil, fmt.Errorf("hub: %s: the listing is not JSON: %w", u, err)
 	}
 	if api.SHA == "" {

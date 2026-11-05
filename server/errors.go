@@ -4,7 +4,7 @@
 package server
 
 import (
-	"encoding/json"
+	"encoding/json/v2"
 	"fmt"
 	"net/http"
 
@@ -139,7 +139,7 @@ func (e *apiError) body(d ir.Dialect) []byte {
 		inner["param"] = nullableField(e.field)
 		v = map[string]any{"error": inner}
 	}
-	raw, err := json.Marshal(v)
+	raw, err := json.Marshal(v, modelText)
 	if err != nil {
 		// The map holds strings and nils; this cannot fail, and a panic here
 		// would be a worse answer than a plain body.
@@ -189,7 +189,7 @@ func writeStreamError(w http.ResponseWriter, d ir.Dialect, e *apiError) {
 		raw, err := json.Marshal(map[string]any{
 			"type": "error", "code": e.kind.name(d), "message": e.msg,
 			"param": nullableField(e.field),
-		})
+		}, modelText)
 		if err != nil {
 			// As in body: the map holds strings and nils, so this cannot
 			// fail, and a frame the client can parse beats a panic.

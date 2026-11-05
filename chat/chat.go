@@ -24,10 +24,10 @@
 package chat
 
 import (
-	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
-	"encoding/json"
+	"encoding/json/jsontext"
+	"encoding/json/v2"
 	"errors"
 	"strings"
 )
@@ -84,7 +84,7 @@ type Block struct {
 type ToolUse struct {
 	ID   string
 	Name string
-	Args json.RawMessage // passed through verbatim
+	Args jsontext.Value // passed through verbatim
 }
 
 // ToolResult is one tool's answer.
@@ -105,7 +105,7 @@ type ToolResult struct {
 type ToolSpec struct {
 	Name        string
 	Description string
-	InputSchema json.RawMessage
+	InputSchema jsontext.Value
 }
 
 // Renderer turns a conversation into the exact prompt bytes, plus the control
@@ -202,19 +202,18 @@ func (b *builder) control(s string) {
 
 // jsonString quotes s as a JSON string without Go's HTML escaping, matching
 // Hugging Face's tojson filter, which calls json.dumps with ensure_ascii=False.
-// Go escapes <, > and & by default; the reference template does not, and a
-// description containing an angle bracket would otherwise render bytes no
-// checkpoint was tuned on.
+// The reference template does not escape <, > and & and neither does this, so a
+// description containing an angle bracket renders the bytes checkpoints were
+// tuned on.
 func jsonString(s string) string {
-	var buf bytes.Buffer
-	enc := json.NewEncoder(&buf)
-	enc.SetEscapeHTML(false)
-	// Encode appends a newline, which the caller does not want.
-	if err := enc.Encode(s); err != nil {
-		// Unreachable: a bytes.Buffer never fails a write and every Go
-		// string encodes. An empty JSON string keeps the rendered template
-		// parseable, where a partial buffer would leave it malformed.
+	// Tool descriptions are caller text and may hold bytes that are not UTF-8;
+	// they are written as U+FFFD rather than failing the render.
+	b, err := json.Marshal(s, jsontext.AllowInvalidUTF8(true))
+	if err != nil {
+		// Unreachable: every Go string encodes. An empty JSON string keeps the
+		// rendered template parseable, where a partial buffer would leave it
+		// malformed.
 		return `""`
 	}
-	return strings.TrimSuffix(buf.String(), "\n")
+	return string(b)
 }

@@ -4,7 +4,8 @@
 package model
 
 import (
-	"encoding/json"
+	"encoding/json/jsontext"
+	"encoding/json/v2"
 	"strings"
 	"testing"
 )
@@ -50,7 +51,7 @@ func good() map[string]any {
 }
 
 // raw marshals a config map.
-func raw(t *testing.T, cfg map[string]any) json.RawMessage {
+func raw(t *testing.T, cfg map[string]any) jsontext.Value {
 	t.Helper()
 	b, err := json.Marshal(cfg)
 	if err != nil {

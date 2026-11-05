@@ -4,7 +4,7 @@
 package conformance
 
 import (
-	"encoding/json"
+	"encoding/json/v2"
 	"math"
 	"math/rand/v2"
 	"strings"

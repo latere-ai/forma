@@ -5,7 +5,8 @@ package forma
 
 import (
 	"context"
-	"encoding/json"
+	"encoding/json/jsontext"
+	"encoding/json/v2"
 	"errors"
 	"fmt"
 	"math"
@@ -93,7 +94,7 @@ func TestAConstrainedGenerationCompletesAndStops(t *testing.T) {
 	if err := st.Err(); err != nil {
 		t.Fatalf("stream: %v, after %q", err, text)
 	}
-	if !json.Valid([]byte(text)) {
+	if !jsontext.Value(text).IsValid(foreignJSON) {
 		t.Fatalf("the completion is not valid JSON: %q", text)
 	}
 	if n := st.Usage().CompletionTokens; n >= budget {
@@ -454,7 +455,7 @@ func TestTwoConstrainedStreamsShareOneGrammar(t *testing.T) {
 			t.Errorf("stream %d: %v", i, r.err)
 			continue
 		}
-		if !json.Valid([]byte(r.text)) {
+		if !jsontext.Value(r.text).IsValid(foreignJSON) {
 			t.Errorf("stream %d produced %q, which is not valid JSON", i, r.text)
 		}
 	}
@@ -820,7 +821,7 @@ func TestASchemaAndAStopStringAreRefusedTogether(t *testing.T) {
 		t.Fatalf("a schema on its own: %v", err)
 	}
 	text, _ := collect(t, st)
-	if !json.Valid([]byte(text)) {
+	if !jsontext.Value(text).IsValid(foreignJSON) {
 		t.Errorf("a schema on its own produced %q", text)
 	}
 	st, err = s.Complete(t.Context(), "describe a place",

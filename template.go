@@ -4,7 +4,8 @@
 package forma
 
 import (
-	"encoding/json"
+	"encoding/json/jsontext"
+	"encoding/json/v2"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -39,9 +40,9 @@ const templateFile = "tokenizer_config.json"
 // "" rather than guessing which of several is the one to compare against.
 func checkpointTemplate(raw []byte) (string, error) {
 	var cfg struct {
-		ChatTemplate json.RawMessage `json:"chat_template"`
+		ChatTemplate jsontext.Value `json:"chat_template"`
 	}
-	if err := json.Unmarshal(raw, &cfg); err != nil {
+	if err := json.Unmarshal(raw, &cfg, foreignJSON); err != nil {
 		return "", fmt.Errorf("parse %s: %w", templateFile, err)
 	}
 	if len(cfg.ChatTemplate) == 0 {
@@ -49,7 +50,7 @@ func checkpointTemplate(raw []byte) (string, error) {
 	}
 
 	var one string
-	if err := json.Unmarshal(cfg.ChatTemplate, &one); err == nil {
+	if err := json.Unmarshal(cfg.ChatTemplate, &one, foreignJSON); err == nil {
 		return one, nil
 	}
 
@@ -57,7 +58,7 @@ func checkpointTemplate(raw []byte) (string, error) {
 		Name     string `json:"name"`
 		Template string `json:"template"`
 	}
-	if err := json.Unmarshal(cfg.ChatTemplate, &many); err != nil {
+	if err := json.Unmarshal(cfg.ChatTemplate, &many, foreignJSON); err != nil {
 		return "", fmt.Errorf("%s: chat_template is neither a string nor a list of "+
 			"named templates", templateFile)
 	}

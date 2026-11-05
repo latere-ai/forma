@@ -5,7 +5,7 @@ package server
 
 import (
 	"context"
-	"encoding/json"
+	"encoding/json/v2"
 	"fmt"
 	"io"
 	"net"
@@ -284,7 +284,7 @@ func (s *Server) exposeMetrics(w http.ResponseWriter, _ *http.Request) {
 }
 
 func writeJSON(w http.ResponseWriter, v any) {
-	raw, err := json.Marshal(v)
+	raw, err := json.Marshal(v, modelText)
 	if err != nil {
 		http.Error(w, `{"error":{"message":"forma: the body could not be encoded"}}`,
 			http.StatusInternalServerError)

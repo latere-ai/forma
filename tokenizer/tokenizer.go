@@ -23,7 +23,7 @@
 package tokenizer
 
 import (
-	"encoding/json"
+	"encoding/json/v2"
 	"errors"
 	"fmt"
 	"io"
@@ -83,8 +83,7 @@ func Load(path string) (*Tokenizer, error) {
 // given string without changing anything a reader could notice.
 func Parse(r io.Reader) (*Tokenizer, error) {
 	var f tokenizerFile
-	dec := json.NewDecoder(r)
-	if err := dec.Decode(&f); err != nil {
+	if err := json.UnmarshalRead(r, &f, foreignJSON); err != nil {
 		return nil, fmt.Errorf("tokenizer: parse: %w", err)
 	}
 	t := &Tokenizer{

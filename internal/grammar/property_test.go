@@ -5,10 +5,11 @@ package grammar
 
 import (
 	"bytes"
-	"encoding/json"
+	"encoding/json/jsontext"
 	"fmt"
 	"math/rand/v2"
 	"reflect"
+	"strconv"
 	"strings"
 	"testing"
 	"unicode/utf8"
@@ -79,7 +80,7 @@ func TestEverythingTheMachineAcceptsIsValid(t *testing.T) {
 			doc := randomWalk(t, g, v, rng, 60)
 			seen[doc] = true
 
-			if !json.Valid([]byte(doc)) {
+			if !jsontext.Value(doc).IsValid(foreignJSON) {
 				t.Fatalf("schema %d: the machine accepted %q, which is not JSON", i, doc)
 			}
 			value, err := decode([]byte(doc))
@@ -217,13 +218,64 @@ func towardAccept(g *Grammar, d *dstate) int {
 // unmarshaling into a float64 field should know is in the package
 // documentation instead.
 func decode(b []byte) (any, error) {
-	dec := json.NewDecoder(bytes.NewReader(b))
-	dec.UseNumber()
-	var v any
-	if err := dec.Decode(&v); err != nil {
-		return nil, err
+	return readTree(jsontext.NewDecoder(bytes.NewReader(b), foreignJSON))
+}
+
+// number is a JSON number kept as its literal spelling.
+type number string
+
+// readTree reads one value into maps, slices, strings, bools, nil and number.
+func readTree(dec *jsontext.Decoder) (any, error) {
+	switch dec.PeekKind() {
+	case '{':
+		if _, err := dec.ReadToken(); err != nil {
+			return nil, err
+		}
+		m := map[string]any{}
+		for dec.PeekKind() != '}' {
+			kt, err := dec.ReadToken()
+			if err != nil {
+				return nil, err
+			}
+			k := kt.String()
+			v, err := readTree(dec)
+			if err != nil {
+				return nil, err
+			}
+			m[k] = v
+		}
+		_, err := dec.ReadToken()
+		return m, err
+	case '[':
+		if _, err := dec.ReadToken(); err != nil {
+			return nil, err
+		}
+		a := []any{}
+		for dec.PeekKind() != ']' {
+			v, err := readTree(dec)
+			if err != nil {
+				return nil, err
+			}
+			a = append(a, v)
+		}
+		_, err := dec.ReadToken()
+		return a, err
+	case '0':
+		raw, err := dec.ReadValue()
+		return number(raw), err
+	default:
+		tok, err := dec.ReadToken()
+		if err != nil {
+			return nil, err
+		}
+		switch tok.Kind() {
+		case '"':
+			return tok.String(), nil
+		case 't', 'f':
+			return tok.Bool(), nil
+		}
+		return nil, nil
 	}
-	return v, nil
 }
 
 // oracle validates a decoded value against a decoded schema.
@@ -293,11 +345,11 @@ func (o *oracle) check(schema map[string]any, v any, path string) error {
 			return at("%q is %d characters, above maxLength %d", s, n, hi)
 		}
 	case "number":
-		if _, ok := v.(json.Number); !ok {
+		if _, ok := v.(number); !ok {
 			return at("%#v is not a number", v)
 		}
 	case "integer":
-		n, ok := v.(json.Number)
+		n, ok := v.(number)
 		if !ok || strings.ContainsAny(string(n), ".eE") {
 			return at("%#v is not an integer", v)
 		}
@@ -361,11 +413,11 @@ func (o *oracle) check(schema map[string]any, v any, path string) error {
 }
 
 func num(v any) (int, bool) {
-	n, ok := v.(json.Number)
+	n, ok := v.(number)
 	if !ok {
 		return 0, false
 	}
-	i, err := n.Int64()
+	i, err := strconv.ParseInt(string(n), 10, 64)
 	return int(i), err == nil
 }
 

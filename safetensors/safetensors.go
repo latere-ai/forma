@@ -19,7 +19,8 @@ package safetensors
 
 import (
 	"encoding/binary"
-	"encoding/json"
+	"encoding/json/jsontext"
+	"encoding/json/v2"
 	"fmt"
 	"os"
 	"sort"
@@ -151,8 +152,8 @@ func parse(f *os.File, path string, size int64) (*File, error) {
 	if _, err := f.ReadAt(buf, 8); err != nil {
 		return nil, fmt.Errorf("safetensors: %s: read header: %w", path, err)
 	}
-	var raw map[string]json.RawMessage
-	if err := json.Unmarshal(buf, &raw); err != nil {
+	var raw map[string]jsontext.Value
+	if err := json.Unmarshal(buf, &raw, foreignJSON); err != nil {
 		return nil, fmt.Errorf("safetensors: %s: parse header: %w", path, err)
 	}
 
@@ -174,7 +175,7 @@ func parse(f *os.File, path string, size int64) (*File, error) {
 	for _, name := range keys {
 		if name == metadataKey {
 			var meta map[string]string
-			if err := json.Unmarshal(raw[name], &meta); err != nil {
+			if err := json.Unmarshal(raw[name], &meta, foreignJSON); err != nil {
 				return nil, fmt.Errorf("safetensors: %s: %s is not a map of strings: %w", path, metadataKey, err)
 			}
 			continue
@@ -193,9 +194,9 @@ func parse(f *os.File, path string, size int64) (*File, error) {
 }
 
 // entry validates one header record against the data region.
-func (f *File) entry(name string, rec json.RawMessage) (Entry, error) {
+func (f *File) entry(name string, rec jsontext.Value) (Entry, error) {
 	var r rawEntry
-	if err := json.Unmarshal(rec, &r); err != nil {
+	if err := json.Unmarshal(rec, &r, foreignJSON); err != nil {
 		return Entry{}, fmt.Errorf("safetensors: %s: %s: parse entry: %w", f.path, name, err)
 	}
 	width, ok := dtypeSize[DType(r.DType)]

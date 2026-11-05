@@ -4,7 +4,8 @@
 package safetensors
 
 import (
-	"encoding/json"
+	"encoding/json/jsontext"
+	"encoding/json/v2"
 	"errors"
 	"fmt"
 	"os"
@@ -25,7 +26,7 @@ const (
 // resolved so that a tensor name reaches the shard that holds it.
 type Repo struct {
 	dir     string
-	config  json.RawMessage
+	config  jsontext.Value
 	files   map[string]*File // shard file name to the open shard
 	shardOf map[string]string
 	names   []string
@@ -85,7 +86,7 @@ func OpenRepo(dir string) (*Repo, error) {
 // config is not on it. A config that is present but is not JSON is refused,
 // because handing a caller bytes that will fail to parse later reports the
 // problem in the wrong place.
-func readConfig(dir string) (json.RawMessage, error) {
+func readConfig(dir string) (jsontext.Value, error) {
 	b, err := os.ReadFile(filepath.Join(dir, configName))
 	if errors.Is(err, os.ErrNotExist) {
 		return nil, nil
@@ -93,7 +94,7 @@ func readConfig(dir string) (json.RawMessage, error) {
 	if err != nil {
 		return nil, fmt.Errorf("safetensors: %s: read config: %w", dir, err)
 	}
-	if !json.Valid(b) {
+	if !jsontext.Value(b).IsValid(foreignJSON) {
 		return nil, fmt.Errorf("safetensors: %s: %s is not valid JSON", dir, configName)
 	}
 	return b, nil
@@ -119,7 +120,7 @@ func (r *Repo) openSingle() error {
 // agreement between the index and the shards (specs/001-weights.md §6).
 func (r *Repo) openSharded(path string, raw []byte) error {
 	var idx index
-	if err := json.Unmarshal(raw, &idx); err != nil {
+	if err := json.Unmarshal(raw, &idx, foreignJSON); err != nil {
 		return fmt.Errorf("safetensors: %s: parse index: %w", path, err)
 	}
 	if len(idx.WeightMap) == 0 {
@@ -195,11 +196,11 @@ func checkShardName(path, tensor, shard string) error {
 
 // Config is the raw config.json, or nil if the directory has none. The result
 // is a fresh copy.
-func (r *Repo) Config() json.RawMessage {
+func (r *Repo) Config() jsontext.Value {
 	if r.config == nil {
 		return nil
 	}
-	out := make(json.RawMessage, len(r.config))
+	out := make(jsontext.Value, len(r.config))
 	copy(out, r.config)
 	return out
 }

@@ -4,6 +4,8 @@
 package conformance
 
 import (
+	"encoding/json/jsontext"
+	"encoding/json/v2"
 	"fmt"
 	"math"
 	"strings"
@@ -29,11 +31,11 @@ import (
 // engine being built in parallel, and a report that printed 0.00 for a number
 // nobody has taken yet would be a false measurement rather than a missing one.
 type Measurements struct {
-	Divergence   *Divergence   `json:"divergence,omitempty"`
-	Readback     *Readback     `json:"readback,omitempty"`
-	Quantization *Quantization `json:"quantization,omitempty"`
-	Compile      *Compile      `json:"compile,omitempty"`
-	Transient    *Transient    `json:"transient,omitempty"`
+	Divergence   *Divergence   `json:"divergence,omitzero"`
+	Readback     *Readback     `json:"readback,omitzero"`
+	Quantization *Quantization `json:"quantization,omitzero"`
+	Compile      *Compile      `json:"compile,omitzero"`
+	Transient    *Transient    `json:"transient,omitzero"`
 }
 
 // Divergence is where a greedy CPU run and a greedy Metal run part, over one
@@ -140,6 +142,49 @@ type Readback struct {
 	// Steps is how many decode steps the share is over, because a share over
 	// four steps is not a share.
 	Steps int `json:"steps"`
+}
+
+// readbackWire is Readback as it is written: durations are integer
+// nanoseconds, in the field order of Readback.
+type readbackWire struct {
+	Vocab  int     `json:"vocab"`
+	Bytes  int     `json:"bytes"`
+	Share  float64 `json:"share"`
+	Median int64   `json:"median_ns"`
+	Steps  int     `json:"steps"`
+}
+
+// MarshalJSONTo writes the durations as integer nanoseconds and passes the
+// encoder's options on to the rest of the value.
+func (r Readback) MarshalJSONTo(enc *jsontext.Encoder) error {
+	return json.MarshalEncode(enc, readbackWire{
+		Vocab:  r.Vocab,
+		Bytes:  r.Bytes,
+		Share:  r.Share,
+		Median: int64(r.Median),
+		Steps:  r.Steps,
+	})
+}
+
+// UnmarshalJSONFrom reads the form written by [Readback.MarshalJSONTo]. Members
+// the input leaves out keep their current values.
+func (r *Readback) UnmarshalJSONFrom(dec *jsontext.Decoder) error {
+	w := readbackWire{
+		Vocab:  r.Vocab,
+		Bytes:  r.Bytes,
+		Share:  r.Share,
+		Median: int64(r.Median),
+		Steps:  r.Steps,
+	}
+	if err := json.UnmarshalDecode(dec, &w); err != nil {
+		return err
+	}
+	r.Vocab = w.Vocab
+	r.Bytes = w.Bytes
+	r.Share = w.Share
+	r.Median = time.Duration(w.Median)
+	r.Steps = w.Steps
+	return nil
 }
 
 // ReadbackFrom takes the decode phase's readback share out of a bench report.
@@ -250,6 +295,37 @@ type Bucket struct {
 
 	// Elapsed is what compiling that bucket's plan took.
 	Elapsed time.Duration `json:"elapsed_ns"`
+}
+
+// bucketWire is Bucket as it is written: durations are integer
+// nanoseconds, in the field order of Bucket.
+type bucketWire struct {
+	Tokens  int   `json:"tokens"`
+	Elapsed int64 `json:"elapsed_ns"`
+}
+
+// MarshalJSONTo writes the durations as integer nanoseconds and passes the
+// encoder's options on to the rest of the value.
+func (b Bucket) MarshalJSONTo(enc *jsontext.Encoder) error {
+	return json.MarshalEncode(enc, bucketWire{
+		Tokens:  b.Tokens,
+		Elapsed: int64(b.Elapsed),
+	})
+}
+
+// UnmarshalJSONFrom reads the form written by [Bucket.MarshalJSONTo]. Members
+// the input leaves out keep their current values.
+func (b *Bucket) UnmarshalJSONFrom(dec *jsontext.Decoder) error {
+	w := bucketWire{
+		Tokens:  b.Tokens,
+		Elapsed: int64(b.Elapsed),
+	}
+	if err := json.UnmarshalDecode(dec, &w); err != nil {
+		return err
+	}
+	b.Tokens = w.Tokens
+	b.Elapsed = time.Duration(w.Elapsed)
+	return nil
 }
 
 // Compile is plan compile time per bucket and the plan cache's hit rate over a

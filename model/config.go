@@ -5,7 +5,8 @@ package model
 
 import (
 	"bytes"
-	"encoding/json"
+	"encoding/json/jsontext"
+	"encoding/json/v2"
 	"fmt"
 	"math"
 )
@@ -105,21 +106,21 @@ func (c *Config) KVWidth() int { return c.NumKVHeads * c.HeadDim }
 // would hand a caller a graph built from d/H when their file said something
 // else.
 type rawConfig struct {
-	Architectures         []string        `json:"architectures"`
-	HiddenSize            *int            `json:"hidden_size"`
-	NumHiddenLayers       *int            `json:"num_hidden_layers"`
-	NumAttentionHeads     *int            `json:"num_attention_heads"`
-	NumKeyValueHeads      *int            `json:"num_key_value_heads"`
-	HeadDim               *int            `json:"head_dim"`
-	IntermediateSize      *int            `json:"intermediate_size"`
-	VocabSize             *int            `json:"vocab_size"`
-	RMSNormEps            *float64        `json:"rms_norm_eps"`
-	RoPETheta             *float64        `json:"rope_theta"`
-	TieWordEmbeddings     *bool           `json:"tie_word_embeddings"`
-	MaxPositionEmbeddings *int            `json:"max_position_embeddings"`
-	RoPEScaling           json.RawMessage `json:"rope_scaling"`
-	SlidingWindow         *int            `json:"sliding_window"`
-	UseSlidingWindow      *bool           `json:"use_sliding_window"`
+	Architectures         []string       `json:"architectures"`
+	HiddenSize            *int           `json:"hidden_size"`
+	NumHiddenLayers       *int           `json:"num_hidden_layers"`
+	NumAttentionHeads     *int           `json:"num_attention_heads"`
+	NumKeyValueHeads      *int           `json:"num_key_value_heads"`
+	HeadDim               *int           `json:"head_dim"`
+	IntermediateSize      *int           `json:"intermediate_size"`
+	VocabSize             *int           `json:"vocab_size"`
+	RMSNormEps            *float64       `json:"rms_norm_eps"`
+	RoPETheta             *float64       `json:"rope_theta"`
+	TieWordEmbeddings     *bool          `json:"tie_word_embeddings"`
+	MaxPositionEmbeddings *int           `json:"max_position_embeddings"`
+	RoPEScaling           jsontext.Value `json:"rope_scaling"`
+	SlidingWindow         *int           `json:"sliding_window"`
+	UseSlidingWindow      *bool          `json:"use_sliding_window"`
 }
 
 // ParseConfig parses and validates config.json against
@@ -129,9 +130,9 @@ type rawConfig struct {
 // cannot honor is refused here, at parse, rather than approximated: §7's rows
 // are each a case where the wrong answer runs, produces shapes that check, and
 // degrades output somewhere a test does not look.
-func ParseConfig(raw json.RawMessage) (*Config, error) {
+func ParseConfig(raw jsontext.Value) (*Config, error) {
 	var r rawConfig
-	if err := json.Unmarshal(raw, &r); err != nil {
+	if err := json.Unmarshal(raw, &r, foreignJSON); err != nil {
 		return nil, fmt.Errorf("model: parse config: %w", err)
 	}
 	if len(r.Architectures) == 0 || r.Architectures[0] == "" {
@@ -221,19 +222,19 @@ func ParseConfig(raw json.RawMessage) (*Config, error) {
 // positions the model was trained on and diverges past them, so the failure
 // arrives after four thousand tokens of good output, which is the worst place
 // for a failure to arrive.
-func checkRoPEScaling(raw json.RawMessage) error {
+func checkRoPEScaling(raw jsontext.Value) error {
 	if isJSONNull(raw) {
 		return nil
 	}
 	// A present key with the value null is how every real Hugging Face config
-	// spells "no scaling", and json.RawMessage captures those four bytes rather
+	// spells "no scaling", and jsontext.Value captures those four bytes rather
 	// than leaving the field nil. Refusing on key presence would refuse Qwen3.
 	var kind struct {
 		Type     string `json:"type"`
 		RoPEType string `json:"rope_type"`
 	}
 	name := "unnamed"
-	if err := json.Unmarshal(raw, &kind); err == nil {
+	if err := json.Unmarshal(raw, &kind, foreignJSON); err == nil {
 		if kind.RoPEType != "" {
 			name = kind.RoPEType
 		} else if kind.Type != "" {
@@ -271,7 +272,7 @@ func checkSlidingWindow(window *int, use *bool) error {
 }
 
 // isJSONNull reports whether a raw field is absent or literally null.
-func isJSONNull(raw json.RawMessage) bool {
+func isJSONNull(raw jsontext.Value) bool {
 	trimmed := bytes.TrimSpace(raw)
 	return len(trimmed) == 0 || bytes.Equal(trimmed, []byte("null"))
 }

@@ -36,7 +36,7 @@ type modelFacts struct {
 	// hybrid is one in four. It is what the per-position arithmetic divides
 	// by (specs/023-cache-kinds.md section 8); zero means it was not read and
 	// Layers is used.
-	CachedLayers int `json:"cached_layers,omitempty"`
+	CachedLayers int `json:"cached_layers,omitzero"`
 
 	Heads            int   `json:"heads"`
 	KVHeads          int   `json:"kv_heads"`

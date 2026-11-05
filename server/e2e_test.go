@@ -5,7 +5,8 @@ package server_test
 
 import (
 	"encoding/binary"
-	"encoding/json"
+	"encoding/json/jsontext"
+	"encoding/json/v2"
 	"math"
 	"net/http"
 	"net/http/httptest"
@@ -364,16 +365,14 @@ func TestASchemaThroughTheServerProducesADocumentThatMatchesIt(t *testing.T) {
 		t.Fatalf("status = %d: %s", w.Code, w.Body.String())
 	}
 	answer := contentOf(t, w)
-	if !json.Valid([]byte(answer)) {
+	if !jsontext.Value(answer).IsValid(jsontext.AllowDuplicateNames(true), jsontext.AllowInvalidUTF8(true)) {
 		t.Fatalf("the answer is not valid JSON: %q", answer)
 	}
 	var got struct {
 		City    string `json:"city"`
 		Capital bool   `json:"capital"`
 	}
-	dec := json.NewDecoder(strings.NewReader(answer))
-	dec.DisallowUnknownFields()
-	if err := dec.Decode(&got); err != nil {
+	if err := json.UnmarshalRead(strings.NewReader(answer), &got, json.RejectUnknownMembers(true)); err != nil {
 		t.Fatalf("the answer does not match the schema: %v: %q", err, answer)
 	}
 	if got.City != "oslo" {

@@ -5,8 +5,11 @@ package grammar
 
 import (
 	"bytes"
-	"encoding/json"
+	"encoding/json/jsontext"
+	"encoding/json/v2"
+	"errors"
 	"fmt"
+	"io"
 	"maps"
 	"math"
 	"slices"
@@ -101,7 +104,7 @@ var consumed = map[string]bool{
 // the recursion does not need an error branch at every call site.
 type compiler struct {
 	n    *nfa
-	defs map[string]json.RawMessage
+	defs map[string]jsontext.Value
 	seen map[string]bool
 	err  error
 }
@@ -125,7 +128,7 @@ func (c *compiler) compile(schema []byte) (frag, error) {
 	if err != nil {
 		return frag{}, err
 	}
-	c.defs = map[string]json.RawMessage{}
+	c.defs = map[string]jsontext.Value{}
 	for _, key := range []string{"$defs", "definitions"} {
 		if raw, ok := m[key]; ok {
 			_, d, err := fields(raw, "/"+key)
@@ -149,32 +152,34 @@ func (c *compiler) compile(schema []byte) (frag, error) {
 // The order matters: it is the order this package requires an object's
 // properties to be emitted in (see object below), so it has to come from the
 // document rather than from a Go map's iteration.
-func fields(raw json.RawMessage, path string) ([]string, map[string]json.RawMessage, error) {
-	dec := json.NewDecoder(bytes.NewReader(raw))
-	tok, err := dec.Token()
+func fields(raw jsontext.Value, path string) ([]string, map[string]jsontext.Value, error) {
+	// Duplicate names are let through the decoder so that the check below can
+	// refuse them with the key named.
+	dec := jsontext.NewDecoder(bytes.NewReader(raw), foreignJSON)
+	tok, err := dec.ReadToken()
 	if err != nil {
 		return nil, nil, &SchemaError{Path: path, Reason: fmt.Sprintf("not a JSON object: %v", err)}
 	}
-	if d, ok := tok.(json.Delim); !ok || d != '{' {
+	if tok.Kind() != '{' {
 		return nil, nil, &SchemaError{Path: path, Reason: fmt.Sprintf("not a JSON object: found %v", tok)}
 	}
 	var order []string
-	m := map[string]json.RawMessage{}
-	for dec.More() {
-		kt, err := dec.Token()
+	m := map[string]jsontext.Value{}
+	for dec.PeekKind() != '}' {
+		kt, err := dec.ReadToken()
 		if err != nil {
 			return nil, nil, &SchemaError{Path: path, Reason: fmt.Sprintf("malformed object: %v", err)}
 		}
-		// Inside an object with More() true the next token is a key, so this
-		// holds. It is checked anyway because every other malformed input in
-		// this parser comes back as a SchemaError, and one that panicked
-		// instead would be the one shape a caller cannot handle.
-		k, ok := kt.(string)
-		if !ok {
-			return nil, nil, &SchemaError{Path: path, Reason: fmt.Sprintf("object key is %T, not a string", kt)}
+		// Inside an object before its closing brace the next token is a key,
+		// so this holds. It is checked anyway because every other malformed
+		// input in this parser comes back as a SchemaError, and one that
+		// panicked instead would be the one shape a caller cannot handle.
+		if kt.Kind() != '"' {
+			return nil, nil, &SchemaError{Path: path, Reason: fmt.Sprintf("object key is %v, not a string", kt.Kind())}
 		}
-		var v json.RawMessage
-		if err := dec.Decode(&v); err != nil {
+		k := kt.String()
+		var v jsontext.Value
+		if err := json.UnmarshalDecode(dec, &v, foreignJSON); err != nil {
 			return nil, nil, &SchemaError{Path: path, Reason: fmt.Sprintf("malformed value for %q: %v", k, err)}
 		}
 		if _, dup := m[k]; dup {
@@ -183,17 +188,17 @@ func fields(raw json.RawMessage, path string) ([]string, map[string]json.RawMess
 		order = append(order, k)
 		m[k] = v
 	}
-	if _, err := dec.Token(); err != nil {
+	if _, err := dec.ReadToken(); err != nil {
 		return nil, nil, &SchemaError{Path: path, Reason: fmt.Sprintf("malformed object: %v", err)}
 	}
-	if dec.More() {
+	if _, err := dec.ReadValue(); !errors.Is(err, io.EOF) {
 		return nil, nil, &SchemaError{Path: path, Reason: "trailing content after the object"}
 	}
 	return order, m, nil
 }
 
 // value compiles one subschema.
-func (c *compiler) value(raw json.RawMessage, path string) frag {
+func (c *compiler) value(raw jsontext.Value, path string) frag {
 	if c.err != nil {
 		return c.n.empty()
 	}
@@ -237,7 +242,7 @@ func (c *compiler) value(raw json.RawMessage, path string) frag {
 		allow = []string{"enum", "type"}
 	case m["type"] != nil:
 		var t string
-		if err := json.Unmarshal(m["type"], &t); err != nil {
+		if err := json.Unmarshal(m["type"], &t, foreignJSON); err != nil {
 			return c.fail(path, `"type" as a list`,
 				`a union of types is spelled anyOf here, so that each branch carries its own keywords`)
 		}
@@ -267,10 +272,10 @@ func (c *compiler) value(raw json.RawMessage, path string) frag {
 	case "anyOf":
 		return c.anyOf(m["anyOf"], path)
 	case "const":
-		return c.literals(path, "const", []json.RawMessage{m["const"]}, m["type"])
+		return c.literals(path, "const", []jsontext.Value{m["const"]}, m["type"])
 	case "enum":
-		var vals []json.RawMessage
-		if err := json.Unmarshal(m["enum"], &vals); err != nil {
+		var vals []jsontext.Value
+		if err := json.Unmarshal(m["enum"], &vals, foreignJSON); err != nil {
 			return c.bad(path, `"enum" is not a list: %v`, err)
 		}
 		if len(vals) == 0 {
@@ -280,7 +285,7 @@ func (c *compiler) value(raw json.RawMessage, path string) frag {
 	}
 
 	var t string
-	_ = json.Unmarshal(m["type"], &t)
+	_ = json.Unmarshal(m["type"], &t, foreignJSON)
 	switch t {
 	case "string":
 		lo, hi := c.lengths(m, path, "minLength", "maxLength")
@@ -302,7 +307,7 @@ func (c *compiler) value(raw json.RawMessage, path string) frag {
 
 // checkKeywords is 015-D4 as one loop: every keyword present must be one this
 // compilation consumes.
-func (c *compiler) checkKeywords(m map[string]json.RawMessage, allow []string, path string) (frag, bool) {
+func (c *compiler) checkKeywords(m map[string]jsontext.Value, allow []string, path string) (frag, bool) {
 	ok := map[string]bool{}
 	for _, k := range allow {
 		ok[k] = true
@@ -330,9 +335,9 @@ func (c *compiler) checkKeywords(m map[string]json.RawMessage, allow []string, p
 // refusal would reject most of what response_format actually sends. The visited
 // set that makes inlining safe is also the cycle detector: a schema that refers
 // to itself has no bound on nesting and is not regular.
-func (c *compiler) ref(raw json.RawMessage, path string) frag {
+func (c *compiler) ref(raw jsontext.Value, path string) frag {
 	var ptr string
-	if err := json.Unmarshal(raw, &ptr); err != nil {
+	if err := json.Unmarshal(raw, &ptr, foreignJSON); err != nil {
 		return c.bad(path, `"$ref" is not a string: %v`, err)
 	}
 	if c.seen[ptr] {
@@ -348,9 +353,9 @@ func (c *compiler) ref(raw json.RawMessage, path string) frag {
 	return c.value(target, ptr[1:])
 }
 
-func (c *compiler) anyOf(raw json.RawMessage, path string) frag {
-	var branches []json.RawMessage
-	if err := json.Unmarshal(raw, &branches); err != nil {
+func (c *compiler) anyOf(raw jsontext.Value, path string) frag {
+	var branches []jsontext.Value
+	if err := json.Unmarshal(raw, &branches, foreignJSON); err != nil {
 		return c.bad(path, `"anyOf" is not a list: %v`, err)
 	}
 	if len(branches) == 0 {
@@ -365,30 +370,30 @@ func (c *compiler) anyOf(raw json.RawMessage, path string) frag {
 
 // literals compiles const and enum to an alternation of exact spellings.
 //
-// json.Compact rather than a decode-and-re-encode, so the admitted spelling is
+// jsontext.Value.Compact rather than a decode-and-re-encode, so the admitted spelling is
 // the caller's own: re-encoding would turn 1.0 into 1 and would rewrite the
 // escapes inside a string, and the model would then be masked away from the
 // literal the schema actually contains.
-func (c *compiler) literals(path, kw string, vals []json.RawMessage, typ json.RawMessage) frag {
+func (c *compiler) literals(path, kw string, vals []jsontext.Value, typ jsontext.Value) frag {
 	var want string
 	if typ != nil {
-		if err := json.Unmarshal(typ, &want); err != nil {
+		if err := json.Unmarshal(typ, &want, foreignJSON); err != nil {
 			return c.fail(path, `"type" as a list`,
 				`a union of types is spelled anyOf here, so that each branch carries its own keywords`)
 		}
 	}
 	fs := make([]frag, 0, len(vals))
 	for i, v := range vals {
-		var buf bytes.Buffer
-		if err := json.Compact(&buf, v); err != nil {
+		lit := jsontext.Value(bytes.Clone(v))
+		if err := lit.Compact(foreignJSON); err != nil {
 			return c.bad(path, `%s[%d] is not valid JSON: %v`, kw, i, err)
 		}
 		if want != "" {
-			if got := jsonKind(buf.Bytes()); !kindMatches(got, want, buf.Bytes()) {
+			if got := jsonKind(lit); !kindMatches(got, want, lit) {
 				return c.bad(path, `%s[%d] is %s, which contradicts "type": %q`, kw, i, got, want)
 			}
 		}
-		fs = append(fs, c.n.lit(buf.String()))
+		fs = append(fs, c.n.lit(string(lit)))
 	}
 	return c.n.cat(c.ws(), c.n.alt(fs...))
 }
@@ -422,16 +427,16 @@ func kindMatches(got, want string, b []byte) bool {
 }
 
 // lengths reads a pair of count bounds, defaulting to zero and unbounded.
-func (c *compiler) lengths(m map[string]json.RawMessage, path, minKW, maxKW string) (int, int) {
+func (c *compiler) lengths(m map[string]jsontext.Value, path, minKW, maxKW string) (int, int) {
 	lo, hi := 0, -1
 	if raw, ok := m[minKW]; ok {
-		if err := json.Unmarshal(raw, &lo); err != nil || lo < 0 {
+		if err := json.Unmarshal(raw, &lo, foreignJSON); err != nil || lo < 0 {
 			c.bad(path, `%q must be a non-negative integer`, minKW)
 			return 0, -1
 		}
 	}
 	if raw, ok := m[maxKW]; ok {
-		if err := json.Unmarshal(raw, &hi); err != nil || hi < 0 {
+		if err := json.Unmarshal(raw, &hi, foreignJSON); err != nil || hi < 0 {
 			c.bad(path, `%q must be a non-negative integer`, maxKW)
 			return 0, -1
 		}
@@ -464,7 +469,7 @@ func (c *compiler) lengths(m map[string]json.RawMessage, path, minKW, maxKW stri
 // the caller's schema; what is lost is documents the schema would also have
 // allowed. An explicit "additionalProperties": true is refused rather than
 // narrowed, because that one is the caller stating something this cannot honor.
-func (c *compiler) object(m map[string]json.RawMessage, path string) frag {
+func (c *compiler) object(m map[string]jsontext.Value, path string) frag {
 	if raw, ok := m["additionalProperties"]; ok {
 		if strings.TrimSpace(string(raw)) != "false" {
 			return c.fail(path, `"additionalProperties" other than false`,
@@ -473,7 +478,7 @@ func (c *compiler) object(m map[string]json.RawMessage, path string) frag {
 	}
 
 	var order []string
-	props := map[string]json.RawMessage{}
+	props := map[string]jsontext.Value{}
 	if raw, ok := m["properties"]; ok {
 		var err error
 		order, props, err = fields(raw, path+"/properties")
@@ -486,7 +491,7 @@ func (c *compiler) object(m map[string]json.RawMessage, path string) frag {
 	need := map[string]bool{}
 	if raw, ok := m["required"]; ok {
 		var req []string
-		if err := json.Unmarshal(raw, &req); err != nil {
+		if err := json.Unmarshal(raw, &req, foreignJSON); err != nil {
 			return c.bad(path, `"required" is not a list of strings: %v`, err)
 		}
 		for _, name := range req {
@@ -533,7 +538,7 @@ func (c *compiler) object(m map[string]json.RawMessage, path string) frag {
 
 // property is `"name":value`, without the separator: object above supplies
 // that, so this subtree is built once however many ways it can be reached.
-func (c *compiler) property(name string, raw json.RawMessage, path string) frag {
+func (c *compiler) property(name string, raw jsontext.Value, path string) frag {
 	key, err := encodeString(name)
 	if err != nil {
 		return c.bad(path, "property name is not encodable as JSON: %v", err)
@@ -541,7 +546,7 @@ func (c *compiler) property(name string, raw json.RawMessage, path string) frag 
 	return c.n.cat(c.tok(key), c.tok(":"), c.value(raw, path))
 }
 
-func (c *compiler) array(m map[string]json.RawMessage, path string) frag {
+func (c *compiler) array(m map[string]jsontext.Value, path string) frag {
 	items, ok := m["items"]
 	if !ok {
 		return c.fail(path, `an array with no "items"`,
@@ -609,13 +614,11 @@ func (c *compiler) unboundedItems(item func() frag, lo int) frag {
 
 // encodeString spells a Go string as a JSON string literal, without Go's HTML
 // escaping: a model asked for a property called "a<b" will type the angle
-// bracket, and < would be a spelling nothing reaches.
+// bracket, and \u003c would be a spelling nothing reaches.
 func encodeString(s string) (string, error) {
-	var buf bytes.Buffer
-	enc := json.NewEncoder(&buf)
-	enc.SetEscapeHTML(false)
-	if err := enc.Encode(s); err != nil {
+	b, err := json.Marshal(s, jsontext.AllowInvalidUTF8(true))
+	if err != nil {
 		return "", err
 	}
-	return strings.TrimRight(buf.String(), "\n"), nil
+	return string(b), nil
 }

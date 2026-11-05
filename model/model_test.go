@@ -4,7 +4,7 @@
 package model
 
 import (
-	"encoding/json"
+	"encoding/json/jsontext"
 	"errors"
 	"fmt"
 	"os"
@@ -110,7 +110,7 @@ func TestNewMalformed(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			_, err := New(json.RawMessage(tc.config))
+			_, err := New(jsontext.Value(tc.config))
 			if err == nil {
 				t.Fatal("New accepted it")
 			}
@@ -141,7 +141,7 @@ func TestArchitecturesIsSortedAndCarriesQwen3(t *testing.T) {
 	// iteration is randomized, so a missing sort fails within a few runs and a
 	// wrong sort fails on the first.
 	n := registerSeq.Add(1)
-	stub := func(json.RawMessage) (Builder, error) { return nil, nil }
+	stub := func(jsontext.Value) (Builder, error) { return nil, nil }
 	planted := []string{
 		fmt.Sprintf("ZzzTestOnly%dForCausalLM", n),
 		fmt.Sprintf("AaaTestOnly%dForCausalLM", n),
@@ -178,11 +178,11 @@ func TestArchitecturesIsSortedAndCarriesQwen3(t *testing.T) {
 // that matters: keeping either constructor silently picks the weight map of a
 // model the caller did not ask for.
 func TestRegisterPanics(t *testing.T) {
-	stub := func(json.RawMessage) (Builder, error) { return nil, nil }
+	stub := func(jsontext.Value) (Builder, error) { return nil, nil }
 	cases := []struct {
 		name string
 		arch string
-		new  func(json.RawMessage) (Builder, error)
+		new  func(jsontext.Value) (Builder, error)
 		says string
 	}{
 		{"empty architecture", "", stub, "empty architecture"},
@@ -213,7 +213,7 @@ func TestRegisterAndOpenNewArchitecture(t *testing.T) {
 	// second claim on one architecture, which is the behavior under test
 	// elsewhere in this file.
 	arch := fmt.Sprintf("TestOnly%dForCausalLM", registerSeq.Add(1))
-	Register(arch, func(r json.RawMessage) (Builder, error) {
+	Register(arch, func(r jsontext.Value) (Builder, error) {
 		c, err := ParseConfig(r)
 		if err != nil {
 			return nil, err

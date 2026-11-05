@@ -4,7 +4,6 @@
 package chat
 
 import (
-	"encoding/json"
 	"fmt"
 	"slices"
 	"strings"
@@ -277,7 +276,7 @@ func validate(msgs []Message, opts Options) error {
 				if bl.ToolUse.Name == "" {
 					return fmt.Errorf("%w: %s", ErrToolName, where)
 				}
-				if len(bl.ToolUse.Args) > 0 && !json.Valid(bl.ToolUse.Args) {
+				if len(bl.ToolUse.Args) > 0 && !bl.ToolUse.Args.IsValid(foreignJSON) {
 					return fmt.Errorf("%w: %s: arguments for %q", ErrToolJSON, where, bl.ToolUse.Name)
 				}
 			case BlockToolResult:
@@ -296,7 +295,7 @@ func validate(msgs []Message, opts Options) error {
 		if t.Name == "" {
 			return fmt.Errorf("%w: tool %d", ErrToolName, i)
 		}
-		if len(t.InputSchema) > 0 && !json.Valid(t.InputSchema) {
+		if len(t.InputSchema) > 0 && !t.InputSchema.IsValid(foreignJSON) {
 			return fmt.Errorf("%w: input schema for tool %q", ErrToolJSON, t.Name)
 		}
 	}

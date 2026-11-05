@@ -6,7 +6,7 @@ package hub
 import (
 	"crypto/sha256"
 	"encoding/hex"
-	"encoding/json"
+	"encoding/json/v2"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -153,7 +153,7 @@ func (f *fake) serveListing(w http.ResponseWriter, r *http.Request) {
 	type sibling struct {
 		Path string `json:"rfilename"`
 		Size int64  `json:"size"`
-		LFS  *lfs   `json:"lfs,omitempty"`
+		LFS  *lfs   `json:"lfs,omitzero"`
 	}
 	out := struct {
 		SHA      string    `json:"sha"`
@@ -168,7 +168,7 @@ func (f *fake) serveListing(w http.ResponseWriter, r *http.Request) {
 		out.Siblings = append(out.Siblings, s)
 	}
 	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(out)
+	_ = json.MarshalWrite(w, out)
 }
 
 // published is the length the API publishes for this file.

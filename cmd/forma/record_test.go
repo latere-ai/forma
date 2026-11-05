@@ -5,7 +5,8 @@ package main
 
 import (
 	"bytes"
-	"encoding/json"
+	"encoding/json/jsontext"
+	"encoding/json/v2"
 	"math"
 	"strings"
 	"testing"
@@ -151,7 +152,7 @@ func TestBatchAxisIsAnAxis(t *testing.T) {
 			Points []int  `json:"points"`
 			Note   string `json:"note"`
 		} `json:"batch_axis"`
-		Batches []json.RawMessage `json:"batches"`
+		Batches []jsontext.Value `json:"batches"`
 	}
 	if err := json.Unmarshal(b, &decoded); err != nil {
 		t.Fatalf("the record does not round-trip: %v", err)

@@ -4,7 +4,8 @@
 package server
 
 import (
-	"encoding/json"
+	"encoding/json/jsontext"
+	"encoding/json/v2"
 	"fmt"
 	"strconv"
 )
@@ -64,9 +65,9 @@ type extras struct {
 // The body is parsed twice on purpose: once by the dialect's frontend into the
 // neutral IR, and once here for the fields that IR has no room for. A single
 // parse would mean either reimplementing the dialect or dropping the knobs.
-func topLevel(body []byte) (map[string]json.RawMessage, error) {
-	var top map[string]json.RawMessage
-	if err := json.Unmarshal(body, &top); err != nil {
+func topLevel(body []byte) (map[string]jsontext.Value, error) {
+	var top map[string]jsontext.Value
+	if err := json.Unmarshal(body, &top, foreignJSON); err != nil {
 		return nil, fmt.Errorf("the request body is not a JSON object: %w", err)
 	}
 	return top, nil
@@ -74,7 +75,7 @@ func topLevel(body []byte) (map[string]json.RawMessage, error) {
 
 // keys is the set of member names present, which is what the loss report reads
 // for a field a frontend accepts and discards.
-func keys(top map[string]json.RawMessage) map[string]bool {
+func keys(top map[string]jsontext.Value) map[string]bool {
 	out := make(map[string]bool, len(top))
 	for k := range top {
 		out[k] = true
@@ -87,7 +88,7 @@ func keys(top map[string]json.RawMessage) map[string]bool {
 // A malformed value is an error naming the field rather than a silent zero: a
 // seed that did not parse is a request whose caller believes it is reproducible
 // and is not.
-func parseExtras(top map[string]json.RawMessage) (extras, error) {
+func parseExtras(top map[string]jsontext.Value) (extras, error) {
 	var ex extras
 	var err error
 	if ex.seed, err = jsonUint(top, "seed"); err != nil {
@@ -131,15 +132,15 @@ func parseExtras(top map[string]json.RawMessage) (extras, error) {
 // A member of the wrong type is an error naming the field. A caller who asked
 // for logprobs and is silently given none has a response that looks like a
 // model with nothing to say about its own tokens.
-func parseLogProbs(top map[string]json.RawMessage, ex *extras) error {
+func parseLogProbs(top map[string]jsontext.Value, ex *extras) error {
 	raw, ok := top["logprobs"]
 	if ok && !isNull(raw) {
 		var b bool
 		var n int
 		switch {
-		case json.Unmarshal(raw, &b) == nil:
+		case json.Unmarshal(raw, &b, foreignJSON) == nil:
 			ex.logProbs = b
-		case json.Unmarshal(raw, &n) == nil:
+		case json.Unmarshal(raw, &n, foreignJSON) == nil:
 			if n < 0 {
 				return fmt.Errorf("logprobs is %d; it is a count of alternatives", n)
 			}
@@ -175,13 +176,13 @@ func parseLogProbs(top map[string]json.RawMessage, ex *extras) error {
 // A member of the wrong type is an error naming the field rather than a silent
 // empty string: a cache_salt that did not parse is a request whose caller
 // believes their cache is isolated from everybody else's and is not.
-func jsonString(top map[string]json.RawMessage, name string) (string, error) {
+func jsonString(top map[string]jsontext.Value, name string) (string, error) {
 	raw, ok := top[name]
 	if !ok || isNull(raw) {
 		return "", nil
 	}
 	var v string
-	if err := json.Unmarshal(raw, &v); err != nil {
+	if err := json.Unmarshal(raw, &v, foreignJSON); err != nil {
 		return "", fmt.Errorf("%s must be a string: %w", name, err)
 	}
 	return v, nil
@@ -192,13 +193,13 @@ func jsonString(top map[string]json.RawMessage, name string) (string, error) {
 // JSON object keys are strings, so the ids arrive as decimal text; a key that
 // is not an integer is an error rather than a skipped entry, because a bias
 // that lands on no token is a request the caller believes was applied.
-func parseLogitBias(top map[string]json.RawMessage) (map[int]float32, error) {
+func parseLogitBias(top map[string]jsontext.Value) (map[int]float32, error) {
 	raw, ok := top["logit_bias"]
 	if !ok || isNull(raw) {
 		return nil, nil
 	}
 	var wire map[string]float64
-	if err := json.Unmarshal(raw, &wire); err != nil {
+	if err := json.Unmarshal(raw, &wire, foreignJSON); err != nil {
 		return nil, fmt.Errorf("logit_bias must be an object of token id to bias: %w", err)
 	}
 	if len(wire) == 0 {
@@ -216,18 +217,18 @@ func parseLogitBias(top map[string]json.RawMessage) (map[int]float32, error) {
 }
 
 // thinkingOff reports whether the request asked the model not to think.
-func thinkingOff(top map[string]json.RawMessage) bool {
+func thinkingOff(top map[string]jsontext.Value) bool {
 	if raw, ok := top["thinking"]; ok && !isNull(raw) {
 		var t struct {
 			Type string `json:"type"`
 		}
-		if json.Unmarshal(raw, &t) == nil && t.Type == "disabled" {
+		if json.Unmarshal(raw, &t, foreignJSON) == nil && t.Type == "disabled" {
 			return true
 		}
 	}
 	if raw, ok := top["reasoning_effort"]; ok && !isNull(raw) {
 		var e string
-		if json.Unmarshal(raw, &e) == nil && e == "none" {
+		if json.Unmarshal(raw, &e, foreignJSON) == nil && e == "none" {
 			return true
 		}
 	}
@@ -235,7 +236,7 @@ func thinkingOff(top map[string]json.RawMessage) bool {
 		var r struct {
 			Effort string `json:"effort"`
 		}
-		if json.Unmarshal(raw, &r) == nil && r.Effort == "none" {
+		if json.Unmarshal(raw, &r, foreignJSON) == nil && r.Effort == "none" {
 			return true
 		}
 	}
@@ -246,37 +247,37 @@ func thinkingOff(top map[string]json.RawMessage) bool {
 // treats as absent.
 func isNull(raw []byte) bool { return string(raw) == "null" }
 
-func jsonUint(top map[string]json.RawMessage, name string) (*uint64, error) {
+func jsonUint(top map[string]jsontext.Value, name string) (*uint64, error) {
 	raw, ok := top[name]
 	if !ok || isNull(raw) {
 		return nil, nil
 	}
 	var v uint64
-	if err := json.Unmarshal(raw, &v); err != nil {
+	if err := json.Unmarshal(raw, &v, foreignJSON); err != nil {
 		return nil, fmt.Errorf("%s must be a non-negative integer: %w", name, err)
 	}
 	return &v, nil
 }
 
-func jsonInt(top map[string]json.RawMessage, name string) (*int, error) {
+func jsonInt(top map[string]jsontext.Value, name string) (*int, error) {
 	raw, ok := top[name]
 	if !ok || isNull(raw) {
 		return nil, nil
 	}
 	var v int
-	if err := json.Unmarshal(raw, &v); err != nil {
+	if err := json.Unmarshal(raw, &v, foreignJSON); err != nil {
 		return nil, fmt.Errorf("%s must be an integer: %w", name, err)
 	}
 	return &v, nil
 }
 
-func jsonFloat(top map[string]json.RawMessage, name string) (*float32, error) {
+func jsonFloat(top map[string]jsontext.Value, name string) (*float32, error) {
 	raw, ok := top[name]
 	if !ok || isNull(raw) {
 		return nil, nil
 	}
 	var v float64
-	if err := json.Unmarshal(raw, &v); err != nil {
+	if err := json.Unmarshal(raw, &v, foreignJSON); err != nil {
 		return nil, fmt.Errorf("%s must be a number: %w", name, err)
 	}
 	f := float32(v)

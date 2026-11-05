@@ -5,6 +5,8 @@ package main
 
 import (
 	"context"
+	"encoding/json/jsontext"
+	"encoding/json/v2"
 	"time"
 
 	forma "latere.ai/x/forma"
@@ -99,6 +101,45 @@ type genResult struct {
 	CompletionTokens int           `json:"completion_tokens"`
 	TTFT             time.Duration `json:"ttft_ns"`
 	Stop             string        `json:"stop"`
+}
+
+// genresultWire is genResult as it is written: durations are integer
+// nanoseconds, in the field order of genResult.
+type genResultWire struct {
+	PromptTokens     int    `json:"prompt_tokens"`
+	CompletionTokens int    `json:"completion_tokens"`
+	TTFT             int64  `json:"ttft_ns"`
+	Stop             string `json:"stop"`
+}
+
+// MarshalJSONTo writes the durations as integer nanoseconds and passes the
+// encoder's options on to the rest of the value.
+func (g genResult) MarshalJSONTo(enc *jsontext.Encoder) error {
+	return json.MarshalEncode(enc, genResultWire{
+		PromptTokens:     g.PromptTokens,
+		CompletionTokens: g.CompletionTokens,
+		TTFT:             int64(g.TTFT),
+		Stop:             g.Stop,
+	})
+}
+
+// UnmarshalJSONFrom reads the form written by [genResult.MarshalJSONTo]. Members
+// the input leaves out keep their current values.
+func (g *genResult) UnmarshalJSONFrom(dec *jsontext.Decoder) error {
+	w := genResultWire{
+		PromptTokens:     g.PromptTokens,
+		CompletionTokens: g.CompletionTokens,
+		TTFT:             int64(g.TTFT),
+		Stop:             g.Stop,
+	}
+	if err := json.UnmarshalDecode(dec, &w); err != nil {
+		return err
+	}
+	g.PromptTokens = w.PromptTokens
+	g.CompletionTokens = w.CompletionTokens
+	g.TTFT = time.Duration(w.TTFT)
+	g.Stop = w.Stop
+	return nil
 }
 
 // engineOptions is how the model is loaded.

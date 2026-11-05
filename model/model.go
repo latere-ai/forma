@@ -28,7 +28,8 @@
 package model
 
 import (
-	"encoding/json"
+	"encoding/json/jsontext"
+	"encoding/json/v2"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -81,7 +82,7 @@ type Builder interface {
 // and it keeps the race detector honest about a map two goroutines touch.
 var registry struct {
 	mu sync.RWMutex
-	m  map[string]func(json.RawMessage) (Builder, error)
+	m  map[string]func(jsontext.Value) (Builder, error)
 }
 
 // Register makes an architecture available to Open and New. It is meant to be
@@ -92,7 +93,7 @@ var registry struct {
 // the same architecture. A duplicate is a build-time mistake — two packages
 // claiming one architecture string — and silently keeping either one of them
 // picks the weight map of a model the caller did not ask for.
-func Register(architecture string, new func(json.RawMessage) (Builder, error)) {
+func Register(architecture string, new func(jsontext.Value) (Builder, error)) {
 	if architecture == "" {
 		panic("model: Register with an empty architecture")
 	}
@@ -102,7 +103,7 @@ func Register(architecture string, new func(json.RawMessage) (Builder, error)) {
 	registry.mu.Lock()
 	defer registry.mu.Unlock()
 	if registry.m == nil {
-		registry.m = make(map[string]func(json.RawMessage) (Builder, error))
+		registry.m = make(map[string]func(jsontext.Value) (Builder, error))
 	}
 	if _, dup := registry.m[architecture]; dup {
 		panic("model: Register called twice for architecture " + architecture)
@@ -142,7 +143,7 @@ func Open(dir string) (Builder, error) {
 
 // New builds the model a config.json describes. It is Open with the file read
 // already, which is what a caller holding an open safetensors.Repo has.
-func New(config json.RawMessage) (Builder, error) {
+func New(config jsontext.Value) (Builder, error) {
 	arch, err := architecture(config)
 	if err != nil {
 		return nil, err
@@ -175,11 +176,11 @@ func unknown(arch string, known []string) error {
 // architecture pulls architectures[0] out of a config without parsing the rest,
 // so that an unknown architecture is refused by name rather than by whichever
 // field of §5's table its config happens to be missing.
-func architecture(config json.RawMessage) (string, error) {
+func architecture(config jsontext.Value) (string, error) {
 	var head struct {
 		Architectures []string `json:"architectures"`
 	}
-	if err := json.Unmarshal(config, &head); err != nil {
+	if err := json.Unmarshal(config, &head, foreignJSON); err != nil {
 		return "", fmt.Errorf("model: parse config: %w", err)
 	}
 	if len(head.Architectures) == 0 {

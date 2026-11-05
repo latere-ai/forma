@@ -4,7 +4,7 @@
 package chat
 
 import (
-	"encoding/json"
+	"encoding/json/jsontext"
 	"errors"
 	"os"
 	"strings"
@@ -50,7 +50,7 @@ func toolResult(id, text string) Message {
 }
 
 func weather(city string) *ToolUse {
-	return &ToolUse{ID: "call_" + city, Name: "get_weather", Args: json.RawMessage(`{"city": "` + city + `", "unit": "c"}`)}
+	return &ToolUse{ID: "call_" + city, Name: "get_weather", Args: jsontext.Value(`{"city": "` + city + `", "unit": "c"}`)}
 }
 
 func render(t *testing.T, msgs []Message, opts Options) Prompt {
@@ -66,7 +66,7 @@ func TestQwen3Goldens(t *testing.T) {
 	tools := []ToolSpec{{
 		Name:        "get_weather",
 		Description: "Get the weather.",
-		InputSchema: json.RawMessage(`{"type": "object", "properties": {"city": {"type": "string"}}, "required": ["city"]}`),
+		InputSchema: jsontext.Value(`{"type": "object", "properties": {"city": {"type": "string"}}, "required": ["city"]}`),
 	}}
 
 	cases := []struct {
@@ -131,7 +131,7 @@ func TestQwen3Goldens(t *testing.T) {
 		name: "content before a call",
 		msgs: []Message{
 			user("go"),
-			assistant("", "Calling.", &ToolUse{Name: "f", Args: json.RawMessage(`{"a": 1}`)}),
+			assistant("", "Calling.", &ToolUse{Name: "f", Args: jsontext.Value(`{"a": 1}`)}),
 		},
 		opts: Options{Thinking: true, AddGenerationHint: true},
 		want: "<|im_start|>user\ngo<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\nCalling.\n" +
@@ -157,7 +157,7 @@ func TestQwen3Goldens(t *testing.T) {
 		name: "tools without a system message",
 		msgs: []Message{user("weather?")},
 		opts: Options{Thinking: true, AddGenerationHint: true, Tools: []ToolSpec{{
-			Name: "a", Description: "A.", InputSchema: json.RawMessage(`{"type": "object"}`),
+			Name: "a", Description: "A.", InputSchema: jsontext.Value(`{"type": "object"}`),
 		}}},
 		want: "<|im_start|>system\n# Tools\n\nYou may call one or more functions to assist with the user query.\n\n" +
 			"You are provided with function signatures within <tools></tools> XML tags:\n<tools>\n" +
@@ -188,7 +188,7 @@ func TestQwen3Goldens(t *testing.T) {
 func TestQwen3MultiStepRoundKeepsIntermediateThinking(t *testing.T) {
 	msgs := []Message{
 		user("weather?"),
-		assistant("need the tool", "", &ToolUse{Name: "get_weather", Args: json.RawMessage(`{"city": "Berlin"}`)}),
+		assistant("need the tool", "", &ToolUse{Name: "get_weather", Args: jsontext.Value(`{"city": "Berlin"}`)}),
 		toolResult("c0", "18C"),
 		assistant("tool said 18", "It is 18C."),
 	}
@@ -277,7 +277,7 @@ func TestQwen3ThinkingOffEmitsPreClosedBlock(t *testing.T) {
 // here is deliberately in an order Go's encoder would not produce.
 func TestQwen3ToolArgumentsVerbatim(t *testing.T) {
 	args := `{"zulu":1,"alpha":  [2,3],   "text":"a<b&c"}`
-	msgs := []Message{user("go"), assistant("", "", &ToolUse{Name: "f", Args: json.RawMessage(args)})}
+	msgs := []Message{user("go"), assistant("", "", &ToolUse{Name: "f", Args: jsontext.Value(args)})}
 	got := render(t, msgs, Options{Thinking: true}).String()
 	if !strings.Contains(got, "{\"name\": \"f\", \"arguments\": "+args+"}") {
 		t.Errorf("arguments were not passed through verbatim: %q", got)
@@ -462,7 +462,7 @@ func TestQwen3Refusals(t *testing.T) {
 	}, {
 		name: "arguments that are not JSON",
 		msgs: []Message{{Role: Assistant, Blocks: []Block{{Type: BlockToolUse, ToolUse: &ToolUse{
-			Name: "f", Args: json.RawMessage(`{"city": `)}}}}},
+			Name: "f", Args: jsontext.Value(`{"city": `)}}}}},
 		want: ErrToolJSON,
 	}, {
 		name: "nameless tool spec",
@@ -470,7 +470,7 @@ func TestQwen3Refusals(t *testing.T) {
 		want: ErrToolName,
 	}, {
 		name: "an input schema that is not JSON",
-		opts: Options{Tools: []ToolSpec{{Name: "f", InputSchema: json.RawMessage(`{`)}}},
+		opts: Options{Tools: []ToolSpec{{Name: "f", InputSchema: jsontext.Value(`{`)}}},
 		want: ErrToolJSON,
 	}}
 
