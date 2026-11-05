@@ -118,3 +118,10 @@ license:
 # The identity shape of the family: specs/infrastructure/identity.md in latere-ai/specs
 identity:
   role: none
+
+test:
+  # forma builds and tests on Windows, so the plain test also runs there. The
+  # shared workflow runs its steps in bash, which Windows runners have, so no
+  # workflow of its own is needed. Make is not required: the test job calls go
+  # directly.
+  os: [windows-latest]
