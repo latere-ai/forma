@@ -28,13 +28,13 @@ race:
   timeout: 45m
 
 test:
-  # forma builds and tests on Windows and on macOS, and the plain test (go
-  # vet, then go test ./...) runs on each beside the suite on Linux. vet
-  # compiles every package, so a build break there fails it too. The plain
-  # test sets no FORMA_REQUIRE_METAL and runs no race detector, so on macOS a
-  # missing device skips the Metal tests; ci-metal.yml runs the race pass with
-  # the device required.
-  os: [windows-latest, macos-15]
+  # forma tests on macOS beside Linux: the plain test (go vet, then go test
+  # ./...) runs there. It sets no FORMA_REQUIRE_METAL and runs no race
+  # detector, so on macOS a missing device skips the Metal tests;
+  # ci-metal.yml runs the race pass with the device required. Windows is not
+  # listed: the shared workflow runs its test legs with the runner's default
+  # shell, which on Windows is PowerShell, so windows.yml keeps that leg.
+  os: [macos-15]
 
 hermetic:
   # Nothing besides the toolchain. forma's tests reach no system binary, and the
